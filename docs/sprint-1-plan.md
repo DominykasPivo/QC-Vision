@@ -1,6 +1,6 @@
-#   Sprint 1 Plan
+# Sprint 1 Plan
 
-#   Sprint Goal
+# Sprint Goal
 
 MVP Foundation Setup: Implement the basic tests, photo capture & management, and initial defect documentation features. Prepare project infrastructure including Docker Compose, PostgreSQL with live demo.
 
