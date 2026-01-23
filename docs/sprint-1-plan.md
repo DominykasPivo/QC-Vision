@@ -38,7 +38,7 @@ MVP Foundation Setup: Implement the basic tests, photo capture & management, and
 
 - Basic quality tests (4–9 hours)
 
-- Basic UI for listing photo listing (3–5 hours)
+- Basic UI for photo listing (3–5 hours)
 
 ### Low Priority
 
@@ -61,7 +61,7 @@ Success: Happy path works from the browser.
 
 ### Sherifa
 
-Action: UI for mobileSchema + documentation.
+Action: UI for mobile + documentation.
 Deadline: End of Week 14
 Success: Endpoints integrated with UI and stable.
 

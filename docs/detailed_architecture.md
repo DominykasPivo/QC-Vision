@@ -10,7 +10,7 @@ flowchart LR
         MOBILE["Mobile Browser"]
     end
 
-    subgraph GATEWAY["API GATEWAY LAYER - Nginx :80"]
+    subgraph GATEWAY["API GATEWAY LAYER - Nginx :8000"]
         direction LR
         API["REST API Gateway<br/>:8000"]
         WS["WebSocket Server<br/> :8000"]
