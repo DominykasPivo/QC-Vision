@@ -193,5 +193,5 @@ The system uses WebSocket for real-time collaboration:
 
 ## Connection Types
 
-- **Solid lines (→)** - Required, synchronous connections
-- **Dashed lines (⇢)** - Optional or asynchronous connections
+- **Solid lines (`-->`)** - Required, synchronous connections
+- **Dashed lines (`-.->`)** - Optional or asynchronous connections
