@@ -60,7 +60,7 @@ flowchart LR
     WS -.->|"Broadcast"| WEB
     WS -.->|"Broadcast"| MOBILE
 ```
-For a more clearer architecture diagram use draw.io [here](https://drive.google.com/file/d/15YkJcZwWqBhIJU4S3FyBjxDVHXOc-Kmm/view?usp=sharing)
+For a clearer architecture diagram, use draw.io [here](https://drive.google.com/file/d/15YkJcZwWqBhIJU4S3FyBjxDVHXOc-Kmm/view?usp=sharing)
 
 ## Overview
 
