@@ -1,0 +1,146 @@
+services:
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qc_vision_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000
+    networks:
+      - qc-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qc_vision_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-qc_user}:${POSTGRES_PASSWORD:-qc_password}@postgres:5432/${POSTGRES_DB:-qc_vision}
+      
+      # MinIO Storage
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET_PHOTOS=photos
+      - MINIO_BUCKET_THUMBNAILS=thumbnails
+      - MINIO_BUCKET_EXPORTS=exports
+      
+      # # Simple Authentication (User Identity Only)
+      # - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      # - JWT_ALGORITHM=HS256
+      # - JWT_EXPIRATION_HOURS=24
+      
+      # Application Settings
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      
+      # # AI Settings (Optional)
+      # - AI_MODEL_PATH=/models
+      # - AI_CONFIDENCE_THRESHOLD=0.8
+      # - AI_ENABLED=${AI_ENABLED:-false}
+      
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - ai_models:/models
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - qc-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: qc_vision_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-qc_vision}
+      POSTGRES_USER: ${POSTGRES_USER:-qc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qc_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qc_user} -d ${POSTGRES_DB:-qc_vision}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qc-network
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: qc_vision_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - qc-network
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: qc_vision_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set minio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      mc mb minio/photos --ignore-existing;
+      mc mb minio/thumbnails --ignore-existing;
+      mc mb minio/exports --ignore-existing;
+      mc anonymous set download minio/photos;
+      mc anonymous set download minio/thumbnails;
+      mc anonymous set download minio/exports;
+      echo 'MinIO buckets initialized successfully';
+      exit 0;
+      "
+    networks:
+      - qc-network
+
+networks:
+  qc-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  ai_models:
+    driver: local
