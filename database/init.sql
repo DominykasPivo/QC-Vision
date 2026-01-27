@@ -1,193 +1,125 @@
--- ===== QC Vision Database Initialization =====
--- PostgreSQL Schema for Quality Control Visual Testing
+CREATE TABLE reviewers (
+  reviewer_id SERIAL PRIMARY KEY,
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+  first_name  TEXT NOT NULL,
+  last_name   TEXT NOT NULL,
 
--- ===== ENUM TYPES =====
+  username    TEXT GENERATED ALWAYS AS
+              (lower(left(first_name, 2) || left(last_name, 3))) STORED,
 
--- Test Status
-CREATE TYPE test_status AS ENUM ('open', 'in_progress', 'pending', 'finalized');
+  email       TEXT UNIQUE NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
 
--- Product Types (examples - extend as needed)
-CREATE TYPE product_type AS ENUM (
-    't_shirt',
-    'hoodie',
-    'poster',
-    'mug',
-    'sticker',
-    'phone_case',
-    'bag',
-    'other'
-);
-
--- Test Types
-CREATE TYPE test_type AS ENUM (
-    'print_quality',
-    'color_accuracy',
-    'material_inspection',
-    'packaging',
-    'general'
-);
-
--- Defect Categories
-CREATE TYPE defect_category AS ENUM (
-    'incorrect_colors',
-    'damage',
-    'print_errors',
-    'embroidery_issues',
-    'material_defect',
-    'sizing_issue',
-    'alignment_issue',
-    'other'
-);
-
--- Defect Severity
-CREATE TYPE defect_severity AS ENUM ('low', 'medium', 'high', 'critical');
-
--- Photo Capture Method
-CREATE TYPE capture_method AS ENUM ('camera', 'gallery', 'iot_device');
-
-
--- ===== TABLES =====
-
--- Quality Tests Table
-CREATE TABLE IF NOT EXISTS tests (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    external_order_id VARCHAR(100),
-    product_type product_type NOT NULL DEFAULT 'other',
-    test_type test_type NOT NULL DEFAULT 'general',
-    status test_status NOT NULL DEFAULT 'open',
-    requester VARCHAR(255),
-    deadline TIMESTAMP WITH TIME ZONE,
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP WITH TIME ZONE -- Soft delete
-);
-
--- Photos Table
-CREATE TABLE IF NOT EXISTS photos (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    test_id UUID REFERENCES tests(id) ON DELETE SET NULL,
-    filename VARCHAR(255) NOT NULL,
-    original_filename VARCHAR(255),
-    file_size INTEGER,
-    mime_type VARCHAR(100),
-    width INTEGER,
-    height INTEGER,
-    storage_path VARCHAR(500) NOT NULL,
-    thumbnail_path VARCHAR(500),
-    capture_method capture_method DEFAULT 'gallery',
-    captured_at TIMESTAMP WITH TIME ZONE,
-    uploaded_by VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Defects Table
-CREATE TABLE IF NOT EXISTS defects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    photo_id UUID REFERENCES photos(id) ON DELETE CASCADE,
-    test_id UUID REFERENCES tests(id) ON DELETE CASCADE,
-    category defect_category NOT NULL,
-    severity defect_severity NOT NULL DEFAULT 'medium',
-    description TEXT,
-    annotations JSONB, -- Stores visual annotation data (circles, areas, etc.)
-    reported_by VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- AI Recognition Results Table
-CREATE TABLE IF NOT EXISTS ai_recognition_results (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    photo_id UUID REFERENCES photos(id) ON DELETE CASCADE,
-    recognized_design_id VARCHAR(255),
-    confidence_score DECIMAL(5, 4), -- 0.0000 to 1.0000
-    suggestions JSONB, -- Top 3-5 design suggestions with scores
-    processing_time_ms INTEGER,
-    model_version VARCHAR(50),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Audit Logs Table
-CREATE TABLE IF NOT EXISTS audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    action VARCHAR(100) NOT NULL,
-    entity_type VARCHAR(50) NOT NULL, -- 'test', 'photo', 'defect'
-    entity_id UUID,
-    user_identifier VARCHAR(255),
-    ip_address INET,
-    user_agent TEXT,
-    old_values JSONB,
-    new_values JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  UNIQUE (username)
 );
 
 
--- ===== INDEXES =====
 
--- Tests indexes
-CREATE INDEX idx_tests_status ON tests(status);
-CREATE INDEX idx_tests_product_type ON tests(product_type);
-CREATE INDEX idx_tests_external_order ON tests(external_order_id);
-CREATE INDEX idx_tests_created_at ON tests(created_at);
-CREATE INDEX idx_tests_deadline ON tests(deadline);
+CREATE TABLE quality_tests (
+  id SERIAL PRIMARY KEY,
+  porductID   INT NOT NULL UNIQUE
 
--- Photos indexes
-CREATE INDEX idx_photos_test_id ON photos(test_id);
-CREATE INDEX idx_photos_created_at ON photos(created_at);
+  test_type   ENUM,
+  requester   TEXT,
+  status      ENUM('open','in_progress','pending','finalized') NOT NULL DEFAULT 'open',
+  deadline_at TIMESTAMPTZ,
 
--- Defects indexes
-CREATE INDEX idx_defects_photo_id ON defects(photo_id);
-CREATE INDEX idx_defects_test_id ON defects(test_id);
-CREATE INDEX idx_defects_category ON defects(category);
-CREATE INDEX idx_defects_severity ON defects(severity);
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- AI Recognition indexes
-CREATE INDEX idx_ai_results_photo_id ON ai_recognition_results(photo_id);
-CREATE INDEX idx_ai_results_confidence ON ai_recognition_results(confidence_score);
-
--- Audit logs indexes
-CREATE INDEX idx_audit_entity ON audit_logs(entity_type, entity_id);
-CREATE INDEX idx_audit_created_at ON audit_logs(created_at);
-CREATE INDEX idx_audit_action ON audit_logs(action);
+CREATE INDEX idx_quality_tests_status   ON quality_tests(status);
+CREATE INDEX idx_quality_tests_deadline ON quality_tests(deadline_at);
+CREATE INDEX idx_quality_tests_created  ON quality_tests(created_at);
 
 
--- ===== TRIGGER FUNCTION FOR updated_at =====
+CREATE TABLE photos (
+  id SERIAL PRIMARY KEY,
+  quality_test_id INT NOT NULL REFERENCES quality_tests(id) ON DELETE RESTRICT,
 
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+  object_key TEXT NOT NULL,        
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_photos_quality_test_id ON photos(quality_test_id);
+
+
+CREATE OR REPLACE FUNCTION prevent_photo_relinkage()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
+  IF NEW.quality_test_id <> OLD.quality_test_id THEN
+    RAISE EXCEPTION 'Relinking photos to a different quality test is not allowed.';
+  END IF;
+  RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
--- Apply trigger to tables with updated_at
-CREATE TRIGGER update_tests_updated_at
-    BEFORE UPDATE ON tests
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS trg_prevent_photo_relinkage ON photos;
 
-CREATE TRIGGER update_defects_updated_at
-    BEFORE UPDATE ON defects
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_prevent_photo_relinkage
+BEFORE UPDATE OF quality_test_id ON photos
+FOR EACH ROW
+EXECUTE FUNCTION prevent_photo_relinkage();
 
 
--- ===== SAMPLE DATA (Optional - for development) =====
+CREATE TABLE defect_categories (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
 
--- Insert sample test
-INSERT INTO tests (external_order_id, product_type, test_type, status, requester, notes)
-VALUES 
-    ('ORD-2026-001', 't_shirt', 'print_quality', 'open', 'QC Team', 'Sample test for development'),
-    ('ORD-2026-002', 'hoodie', 'color_accuracy', 'in_progress', 'QC Team', 'Color verification test'),
-    ('ORD-2026-003', 'poster', 'general', 'pending', 'Production Floor', 'Awaiting review');
+INSERT INTO defect_categories (name)
+('Incorrect Colors'),
+('Damage'),
+('Print Errors'),
+('Embroidery Issues'),
+('Other')
+ON CONFLICT (name) DO NOTHING;
 
--- Log the initialization
-INSERT INTO audit_logs (action, entity_type, user_identifier)
-VALUES ('database_initialized', 'system', 'docker-init');
 
--- Confirm initialization
-SELECT 'QC Vision database initialized successfully!' AS status;
+
+CREATE TABLE defects (
+  id SERIAL PRIMARY KEY,
+  photo_id INT NOT NULL REFERENCES photos(id) ON DELETE RESTRICT,
+
+  category_id INT NOT NULL REFERENCES defect_categories(id) ON DELETE RESTRICT,
+
+  description TEXT,
+  severity ENUM('low','medium','high','critical') NOT NULL DEFAULT 'low',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_defects_photo_id    ON defects(photo_id);
+CREATE INDEX idx_defects_category_id ON defects(category_id);
+CREATE INDEX idx_defects_severity    ON defects(severity);
+
+CREATE TABLE defect_annotations (
+  id SERIAL PRIMARY KEY,
+  defect_id INT NOT NULL REFERENCES defects(id) ON DELETE RESTRICT,
+
+  geometry JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_defect_annotations_defect_id ON defect_annotations(defect_id);
+
+
+
+CREATE TABLE audit_logs (
+  id SERIAL PRIMARY KEY,
+
+  action      TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id   INT NOT NULL,
+
+  meta        JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  username    TEXT NOT NULL,
+);
+
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX idx_audit_logs_action     ON audit_logs(action);
+CREATE INDEX idx_audit_logs_entity     ON audit_logs(entity_type, entity_id);
+CREATE INDEX idx_audit_logs_username   ON audit_logs(username);
