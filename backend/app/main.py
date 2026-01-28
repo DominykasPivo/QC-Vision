@@ -2,10 +2,16 @@
 QC Vision - Main FastAPI Application
 Visual Quality Tests Tracking for Modern Manufacturing
 """
+import logging 
+import sys
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from app.modules.photos import router as photos_router
+
+
 
 # Application metadata
 APP_NAME = "QC Vision API"
@@ -20,6 +26,14 @@ QC Vision - Visual Quality Tests Tracking for Modern Manufacturing
 - 📊 Audit & Review
 - 🤖 AI-Assisted Design Recognition (Optional)
 """
+
+logger = logging.getLogger("backend_photos_main")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    stream=sys.stdout,
+)
 
 
 @asynccontextmanager
@@ -92,7 +106,7 @@ async def api_status():
 # TODO: Add routers for each service module
 # from app.routers import tests, photos, defects, audit, ai
 # app.include_router(tests.router, prefix="/api/v1/tests", tags=["Tests"])
-# app.include_router(photos.router, prefix="/api/v1/photos", tags=["Photos"])
+app.include_router(photos_router, prefix="/api/v1/photos", tags=["Photos"])
 # app.include_router(defects.router, prefix="/api/v1/defects", tags=["Defects"])
 # app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
 # app.include_router(ai.router, prefix="/api/v1/ai", tags=["AI Recognition"])
