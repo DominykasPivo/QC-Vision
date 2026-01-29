@@ -1,1 +1,0 @@
-# QC Vision Backend Application
