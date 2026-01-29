@@ -1,4 +1,3 @@
-#enumerations fo multiple choice fields
 DO $$ BEGIN
   CREATE TYPE test_type AS ENUM ('incoming','in_process','final','other');
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -63,7 +62,7 @@ CREATE TABLE IF NOT EXISTS photos (
   analysis_results TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_photos_quality_test_id ON photos(quality_test_id);
+CREATE INDEX IF NOT EXISTS idx_photos_test_id ON photos(test_id);
 
 
 
