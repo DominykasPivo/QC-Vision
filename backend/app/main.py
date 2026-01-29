@@ -1,0 +1,112 @@
+"""
+QC Vision - Main FastAPI Application
+Visual Quality Tests Tracking for Modern Manufacturing
+"""
+import logging 
+import sys
+import os
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from app.modules.photos import router as photos_router
+
+
+
+# Application metadata
+APP_NAME = "QC Vision API"
+APP_VERSION = "0.1.0"
+APP_DESCRIPTION = """
+QC Vision - Visual Quality Tests Tracking for Modern Manufacturing
+
+## Features
+- 📸 Photo Capture & Upload
+- 🧪 Quality Test Management
+- 🔍 Defect Documentation
+- 📊 Audit & Review
+- 🤖 AI-Assisted Design Recognition (Optional)
+"""
+
+logger = logging.getLogger("backend_photos_main")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    stream=sys.stdout,
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application startup and shutdown events."""
+    # Startup
+    print(f"🚀 Starting {APP_NAME} v{APP_VERSION}")
+    yield
+    # Shutdown
+    print(f"👋 Shutting down {APP_NAME}")
+
+
+# Create FastAPI application
+app = FastAPI(
+    title=APP_NAME,
+    description=APP_DESCRIPTION,
+    version=APP_VERSION,
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/")
+async def root():
+    """Root endpoint - API information."""
+    return {
+        "name": APP_NAME,
+        "version": APP_VERSION,
+        "status": "running",
+        "docs": "/docs",
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker and load balancers."""
+    return {
+        "status": "healthy",
+        "service": APP_NAME,
+        "version": APP_VERSION,
+    }
+
+
+@app.get("/api/v1/status")
+async def api_status():
+    """API status endpoint."""
+    return {
+        "api_version": "v1",
+        "status": "operational",
+        "services": {
+            "test_management": "available",
+            "photo_management": "available",
+            "defect_documentation": "available",
+            "audit_review": "available",
+            "ai_recognition": "coming_soon",
+        },
+    }
+
+
+# TODO: Add routers for each service module
+# from app.routers import tests, photos, defects, audit, ai
+# app.include_router(tests.router, prefix="/api/v1/tests", tags=["Tests"])
+app.include_router(photos_router, prefix="/api/v1/photos", tags=["Photos"])
+# app.include_router(defects.router, prefix="/api/v1/defects", tags=["Defects"])
+# app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
+# app.include_router(ai.router, prefix="/api/v1/ai", tags=["AI Recognition"])
