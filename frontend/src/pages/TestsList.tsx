@@ -1,0 +1,126 @@
+import { type FormEvent, useMemo, useState } from 'react';
+import { Link, useOutletContext } from 'react-router-dom';
+import type { AppDataContext } from '../components/layout/AppShell';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const statusClass: Record<string, string> = {
+    'pending': 'badge-pending',
+    'in-progress': 'badge-in-progress',
+    'completed': 'badge-completed',
+    'failed': 'badge-failed',
+};
+
+const statusLabel: Record<string, string> = {
+    'pending': 'Pending',
+    'in-progress': 'In Progress',
+    'completed': 'Completed',
+    'failed': 'Failed',
+};
+
+export function TestsList() {
+    const { tests } = useOutletContext<AppDataContext>();
+    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+
+    const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setSearchQuery(searchInput.trim());
+    };
+
+    const filteredTests = useMemo(() => {
+        const normalizedQuery = searchQuery.toLowerCase();
+        const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+
+        return tests.filter((test) => {
+            if (statusFilter && test.status !== statusFilter) {
+                return false;
+            }
+
+            if (tokens.length === 0) {
+                return true;
+            }
+
+            const haystack = [
+                test.id,
+                test.externalOrderId,
+                test.productType,
+                test.testType,
+                test.requester,
+                test.deadline,
+                test.status,
+                statusLabel[test.status],
+            ]
+                .join(' ')
+                .toLowerCase();
+
+            return tokens.every((token) => haystack.includes(token));
+        });
+    }, [searchQuery, statusFilter, tests]);
+
+    return (
+        <div className="page">
+            <h2 className="page-title">Tests</h2>
+            <p className="page-description">View and manage quality control tests</p>
+
+            <form
+                className="search-filter-bar flex flex-col gap-2 sm:flex-row sm:items-center"
+                onSubmit={handleSearchSubmit}
+            >
+                <Input
+                    type="text"
+                    className="form-input flex-1"
+                    placeholder="Search tests..."
+                    value={searchInput}
+                    onChange={(event) => {
+                        const nextValue = event.target.value;
+                        setSearchInput(nextValue);
+                        if (nextValue.trim() === '') {
+                            setSearchQuery('');
+                        }
+                    }}
+                />
+                <Button type="submit" variant="secondary" className="btn btn-secondary">
+                    Search
+                </Button>
+                <Select
+                    value={statusFilter || 'all'}
+                    onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}
+                >
+                    <SelectTrigger className="form-select">
+                        <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in-progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                </Select>
+            </form>
+
+            <div className="tests-list">
+                {filteredTests.map((test) => (
+                    <Link to={`/tests/${test.id}`} key={test.id} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <Card className="card">
+                            <CardHeader className="card-header flex-row items-center justify-between p-0">
+                                <CardTitle className="card-title">{test.id}</CardTitle>
+                                <span className={`badge ${statusClass[test.status]}`}>
+                                    {statusLabel[test.status]}
+                                </span>
+                            </CardHeader>
+                            <CardContent className="card-meta p-0">
+                                <span>{test.productType}</span>
+                                <span>{test.deadline}</span>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
+}
