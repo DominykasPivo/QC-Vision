@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,9 @@ export function CreateTest() {
     const [showToast, setShowToast] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+    const photoInputRef = useRef<HTMLInputElement | null>(null);
+    const MAX_PHOTOS = 6;
     const [formData, setFormData] = useState({
         productId: '',
         testType: '',
@@ -17,6 +20,50 @@ export function CreateTest() {
         deadline: '',
         status: 'pending',
     });
+
+    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? []);
+        if (files.length === 0) {
+            return;
+        }
+        setSelectedPhotos((prev) => {
+            const combined = [...prev, ...files];
+            return combined.slice(0, MAX_PHOTOS);
+        });
+        e.target.value = '';
+    };
+
+    const handleRemovePhoto = (index: number) => {
+        setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const uploadSelectedPhotos = async (testId: string | number | null) => {
+        if (selectedPhotos.length === 0) {
+            return;
+        }
+        if (!testId) {
+            console.info('Photo upload skipped: missing test id', selectedPhotos);
+            return;
+        }
+
+        const uploadRequests = selectedPhotos.map(async (file) => {
+            const body = new FormData();
+            body.append('test_id', String(testId));
+            body.append('file', file);
+
+            const response = await fetch('/api/v1/photos/upload', {
+                method: 'POST',
+                body,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                console.warn('Photo upload failed:', errorData?.detail || response.statusText);
+            }
+        });
+
+        await Promise.allSettled(uploadRequests);
+    };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -44,7 +91,11 @@ export function CreateTest() {
                 throw new Error(errorData.detail || 'Failed to create test');
             }
 
-            await response.json();
+            const createdTest = await response.json();
+            const createdTestId =
+                createdTest?.id ?? createdTest?.testId ?? createdTest?.data?.id ?? null;
+
+            await uploadSelectedPhotos(createdTestId);
             
             // Show success toast
             setShowToast(true);
@@ -62,6 +113,7 @@ export function CreateTest() {
                 deadline: '',
                 status: 'pending',
             });
+            setSelectedPhotos([]);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create test');
             console.error('Error creating test:', err);
@@ -189,6 +241,76 @@ export function CreateTest() {
                             <SelectItem value="in-progress">In Progress</SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label" htmlFor="photo-upload">
+                        Photos (Optional)
+                    </label>
+                    <div className="upload-card">
+                        <div className="upload-card-inner">
+                            <div className="upload-header">
+                                <svg className="upload-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path
+                                        d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                    />
+                                    <circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                                </svg>
+                                <div>
+                                    <div className="upload-title">Upload photos for this test</div>
+                                    <div className="upload-helper" id="photo-upload-help">
+                                        PNG/JPG, up to {MAX_PHOTOS} files
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="upload-actions">
+                                <Button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => photoInputRef.current?.click()}
+                                    disabled={isLoading}
+                                >
+                                    Choose images
+                                </Button>
+                                <span className="upload-helper">
+                                    Selected {selectedPhotos.length} of {MAX_PHOTOS}
+                                </span>
+                            </div>
+                            <input
+                                ref={photoInputRef}
+                                id="photo-upload"
+                                name="photo-upload"
+                                type="file"
+                                accept="image/png,image/jpeg"
+                                multiple
+                                className="upload-input"
+                                onChange={handlePhotoSelect}
+                                disabled={isLoading}
+                                aria-describedby="photo-upload-help"
+                            />
+                            {selectedPhotos.length > 0 && (
+                                <div className="upload-list" aria-live="polite">
+                                    {selectedPhotos.map((file, index) => (
+                                        <div key={`${file.name}-${file.lastModified}-${index}`} className="upload-item">
+                                            <span className="upload-file-name">{file.name}</span>
+                                            <button
+                                                type="button"
+                                                className="upload-remove"
+                                                onClick={() => handleRemovePhoto(index)}
+                                                aria-label={`Remove ${file.name}`}
+                                                disabled={isLoading}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 <Button type="submit" className="btn btn-primary btn-block" disabled={isLoading}>

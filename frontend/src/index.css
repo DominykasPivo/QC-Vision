@@ -189,6 +189,96 @@ body {
   color: var(--muted);
 }
 
+/* Photo Upload Placeholder */
+.upload-card {
+  border: 2px dashed var(--border);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.upload-card-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.upload-header {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.upload-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.upload-title {
+  font-weight: 600;
+}
+
+.upload-helper {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.upload-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.upload-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.upload-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.upload-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-remove {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-height: 36px;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
