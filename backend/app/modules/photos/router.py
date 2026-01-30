@@ -14,7 +14,7 @@ logger = logging.getLogger("backend_photos_router")
 https://medium.com/@mlopsengineer/routers-in-fastapi-tutorial-2-adf3e505fdca
 """
 
-router = APIRouter()
+router = APIRouter(prefix="", tags=["photos"])
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)
 async def upload_photo(
