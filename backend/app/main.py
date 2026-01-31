@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.modules.photos.router import router as photos_router
 from app.modules.tests.router import router as tests_router
+from app.database import create_tables
 
 
 
@@ -42,6 +43,9 @@ async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     # Startup
     print(f"🚀 Starting {APP_NAME} v{APP_VERSION}")
+    print("📊 Creating database tables...")
+    create_tables()
+    print("✅ Database tables ready")
     yield
     # Shutdown
     print(f"👋 Shutting down {APP_NAME}")

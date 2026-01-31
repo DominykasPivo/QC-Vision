@@ -44,6 +44,7 @@ export function CreateTest() {
         setError(null);
 
         try {
+            // Step 1: Create the test
             const response = await fetch('/api/v1/tests/', {
                 method: 'POST',
                 headers: {
@@ -64,7 +65,29 @@ export function CreateTest() {
                 throw new Error(errorData.detail || 'Failed to create test');
             }
 
-            await response.json();
+            const testData = await response.json();
+            const testId = testData.id;
+
+            // Step 2: Upload photos if any are selected
+            if (selectedPhotos.length > 0) {
+                const uploadPromises = selectedPhotos.map(async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const photoResponse = await fetch(`/api/v1/photos/upload?test_id=${testId}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!photoResponse.ok) {
+                        throw new Error(`Failed to upload ${file.name}`);
+                    }
+
+                    return photoResponse.json();
+                });
+
+                await Promise.all(uploadPromises);
+            }
             
             // Show success toast
             setShowToast(true);
