@@ -5,20 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatEnumLabel, TEST_STATUSES, type TestStatus } from '@/lib/db-constants';
 
-const statusClass: Record<string, string> = {
-    'pending': 'badge-pending',
-    'in-progress': 'badge-in-progress',
-    'completed': 'badge-completed',
-    'failed': 'badge-failed',
+const statusClass: Record<TestStatus, string> = {
+    open: 'badge-open',
+    in_progress: 'badge-in-progress',
+    pending: 'badge-pending',
+    finalized: 'badge-finalized',
 };
 
-const statusLabel: Record<string, string> = {
-    'pending': 'Pending',
-    'in-progress': 'In Progress',
-    'completed': 'Completed',
-    'failed': 'Failed',
-};
+const statusLabel = (status: TestStatus) => formatEnumLabel(status);
 
 export function TestsList() {
     const { tests } = useOutletContext<AppDataContext>();
@@ -52,7 +48,7 @@ export function TestsList() {
                 test.requester,
                 test.deadline,
                 test.status,
-                statusLabel[test.status],
+                statusLabel(test.status),
             ]
                 .join(' ')
                 .toLowerCase();
@@ -95,10 +91,11 @@ export function TestsList() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
+                        {TEST_STATUSES.map((status) => (
+                            <SelectItem key={status} value={status}>
+                                {statusLabel(status)}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </form>
@@ -110,7 +107,7 @@ export function TestsList() {
                             <CardHeader className="card-header flex-row items-center justify-between p-0">
                                 <CardTitle className="card-title">{test.id}</CardTitle>
                                 <span className={`badge ${statusClass[test.status]}`}>
-                                    {statusLabel[test.status]}
+                                    {statusLabel(test.status)}
                                 </span>
                             </CardHeader>
                             <CardContent className="card-meta p-0">

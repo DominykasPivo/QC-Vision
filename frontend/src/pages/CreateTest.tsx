@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatEnumLabel, TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
 
 export function CreateTest() {
     const navigate = useNavigate();
@@ -14,11 +15,11 @@ export function CreateTest() {
     const MAX_PHOTOS = 6;
     const [formData, setFormData] = useState({
         productId: '',
-        testType: '',
+        testType: 'incoming' as TestType,
         requester: '',
         assignedTo: '',
         deadline: '',
-        status: 'pending',
+        status: 'open' as TestStatus,
     });
 
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,34 +36,6 @@ export function CreateTest() {
 
     const handleRemovePhoto = (index: number) => {
         setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    const uploadSelectedPhotos = async (testId: string | number | null) => {
-        if (selectedPhotos.length === 0) {
-            return;
-        }
-        if (!testId) {
-            console.info('Photo upload skipped: missing test id', selectedPhotos);
-            return;
-        }
-
-        const uploadRequests = selectedPhotos.map(async (file) => {
-            const body = new FormData();
-            body.append('test_id', String(testId));
-            body.append('file', file);
-
-            const response = await fetch('/api/v1/photos/upload', {
-                method: 'POST',
-                body,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                console.warn('Photo upload failed:', errorData?.detail || response.statusText);
-            }
-        });
-
-        await Promise.allSettled(uploadRequests);
     };
 
     const handleSubmit = async (e: FormEvent) => {
@@ -91,11 +64,7 @@ export function CreateTest() {
                 throw new Error(errorData.detail || 'Failed to create test');
             }
 
-            const createdTest = await response.json();
-            const createdTestId =
-                createdTest?.id ?? createdTest?.testId ?? createdTest?.data?.id ?? null;
-
-            await uploadSelectedPhotos(createdTestId);
+            await response.json();
             
             // Show success toast
             setShowToast(true);
@@ -107,11 +76,11 @@ export function CreateTest() {
             // Reset form
             setFormData({
                 productId: '',
-                testType: '',
+                testType: 'incoming',
                 requester: '',
                 assignedTo: '',
                 deadline: '',
-                status: 'pending',
+                status: 'open',
             });
             setSelectedPhotos([]);
         } catch (err) {
@@ -160,17 +129,24 @@ export function CreateTest() {
                         <label className="form-label" htmlFor="testType">
                             Test Type
                         </label>
-                        <Input
-                            type="text"
-                            id="testType"
-                            name="testType"
-                            className="form-input"
-                            placeholder="Enter test type"
+                        <Select
                             value={formData.testType}
-                            onChange={handleChange}
-                            required
+                            onValueChange={(value) =>
+                                setFormData((prev) => ({ ...prev, testType: value as TestType }))
+                            }
                             disabled={isLoading}
-                        />
+                        >
+                            <SelectTrigger id="testType" className="form-select">
+                                <SelectValue placeholder="Select test type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {TEST_TYPES.map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                        {formatEnumLabel(type)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="form-group flex-1">
@@ -230,15 +206,20 @@ export function CreateTest() {
                     </label>
                     <Select
                         value={formData.status}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
+                        onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, status: value as TestStatus }))
+                        }
                         disabled={isLoading}
                     >
                         <SelectTrigger id="status" className="form-select">
                             <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="in-progress">In Progress</SelectItem>
+                            {TEST_STATUSES.map((status) => (
+                                <SelectItem key={status} value={status}>
+                                    {formatEnumLabel(status)}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>

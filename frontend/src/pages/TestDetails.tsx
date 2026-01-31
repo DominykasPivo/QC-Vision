@@ -1,6 +1,7 @@
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import type { AppDataContext } from '../components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatEnumLabel } from '@/lib/db-constants';
 
 export function TestDetails() {
     const { tests } = useOutletContext<AppDataContext>();
@@ -36,10 +37,10 @@ export function TestDetails() {
                     <CardContent className="flex flex-col gap-2 p-0">
                         <div><strong>External Order:</strong> {test.externalOrderId}</div>
                         <div><strong>Product Type:</strong> {test.productType}</div>
-                        <div><strong>Test Type:</strong> {test.testType}</div>
+                        <div><strong>Test Type:</strong> {formatEnumLabel(test.testType)}</div>
                         <div><strong>Requester:</strong> {test.requester}</div>
                         <div><strong>Deadline:</strong> {test.deadline}</div>
-                        <div><strong>Status:</strong> {test.status}</div>
+                        <div><strong>Status:</strong> {formatEnumLabel(test.status)}</div>
                     </CardContent>
                 </Card>
 

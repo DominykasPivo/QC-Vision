@@ -1,13 +1,15 @@
 // Mock data for QC Vision MVP
 
+import type { TestStatus, TestType } from '../lib/db-constants';
+
 export interface Test {
   id: string;
   externalOrderId: string;
   productType: string;
-  testType: string;
+  testType: TestType;
   requester: string;
   deadline: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'failed';
+  status: TestStatus;
 }
 
 export interface Photo {

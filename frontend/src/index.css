@@ -362,19 +362,19 @@ body {
   color: #92400e;
 }
 
+.badge-open {
+  background: #e5e7eb;
+  color: #374151;
+}
+
 .badge-in-progress {
   background: #dbeafe;
   color: #1e40af;
 }
 
-.badge-completed {
+.badge-finalized {
   background: #d1fae5;
   color: #065f46;
-}
-
-.badge-failed {
-  background: #fee2e2;
-  color: #991b1b;
 }
 
 /* Search and Filter Bar */
