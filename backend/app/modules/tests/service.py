@@ -25,12 +25,12 @@ class TestsService:
     
     async def create_test(self, db: Session, test_data: TestCreate) -> TestResponse:
         test = Tests(
-            productId=test_data.productId,
-            testType=test_data.testType,
+            product_id=test_data.productId,
+            test_type=test_data.testType,
             requester=test_data.requester,
-            assignedTo=test_data.assignedTo,
+            assigned_to=test_data.assignedTo,
             status=test_data.status,
-            deadlineAt=test_data.deadlineAt,
+            deadline_at=test_data.deadlineAt,
         )
         db.add(test)
         db.commit()

@@ -12,8 +12,8 @@ class Photo(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    # Foreign key to qualityTests table
-    test_id = Column(Integer, ForeignKey("qualityTests.id", ondelete="RESTRICT"), nullable=False, index=True)
+    # Foreign key to quality_tests table
+    test_id = Column(Integer, ForeignKey("quality_tests.id", ondelete="RESTRICT"), nullable=False, index=True)
     
     # Storage info - MinIO path
     file_path = Column(Text, nullable=False)

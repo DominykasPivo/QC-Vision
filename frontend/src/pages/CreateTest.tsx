@@ -44,20 +44,30 @@ export function CreateTest() {
         setError(null);
 
         try {
-            // Step 1: Create the test
+            // Create FormData for test + photos in single request
+            const submitFormData = new FormData();
+            
+            // Add test fields
+            submitFormData.append('productId', formData.productId);
+            submitFormData.append('testType', formData.testType.trim());
+            submitFormData.append('requester', formData.requester.trim());
+            if (formData.assignedTo.trim()) {
+                submitFormData.append('assignedTo', formData.assignedTo.trim());
+            }
+            submitFormData.append('status', formData.status);
+            if (formData.deadline) {
+                submitFormData.append('deadlineAt', new Date(formData.deadline).toISOString());
+            }
+            
+            // Add photos (if any)
+            for (const photo of selectedPhotos) {
+                submitFormData.append('photos', photo);
+            }
+
+            // Single request to create test + upload photos
             const response = await fetch('/api/v1/tests/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    productId: parseInt(formData.productId),
-                    testType: formData.testType.trim(),
-                    requester: formData.requester.trim(),
-                    assignedTo: formData.assignedTo.trim() || null,
-                    status: formData.status,
-                    deadlineAt: formData.deadline ? new Date(formData.deadline).toISOString() : null,
-                }),
+                body: submitFormData,
             });
 
             if (!response.ok) {
@@ -65,29 +75,8 @@ export function CreateTest() {
                 throw new Error(errorData.detail || 'Failed to create test');
             }
 
-            const testData = await response.json();
-            const testId = testData.id;
-
-            // Step 2: Upload photos if any are selected
-            if (selectedPhotos.length > 0) {
-                const uploadPromises = selectedPhotos.map(async (file) => {
-                    const formData = new FormData();
-                    formData.append('file', file);
-
-                    const photoResponse = await fetch(`/api/v1/photos/upload?test_id=${testId}`, {
-                        method: 'POST',
-                        body: formData,
-                    });
-
-                    if (!photoResponse.ok) {
-                        throw new Error(`Failed to upload ${file.name}`);
-                    }
-
-                    return photoResponse.json();
-                });
-
-                await Promise.all(uploadPromises);
-            }
+            const result = await response.json();
+            console.log('Test created:', result);
             
             // Show success toast
             setShowToast(true);

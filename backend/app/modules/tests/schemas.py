@@ -15,16 +15,16 @@ class TestCreate(BaseModel):
 class TestResponse(BaseModel):
     """Schema for test retrieval"""
     id: int
-    productId: int
-    testType: str
+    productId: int = Field(alias="product_id")
+    testType: str = Field(alias="test_type")
     requester: str
-    assignedTo: Optional[str] = None
+    assignedTo: Optional[str] = Field(None, alias="assigned_to")
     status: str
-    deadlineAt: Optional[datetime] = None
-    createdAt: datetime
-    updatedAt: datetime
+    deadlineAt: Optional[datetime] = Field(None, alias="deadline_at")
+    createdAt: datetime = Field(alias="created_at")
+    updatedAt: datetime = Field(alias="updated_at")
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     
 
 
