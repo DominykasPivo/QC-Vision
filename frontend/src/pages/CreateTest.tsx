@@ -1,15 +1,18 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatEnumLabel, TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
+import type { AppDataContext } from '../components/layout/AppShell';
 
 export function CreateTest() {
     const navigate = useNavigate();
+    const { addAuditEvent, addPhoto, refreshTests } = useOutletContext<AppDataContext>();
     const [showToast, setShowToast] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [photoNotice, setPhotoNotice] = useState<string | null>(null);
     const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
     const photoInputRef = useRef<HTMLInputElement | null>(null);
     const MAX_PHOTOS = 6;
@@ -29,6 +32,11 @@ export function CreateTest() {
         }
         setSelectedPhotos((prev) => {
             const combined = [...prev, ...files];
+            if (combined.length > MAX_PHOTOS) {
+                setPhotoNotice(`You can upload up to ${MAX_PHOTOS} photos. Extra files were not added.`);
+            } else {
+                setPhotoNotice(null);
+            }
             return combined.slice(0, MAX_PHOTOS);
         });
         e.target.value = '';
@@ -77,6 +85,27 @@ export function CreateTest() {
 
             const result = await response.json();
             console.log('Test created:', result);
+
+            const createdTestId = result?.test?.id ? String(result.test.id) : 'unknown';
+            const photoDataUrls = selectedPhotos.map((file) => ({
+                file,
+                dataUrl: URL.createObjectURL(file),
+            }));
+            addAuditEvent({
+                id: `audit-${Date.now()}`,
+                event: `Created test ${createdTestId}`,
+                timestamp: new Date().toISOString(),
+            });
+            photoDataUrls.forEach(({ file, dataUrl }, index) => {
+                addPhoto({
+                    id: `${createdTestId}-${file.name}-${file.lastModified}-${index}`,
+                    testId: createdTestId,
+                    color: '#1f2937',
+                    label: file.name,
+                    imageUrl: dataUrl,
+                });
+            });
+            await refreshTests();
             
             // Show success toast
             setShowToast(true);
@@ -95,6 +124,7 @@ export function CreateTest() {
                 status: 'open',
             });
             setSelectedPhotos([]);
+            setPhotoNotice(null);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create test');
             console.error('Error creating test:', err);
@@ -116,6 +146,11 @@ export function CreateTest() {
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {error}
+                </div>
+            )}
+            {photoNotice && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded mb-4">
+                    {photoNotice}
                 </div>
             )}
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">

@@ -8,6 +8,7 @@ export interface Test {
   productType: string;
   testType: TestType;
   requester: string;
+  assignedTo?: string;
   deadline: string;
   status: TestStatus;
 }
@@ -17,6 +18,7 @@ export interface Photo {
   testId: string;
   color: string; // placeholder color for demo
   label: string;
+  imageUrl?: string;
 }
 
 export interface AuditEvent {

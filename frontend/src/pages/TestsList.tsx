@@ -17,7 +17,7 @@ const statusClass: Record<TestStatus, string> = {
 const statusLabel = (status: TestStatus) => formatEnumLabel(status);
 
 export function TestsList() {
-    const { tests } = useOutletContext<AppDataContext>();
+    const { tests, testsLoaded } = useOutletContext<AppDataContext>();
     const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -56,6 +56,9 @@ export function TestsList() {
             return tokens.every((token) => haystack.includes(token));
         });
     }, [searchQuery, statusFilter, tests]);
+
+    const showEmptyState = testsLoaded && tests.length === 0;
+    const showNoMatches = testsLoaded && tests.length > 0 && filteredTests.length === 0;
 
     return (
         <div className="page">
@@ -100,24 +103,36 @@ export function TestsList() {
                 </Select>
             </form>
 
-            <div className="tests-list">
-                {filteredTests.map((test) => (
-                    <Link to={`/tests/${test.id}`} key={test.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <Card className="card">
-                            <CardHeader className="card-header flex-row items-center justify-between p-0">
-                                <CardTitle className="card-title">{test.id}</CardTitle>
-                                <span className={`badge ${statusClass[test.status]}`}>
-                                    {statusLabel(test.status)}
-                                </span>
-                            </CardHeader>
-                            <CardContent className="card-meta p-0">
-                                <span>{test.productType}</span>
-                                <span>{test.deadline}</span>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                ))}
-            </div>
+            {showEmptyState ? (
+                <p className="page-description">No tests yet. Create a test to see it here.</p>
+            ) : (
+                <div className="tests-list">
+                    {showNoMatches ? (
+                        <p className="page-description">No tests match your search or filters.</p>
+                    ) : (
+                        filteredTests.map((test) => (
+                            <Link
+                                to={`/tests/${test.id}`}
+                                key={test.id}
+                                style={{ textDecoration: 'none', color: 'inherit' }}
+                            >
+                                <Card className="card">
+                                    <CardHeader className="card-header flex-row items-center justify-between p-0">
+                                        <CardTitle className="card-title">{test.id}</CardTitle>
+                                        <span className={`badge ${statusClass[test.status]}`}>
+                                            {statusLabel(test.status)}
+                                        </span>
+                                    </CardHeader>
+                                    <CardContent className="card-meta p-0">
+                                        <span>{test.productType}</span>
+                                        <span>{test.deadline}</span>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        ))
+                    )}
+                </div>
+            )}
         </div>
     );
 }

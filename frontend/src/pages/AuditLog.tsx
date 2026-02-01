@@ -27,12 +27,21 @@ export function AuditLog() {
 
             <Card className="audit-list">
                 <CardContent className="p-0">
-                    {auditEvents.map((event) => (
-                        <div key={event.id} className="audit-item flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="audit-event">{event.event}</div>
-                            <div className="audit-timestamp">{formatTimestamp(event.timestamp)}</div>
+                    {auditEvents.length === 0 ? (
+                        <div className="audit-item flex flex-col gap-1">
+                            <div className="audit-event">No audit activity yet.</div>
                         </div>
-                    ))}
+                    ) : (
+                        auditEvents.map((event) => (
+                            <div
+                                key={event.id}
+                                className="audit-item flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                                <div className="audit-event">{event.event}</div>
+                                <div className="audit-timestamp">{formatTimestamp(event.timestamp)}</div>
+                            </div>
+                        ))
+                    )}
                 </CardContent>
             </Card>
         </div>
