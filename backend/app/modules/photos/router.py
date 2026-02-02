@@ -1,8 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 import logging
 import traceback
+import io
 
 from .service import photo_service
 from .schemas import PhotoResponse, PhotoUrlResponse
@@ -43,6 +45,43 @@ async def get_photo_url(photo_id: int, db: Session = Depends(get_db)):
     
     url = photo_storage.generate_presigned_url(photo.file_path, expiration=3600)
     return PhotoUrlResponse(url=url, expires_in=3600)
+
+
+@router.get("/{photo_id}/image")
+async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
+    """
+    Get photo image data directly (proxy through backend).
+    Works on any device without exposing MinIO URLs.
+    
+    - **photo_id**: Photo ID
+    """
+    photo = db.query(Photo).filter(Photo.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    try:
+        # Get image data from MinIO
+        image_data = await photo_storage.get_photo(photo.file_path)
+        
+        # Determine content type from file extension
+        content_type = "image/jpeg"
+        if photo.file_path.lower().endswith(".png"):
+            content_type = "image/png"
+        elif photo.file_path.lower().endswith(".webp"):
+            content_type = "image/webp"
+        
+        # Return image as streaming response
+        return StreamingResponse(
+            io.BytesIO(image_data),
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Content-Disposition": f'inline; filename="{photo.file_path.split("/")[-1]}"'
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to retrieve image for photo {photo_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve image")
 
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)

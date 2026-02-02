@@ -41,19 +41,8 @@ export function TestDetails() {
                     console.log('Fetched photos from API:', data);
                     const photosWithUrls = await Promise.all(
                         data.map(async (photo: any) => {
-                            try {
-                                console.log(`Fetching URL for photo ${photo.id}`);
-                                const urlRes = await fetch(`/api/v1/photos/${photo.id}/url`);
-                                console.log(`URL response for photo ${photo.id}:`, urlRes.status);
-                                if (urlRes.ok) {
-                                    const urlData = await urlRes.json();
-                                    console.log(`URL data for photo ${photo.id}:`, urlData);
-                                    return { ...photo, url: urlData.url };
-                                }
-                            } catch (err) {
-                                console.error(`Failed to fetch URL for photo ${photo.id}:`, err);
-                            }
-                            return photo;
+                            // Use direct image endpoint with timestamp to prevent caching issues
+                            return { ...photo, url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}` };
                         })
                     );
                     console.log('Photos with URLs:', photosWithUrls);
@@ -262,19 +251,8 @@ export function TestDetails() {
                         const photoData = await photoResponse.json();
                         console.log('Photo uploaded:', photoData);
                         
-                        // Fetch the presigned URL for the newly uploaded photo
-                        try {
-                            const urlRes = await fetch(`/api/v1/photos/${photoData.id}/url`);
-                            if (urlRes.ok) {
-                                const urlData = await urlRes.json();
-                                setApiPhotos(prev => [...prev, { ...photoData, url: urlData.url }]);
-                            } else {
-                                setApiPhotos(prev => [...prev, photoData]);
-                            }
-                        } catch (err) {
-                            console.error(`Failed to fetch URL for new photo ${photoData.id}:`, err);
-                            setApiPhotos(prev => [...prev, photoData]);
-                        }
+                        // Use direct image endpoint with timestamp
+                        setApiPhotos(prev => [...prev, { ...photoData, url: `/api/v1/photos/${photoData.id}/image?t=${Date.now()}` }]);
                     } else {
                         const errorText = await photoResponse.text();
                         console.error(`Failed to upload ${file.name}:`, errorText);

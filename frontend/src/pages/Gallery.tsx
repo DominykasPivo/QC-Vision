@@ -24,16 +24,8 @@ export function Gallery() {
                         // Fetch presigned URLs for each photo
                         const photosWithUrls = await Promise.all(
                             testPhotos.map(async (photo: any) => {
-                                try {
-                                    const urlRes = await fetch(`/api/v1/photos/${photo.id}/url`);
-                                    if (urlRes.ok) {
-                                        const urlData = await urlRes.json();
-                                        return { ...photo, url: urlData.url };
-                                    }
-                                } catch (err) {
-                                    console.error(`Failed to fetch URL for photo ${photo.id}:`, err);
-                                }
-                                return photo;
+                                // Use direct image endpoint with timestamp to prevent caching
+                                return { ...photo, url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}` };
                             })
                         );
                         
