@@ -34,8 +34,14 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET_PHOTOS=photos
-      - MINIO_BUCKET_THUMBNAILS=thumbnails
-      - MINIO_BUCKET_EXPORTS=exports
+      # - MINIO_BUCKET_THUMBNAILS=thumbnails
+      # - MINIO_BUCKET_EXPORTS=exports
+      
+      # NocoDB Configuration
+      - NOCODB_URL=${NOCODB_URL:-http://nocodb:8080}
+      - NOCODB_API_TOKEN=${NOCODB_API_TOKEN}
+      - NOCODB_BASE_ID=${NOCODB_BASE_ID}
+      - NOCODB_TABLE_ID=${NOCODB_TABLE_ID}
       
       # # Simple Authentication (User Identity Only)
       # - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
@@ -47,11 +53,6 @@ services:
       - DEBUG=${DEBUG:-true}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       
-      # # AI Settings (Optional)
-      # - AI_MODEL_PATH=/models
-      # - AI_CONFIDENCE_THRESHOLD=0.8
-      # - AI_ENABLED=${AI_ENABLED:-false}
-      
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,7 +60,6 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - ai_models:/models
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
@@ -112,6 +112,25 @@ services:
       - qc-network
     restart: unless-stopped
 
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: qc_vision_nocodb
+    ports:
+      - "8080:8080"
+    environment:            
+      - NC_PUBLIC_URL=http://localhost:8080
+      - NC_AUTH_JWT_SECRET=${NOCODB_JWT_SECRET:-your-secret-key-change-in-production}
+      - NC_ADMIN_EMAIL=${NOCODB_ADMIN_EMAIL:-admin@example.com}
+      - NC_ADMIN_PASSWORD=${NOCODB_ADMIN_PASSWORD:-admin123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - nocodb_data:/usr/app/data
+    networks:
+      - qc-network
+    restart: unless-stopped
+
 networks:
   qc-network:
     driver: bridge
@@ -121,5 +140,5 @@ volumes:
     driver: local
   minio_data:
     driver: local
-  ai_models:
+  nocodb_data:
     driver: local

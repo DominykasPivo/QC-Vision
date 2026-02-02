@@ -12,9 +12,8 @@ class Photo(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    # Foreign key to quality_tests table (temporarily disabled for testing)
-    test_id = Column(Integer, nullable=False, index=True)
-    # test_id = Column(Integer, ForeignKey("quality_tests.id", ondelete="RESTRICT"), nullable=False, index=True)
+    # Foreign key to quality_tests table (CASCADE to auto-delete photos when test is deleted)
+    test_id = Column(Integer, ForeignKey("quality_tests.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Storage info - MinIO path
     file_path = Column(Text, nullable=False)

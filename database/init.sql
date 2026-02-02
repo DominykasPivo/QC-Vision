@@ -55,8 +55,7 @@ EXECUTE FUNCTION set_updated_at();
 CREATE TABLE IF NOT EXISTS photos (
   id              SERIAL PRIMARY KEY,
 
-  -- linking photo to a specific quality test(many photos per test)
-  test_id INT NOT NULL REFERENCES quality_tests(id) ON DELETE RESTRICT,
+  test_id INT NOT NULL REFERENCES quality_tests(id) ON DELETE CASCADE,
 
   file_path       TEXT NOT NULL,
   time_stamp      TIMESTAMPTZ NOT NULL DEFAULT now(),

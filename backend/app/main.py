@@ -9,7 +9,9 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.modules.photos import router as photos_router
+from app.modules.photos.router import router as photos_router
+from app.modules.tests.router import router as tests_router
+from app.database import create_tables
 
 
 
@@ -41,6 +43,9 @@ async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     # Startup
     print(f"🚀 Starting {APP_NAME} v{APP_VERSION}")
+    print("📊 Creating database tables...")
+    create_tables()
+    print("✅ Database tables ready")
     yield
     # Shutdown
     print(f"👋 Shutting down {APP_NAME}")
@@ -105,7 +110,8 @@ async def api_status():
 
 # TODO: Add routers for each service module
 # from app.routers import tests, photos, defects, audit, ai
-# app.include_router(tests.router, prefix="/api/v1/tests", tags=["Tests"])
+app.include_router(tests_router, prefix="/api/v1/tests", tags=["Tests"])
+# app.include_router(tests_router, prefix="/api/v1")
 app.include_router(photos_router, prefix="/api/v1/photos", tags=["Photos"])
 # app.include_router(defects.router, prefix="/api/v1/defects", tags=["Defects"])
 # app.include_router(audit.router, prefix="/api/v1/audit", tags=["Audit"])
