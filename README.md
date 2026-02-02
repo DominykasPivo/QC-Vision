@@ -207,6 +207,16 @@ docker-compose build --no-cache
 docker-compose up
 ```
 
+**Database Testing:**
+```bash
+docker compose down -v
+docker compose up -d postgres
+
+Get-Content .\database\init.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
+Get-Content .\database\demo.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
+Get-Content .\database\tests.sql | docker compose exec -T postgres psql -U qc_user -d qc_vision
+```
+
 ## Team
 
 Production Intelligence Team - Spreadgroup
