@@ -8,6 +8,8 @@ import httpx
 from .schemas import TestCreate, TestResponse
 from sqlalchemy.orm import Session  
 from .models import Tests
+from app.modules.photos.models import Photo
+from app.modules.photos.storage import photo_storage
 
 """"
 1. User fills form in CreateTest.tsx
@@ -60,13 +62,25 @@ class TestsService:
         return test
     
     async def delete_test(self, db: Session, test_id: int):
-        """Delete a test"""
+        """Delete a test and all associated photos"""
         test = db.query(Tests).filter(Tests.id == test_id).first()
         if not test:
             raise ValueError("Test not found")
         
+        photos = db.query(Photo).filter(Photo.test_id == test_id).all()
+        for photo in photos:
+            try:
+                await photo_storage.delete_photo(photo.file_path)
+                logger.info(f"Deleted photo from MinIO: {photo.file_path}")
+            except Exception as e:
+                logger.error(f"Failed to delete photo from MinIO: {photo.file_path}, Error: {str(e)}")
+        
+        db.query(Photo).filter(Photo.test_id == test_id).delete()
+        
         db.delete(test)
         db.commit()
+        
+        logger.info(f"Deleted test {test_id} with {len(photos)} photo(s)")
 
 
 tests_service = TestsService()

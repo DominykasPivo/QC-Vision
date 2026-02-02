@@ -2,23 +2,23 @@ import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom
 import type { AppDataContext } from '../components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatEnumLabel } from '@/lib/db-constants';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
 
 export function TestDetails() {
-    const { tests, photos, addAuditEvent, removeTest, removePhotosForTest, updateTest, addPhoto, removePhoto } = useOutletContext<AppDataContext>();
+    const { tests, addAuditEvent, removeTest, updateTest } = useOutletContext<AppDataContext>();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const test = tests.find((t) => t.id === id);
-    const [selectedPhoto, setSelectedPhoto] = useState<(typeof photos)[0] | null>(null);
-    const testPhotos = useMemo(() => photos.filter((photo) => photo.testId === id), [photos, id]);
+    const [apiPhotos, setApiPhotos] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string }>>([]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
     const [newPhotos, setNewPhotos] = useState<File[]>([]);
+    const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
     const [photoNotice, setPhotoNotice] = useState<string | null>(null);
     const [newPhotoPreviews, setNewPhotoPreviews] = useState<{ file: File; url: string }[]>([]);
     const [draft, setDraft] = useState({
@@ -30,6 +30,44 @@ export function TestDetails() {
         deadline: test?.deadline ?? '',
         status: (test?.status ?? 'pending') as TestStatus,
     });
+
+    useEffect(() => {
+        if (id) {
+            fetch(`/api/v1/photos/test/${id}`)
+                .then(res => res.json())
+                .then(async (data) => {
+                    console.log('Fetched photos from API:', data);
+                    const photosWithUrls = await Promise.all(
+                        data.map(async (photo: any) => {
+                            try {
+                                console.log(`Fetching URL for photo ${photo.id}`);
+                                const urlRes = await fetch(`/api/v1/photos/${photo.id}/url`);
+                                console.log(`URL response for photo ${photo.id}:`, urlRes.status);
+                                if (urlRes.ok) {
+                                    const urlData = await urlRes.json();
+                                    console.log(`URL data for photo ${photo.id}:`, urlData);
+                                    return { ...photo, url: urlData.url };
+                                }
+                            } catch (err) {
+                                console.error(`Failed to fetch URL for photo ${photo.id}:`, err);
+                            }
+                            return photo;
+                        })
+                    );
+                    console.log('Photos with URLs:', photosWithUrls);
+                    setApiPhotos(photosWithUrls);
+                })
+                .catch(err => console.error('Failed to fetch photos:', err));
+        }
+    }, [id]);
+
+    useEffect(() => {
+        const previews = newPhotos.map((file) => ({ file, url: URL.createObjectURL(file) }));
+        setNewPhotoPreviews(previews);
+        return () => {
+            previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+        };
+    }, [newPhotos]);
 
     if (!test) {
         return (
@@ -57,26 +95,57 @@ export function TestDetails() {
             status: safeStatus,
         });
         setNewPhotos([]);
+        setPhotosToDelete([]);
         setNewPhotoPreviews([]);
         setPhotoNotice(null);
         setShowUpdateModal(true);
     };
-
-    useEffect(() => {
-        const previews = newPhotos.map((file) => ({ file, url: URL.createObjectURL(file) }));
-        setNewPhotoPreviews(previews);
-        return () => {
-            previews.forEach((preview) => URL.revokeObjectURL(preview.url));
-        };
-    }, [newPhotos]);
 
     const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files ?? []);
         if (files.length === 0) {
             return;
         }
+
+        // Backend validation rules from PhotoService
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
+
+        // Validate file types (must start with 'image/')
+        const invalidTypeFiles = files.filter(file => !file.type.startsWith('image/'));
+        if (invalidTypeFiles.length > 0) {
+            setPhotoNotice(`File must be an image`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate specific formats (JPEG, PNG, WEBP only)
+        const invalidFormatFiles = files.filter(file => !ALLOWED_FORMATS.includes(file.type));
+        if (invalidFormatFiles.length > 0) {
+            setPhotoNotice(`Unsupported format. Allowed: JPEG, PNG, WEBP`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate file sizes
+        const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+        if (oversizedFiles.length > 0) {
+            setPhotoNotice(`File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate not empty
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            setPhotoNotice(`File is empty`);
+            e.target.value = '';
+            return;
+        }
+
         const maxTotal = 6;
-        const remaining = Math.max(0, maxTotal - testPhotos.length - newPhotos.length);
+        const currentPhotoCount = apiPhotos.length - photosToDelete.length;
+        const remaining = Math.max(0, maxTotal - currentPhotoCount - newPhotos.length);
         if (remaining <= 0) {
             setPhotoNotice(`You can upload up to ${maxTotal} photos total.`);
             e.target.value = '';
@@ -96,31 +165,132 @@ export function TestDetails() {
         setNewPhotos((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const handleUpdateSave = () => {
-        updateTest(test.id, {
-            externalOrderId: draft.externalOrderId.trim(),
-            productType: draft.productType.trim(),
-            testType: draft.testType,
-            requester: draft.requester.trim(),
-            assignedTo: draft.assignedTo.trim() || undefined,
-            deadline: draft.deadline,
-            status: draft.status,
-        });
-        newPhotos.forEach((file, index) => {
-            addPhoto({
-                id: `${test.id}-${file.name}-${file.lastModified}-${index}`,
-                testId: test.id,
-                color: '#1f2937',
-                label: file.name,
-                imageUrl: URL.createObjectURL(file),
+    const handleUpdateSave = async () => {
+        console.log('Update button clicked');
+        console.log('Photos to delete:', photosToDelete);
+        console.log('New photos:', newPhotos);
+        console.log('Draft data:', draft);
+        
+        try {
+            // 1. Delete photos marked for deletion
+            if (photosToDelete.length > 0) {
+                console.log('Deleting photos...');
+                for (const photoIdStr of photosToDelete) {
+                    // Extract numeric ID from API photos
+                    const apiPhoto = apiPhotos.find(p => p.id.toString() === photoIdStr);
+                    if (apiPhoto) {
+                        try {
+                            console.log(`Deleting photo ${apiPhoto.id}`);
+                            const response = await fetch(`/api/v1/photos/${apiPhoto.id}`, {
+                                method: 'DELETE',
+                            });
+
+                            console.log(`Delete photo ${apiPhoto.id} response:`, response.status);
+                            if (response.ok) {
+                                // Remove from apiPhotos state
+                                setApiPhotos(prev => prev.filter(p => p.id !== apiPhoto.id));
+                            } else {
+                                const errorText = await response.text();
+                                console.error(`Failed to delete photo ${apiPhoto.id}:`, errorText);
+                            }
+                        } catch (error) {
+                            console.error(`Error deleting photo ${apiPhoto.id}:`, error);
+                        }
+                    }
+                }
+            }
+
+            // 2. Update test in backend
+            console.log('Updating test...');
+            const updateData = {
+                product_id: draft.externalOrderId.trim(),
+                test_type: draft.testType,
+                requester: draft.requester.trim(),
+                assigned_to: draft.assignedTo.trim() || null,
+                status: draft.status,
+                deadline_at: draft.deadline ? new Date(draft.deadline).toISOString() : null,
+            };
+            
+            console.log('Update data:', updateData);
+
+            const response = await fetch(`/api/v1/tests/${test.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
             });
-        });
-        addAuditEvent({
-            id: `audit-${Date.now()}`,
-            event: `Updated Test ${test.id}`,
-            timestamp: new Date().toISOString(),
-        });
-        setShowUpdateModal(false);
+
+            console.log('Update test response:', response.status);
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Update error:', errorData);
+                throw new Error(errorData.detail || 'Failed to update test');
+            }
+
+            const updatedTest = await response.json();
+            console.log('Updated test:', updatedTest);
+
+            // 3. Update local state
+            updateTest(test.id, {
+                externalOrderId: draft.externalOrderId.trim(),
+                productType: draft.productType.trim(),
+                testType: draft.testType,
+                requester: draft.requester.trim(),
+                assignedTo: draft.assignedTo.trim() || undefined,
+                deadline: draft.deadline,
+                status: draft.status,
+            });
+
+            // 4. Upload new photos if any
+            if (newPhotos.length > 0) {
+                console.log('Uploading new photos...');
+                for (const file of newPhotos) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    console.log(`Uploading ${file.name}`);
+                    const photoResponse = await fetch(`/api/v1/photos/upload?test_id=${test.id}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    console.log(`Upload photo ${file.name} response:`, photoResponse.status);
+                    if (photoResponse.ok) {
+                        const photoData = await photoResponse.json();
+                        console.log('Photo uploaded:', photoData);
+                        
+                        // Fetch the presigned URL for the newly uploaded photo
+                        try {
+                            const urlRes = await fetch(`/api/v1/photos/${photoData.id}/url`);
+                            if (urlRes.ok) {
+                                const urlData = await urlRes.json();
+                                setApiPhotos(prev => [...prev, { ...photoData, url: urlData.url }]);
+                            } else {
+                                setApiPhotos(prev => [...prev, photoData]);
+                            }
+                        } catch (err) {
+                            console.error(`Failed to fetch URL for new photo ${photoData.id}:`, err);
+                            setApiPhotos(prev => [...prev, photoData]);
+                        }
+                    } else {
+                        const errorText = await photoResponse.text();
+                        console.error(`Failed to upload ${file.name}:`, errorText);
+                    }
+                }
+            }
+
+            addAuditEvent({
+                id: `audit-${Date.now()}`,
+                event: `Updated Test ${test.id}`,
+                timestamp: new Date().toISOString(),
+            });
+
+            setShowUpdateModal(false);
+        } catch (error) {
+            console.error('Failed to update test:', error);
+            alert(`Failed to update test: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     };
 
     const handleDelete = async () => {
@@ -128,7 +298,6 @@ export function TestDetails() {
             return;
         }
         setIsDeleting(true);
-        let apiDeleted = false;
         try {
             const deleteOnce = async (url: string) => {
                 const response = await fetch(url, { method: 'DELETE' });
@@ -143,8 +312,8 @@ export function TestDetails() {
             if (!response.ok) {
                 throw new Error(text || `Failed to delete test (${response.status})`);
             }
-            apiDeleted = true;
-            removePhotosForTest(id);
+            
+            // Remove from local state
             removeTest(id);
             addAuditEvent({
                 id: `audit-${Date.now()}`,
@@ -153,7 +322,7 @@ export function TestDetails() {
             });
             navigate('/tests');
         } catch (error) {
-            removePhotosForTest(id);
+            // Still remove from local state even if API failed
             removeTest(id);
             addAuditEvent({
                 id: `audit-${Date.now()}`,
@@ -201,26 +370,27 @@ export function TestDetails() {
                             <CardTitle className="details-section-title">Photos</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
-                            {testPhotos.length === 0 ? (
+                            {apiPhotos.length === 0 ? (
                                 <div className="details-placeholder" />
                             ) : (
                                 <div className="gallery-grid">
-                                    {testPhotos.map((photo) => (
+                                    {apiPhotos.map((photo) => (
                                         <div
                                             key={photo.id}
                                             className="gallery-item"
-                                            style={{ backgroundColor: photo.color }}
-                                            onClick={() => setSelectedPhoto(photo)}
+                                            style={{ backgroundColor: '#1f2937' }}
                                         >
-                                            {photo.imageUrl ? (
+                                            {photo.url ? (
                                                 <img
-                                                    src={photo.imageUrl}
-                                                    alt={photo.label}
+                                                    src={photo.url}
+                                                    alt={`Photo ${photo.id}`}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    onLoad={() => console.log(`Image loaded: Photo ${photo.id}`, photo.url)}
+                                                    onError={(e) => console.error(`Image failed to load: Photo ${photo.id}`, photo.url, e)}
                                                 />
                                             ) : (
                                                 <span style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                                                    {photo.label}
+                                                    Loading...
                                                 </span>
                                             )}
                                         </div>
@@ -263,38 +433,6 @@ export function TestDetails() {
                     </CardContent>
                 </Card>
             </div>
-
-            {selectedPhoto && (
-                <div className="modal-overlay flex items-center justify-center" onClick={() => setSelectedPhoto(null)}>
-                    <button
-                        type="button"
-                        className="modal-close text-white"
-                        onClick={() => setSelectedPhoto(null)}
-                        aria-label="Close"
-                    >
-                        ✕
-                    </button>
-                    <div className="modal-content flex flex-col" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-image flex flex-col items-center justify-center">
-                            {selectedPhoto.imageUrl ? (
-                                <img
-                                    src={selectedPhoto.imageUrl}
-                                    alt={selectedPhoto.label}
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                            ) : (
-                                <div
-                                    className="flex flex-col items-center text-center"
-                                    style={{ color: 'white', backgroundColor: selectedPhoto.color, width: '100%', height: '100%', justifyContent: 'center' }}
-                                >
-                                    <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>{selectedPhoto.label}</div>
-                                    <div style={{ opacity: 0.8 }}>Test: {selectedPhoto.testId}</div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {showDeleteConfirm && (
                 <div className="modal-overlay flex items-center justify-center" onClick={() => setShowDeleteConfirm(false)}>
@@ -426,27 +564,31 @@ export function TestDetails() {
                                         {photoNotice}
                                     </div>
                                 )}
-                                {(testPhotos.length > 0 || newPhotos.length > 0) && (
+                                {(apiPhotos.length > 0 || newPhotos.length > 0) && (
                                     <div className="update-photo-section">
-                                        {testPhotos.length > 0 && (
+                                        {apiPhotos.length > 0 && (
                                             <div className="update-photo-group">
                                                 <div className="update-photo-label">Existing photos</div>
                                                 <div className="update-photo-grid">
-                                                    {testPhotos.map((photo) => (
+                                                    {apiPhotos
+                                                        .filter((photo) => !photosToDelete.includes(photo.id.toString()))
+                                                        .map((photo) => (
                                                         <div key={photo.id} className="update-photo-card">
                                                             <div className="update-photo-thumb">
-                                                                {photo.imageUrl ? (
-                                                                    <img src={photo.imageUrl} alt={photo.label} />
+                                                                {photo.url ? (
+                                                                    <img src={photo.url} alt="Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                 ) : (
-                                                                    <span>{photo.label}</span>
+                                                                    <span>Loading...</span>
                                                                 )}
                                                             </div>
                                                             <div className="update-photo-meta">
-                                                                <span className="update-photo-name">{photo.label}</span>
+                                                                <span className="update-photo-name">
+                                                                    {photo.file_path.includes('/') ? photo.file_path.split('/').pop() : `Photo ${photo.id}`}
+                                                                </span>
                                                                 <button
                                                                     type="button"
                                                                     className="update-photo-remove"
-                                                                    onClick={() => removePhoto(photo.id)}
+                                                                    onClick={() => setPhotosToDelete((prev) => [...prev, photo.id.toString()])}
                                                                 >
                                                                     Remove
                                                                 </button>

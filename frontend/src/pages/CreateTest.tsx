@@ -8,7 +8,7 @@ import type { AppDataContext } from '../components/layout/AppShell';
 
 export function CreateTest() {
     const navigate = useNavigate();
-    const { addAuditEvent, addPhoto, refreshTests } = useOutletContext<AppDataContext>();
+    const { addAuditEvent, refreshTests } = useOutletContext<AppDataContext>();
     const [showToast, setShowToast] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -30,6 +30,43 @@ export function CreateTest() {
         if (files.length === 0) {
             return;
         }
+
+        // Backend validation rules from PhotoService
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
+
+        // Validate file types (must start with 'image/')
+        const invalidTypeFiles = files.filter(file => !file.type.startsWith('image/'));
+        if (invalidTypeFiles.length > 0) {
+            setPhotoNotice(`File must be an image`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate specific formats (JPEG, PNG, WEBP only)
+        const invalidFormatFiles = files.filter(file => !ALLOWED_FORMATS.includes(file.type));
+        if (invalidFormatFiles.length > 0) {
+            setPhotoNotice(`Unsupported format. Allowed: JPEG, PNG, WEBP`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate file sizes
+        const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+        if (oversizedFiles.length > 0) {
+            setPhotoNotice(`File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate not empty
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            setPhotoNotice(`File is empty`);
+            e.target.value = '';
+            return;
+        }
+
         setSelectedPhotos((prev) => {
             const combined = [...prev, ...files];
             if (combined.length > MAX_PHOTOS) {
@@ -52,10 +89,8 @@ export function CreateTest() {
         setError(null);
 
         try {
-            // Create FormData for test + photos in single request
             const submitFormData = new FormData();
             
-            // Add test fields
             submitFormData.append('productId', formData.productId);
             submitFormData.append('testType', formData.testType.trim());
             submitFormData.append('requester', formData.requester.trim());
@@ -87,24 +122,14 @@ export function CreateTest() {
             console.log('Test created:', result);
 
             const createdTestId = result?.test?.id ? String(result.test.id) : 'unknown';
-            const photoDataUrls = selectedPhotos.map((file) => ({
-                file,
-                dataUrl: URL.createObjectURL(file),
-            }));
+            
             addAuditEvent({
                 id: `audit-${Date.now()}`,
                 event: `Created test ${createdTestId}`,
                 timestamp: new Date().toISOString(),
             });
-            photoDataUrls.forEach(({ file, dataUrl }, index) => {
-                addPhoto({
-                    id: `${createdTestId}-${file.name}-${file.lastModified}-${index}`,
-                    testId: createdTestId,
-                    color: '#1f2937',
-                    label: file.name,
-                    imageUrl: dataUrl,
-                });
-            });
+            
+            // Refresh tests from API to show the new test
             await refreshTests();
             
             // Show success toast
