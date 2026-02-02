@@ -72,6 +72,26 @@ export function TestDetails() {
         );
     }
 
+    const formatDateOnly = (value?: string | null) => {
+        if (!value) {
+            return '—';
+        }
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            return '—';
+        }
+        return parsed.toISOString().slice(0, 10);
+    };
+
+    const productIdValue = test.productId ?? test.externalOrderId;
+    const productIdLabel = productIdValue ? String(productIdValue) : '—';
+    const requesterLabel = test.requester?.trim() ? test.requester : '—';
+    const assignedToLabel = test.assignedTo?.trim() ? test.assignedTo : '—';
+    const deadlineSource = test.deadlineAt ?? (test.deadline && test.deadline !== 'None' ? test.deadline : null);
+    const deadlineLabel = deadlineSource ? formatDateOnly(deadlineSource) : '—';
+    const createdLabel = formatDateOnly(test.createdAt ?? null);
+    const updatedLabel = formatDateOnly(test.updatedAt ?? null);
+
     const openUpdate = () => {
         const safeTestType = TEST_TYPES.includes(test.testType) ? test.testType : 'incoming';
         const safeStatus = TEST_STATUSES.includes(test.status) ? test.status : 'pending';
@@ -326,7 +346,7 @@ export function TestDetails() {
             </Link>
 
             <h2 className="page-title">{test.id}</h2>
-            <p className="page-description">{test.productType} • {test.testType}</p>
+            <p className="page-description">Product ID {productIdLabel} • {formatEnumLabel(test.testType)}</p>
 
             <div className="flex flex-col gap-4">
                 <Card className="details-section">
@@ -334,13 +354,15 @@ export function TestDetails() {
                         <CardTitle className="details-section-title">Test Information</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-2 p-0">
-                        <div><strong>External Order:</strong> {test.externalOrderId}</div>
-                        <div><strong>Product Type:</strong> {test.productType}</div>
+                        <div><strong>Test ID:</strong> {test.id}</div>
+                        <div><strong>Product ID:</strong> {productIdLabel}</div>
                         <div><strong>Test Type:</strong> {formatEnumLabel(test.testType)}</div>
-                        <div><strong>Requester:</strong> {test.requester}</div>
-                        {test.assignedTo && <div><strong>Assigned To:</strong> {test.assignedTo}</div>}
-                        <div><strong>Deadline:</strong> {test.deadline}</div>
+                        <div><strong>Requester:</strong> {requesterLabel}</div>
+                        <div><strong>Assigned To:</strong> {assignedToLabel}</div>
                         <div><strong>Status:</strong> {formatEnumLabel(test.status)}</div>
+                        <div><strong>Deadline:</strong> {deadlineLabel}</div>
+                        <div><strong>Created:</strong> {createdLabel}</div>
+                        <div><strong>Updated:</strong> {updatedLabel}</div>
                     </CardContent>
                 </Card>
 

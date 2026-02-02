@@ -5,12 +5,16 @@ import type { TestStatus, TestType } from '../lib/db-constants';
 export interface Test {
   id: string;
   externalOrderId: string;
+  productId?: number | string;
   productType: string;
   testType: TestType;
   requester: string;
   assignedTo?: string;
   deadline: string;
+  deadlineAt?: string | null;
   status: TestStatus;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface Photo {

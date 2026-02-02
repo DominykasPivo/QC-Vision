@@ -37,6 +37,10 @@ type ApiTest = {
     status?: string | null;
     deadlineAt?: string | null;
     deadline_at?: string | null;
+    createdAt?: string | null;
+    created_at?: string | null;
+    updatedAt?: string | null;
+    updated_at?: string | null;
     externalOrderId?: string;
     productType?: string;
 };
@@ -72,16 +76,22 @@ const toFrontendTest = (raw: ApiTest): Test => {
     const status = normalizeStatus(raw.status);
     const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
     const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
+    const createdAt = raw.createdAt ?? raw.created_at ?? null;
+    const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
 
     return {
         id: String(raw.id),
         externalOrderId: raw.externalOrderId ?? (productId !== undefined ? String(productId) : String(raw.id)),
+        productId,
         productType: raw.productType ?? (productId !== undefined ? `Product ${productId}` : 'Unknown product'),
         testType,
         requester: raw.requester ?? '',
         assignedTo: assignedTo || undefined,
         deadline: formatDeadline(deadlineAt),
+        deadlineAt,
         status,
+        createdAt,
+        updatedAt,
     };
 };
 
