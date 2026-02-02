@@ -29,12 +29,13 @@ CREATE TABLE IF NOT EXISTS quality_tests (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+--allows tests to be searched by status, deadline, creation date
 CREATE INDEX IF NOT EXISTS idx_quality_tests_status    ON quality_tests(status);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_deadline  ON quality_tests(deadline_at);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_created   ON quality_tests(created_at);
 
 
-
+--updates the updated_at field automatically 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
