@@ -21,6 +21,8 @@ export function TestDetails() {
     const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
     const [photoNotice, setPhotoNotice] = useState<string | null>(null);
     const [newPhotoPreviews, setNewPhotoPreviews] = useState<{ file: File; url: string }[]>([]);
+    const [showPhotoModal, setShowPhotoModal] = useState(false);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     const [draft, setDraft] = useState({
         externalOrderId: test?.externalOrderId ?? '',
         productType: test?.productType ?? '',
@@ -552,11 +554,51 @@ export function TestDetails() {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Add Photos (up to 6 total)</label>
-                                <Input
+                                <Button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => {
+                                        if (isMobile) {
+                                            setShowPhotoModal(true);
+                                        } else {
+                                            document.getElementById('desktop-input')?.click();
+                                        }
+                                    }}
+                                >
+                                    {isMobile ? '📷 Add Photos' : 'Choose images'}
+                                </Button>
+                                {/* Hidden camera input */}
+                                <input
+                                    id="camera-input"
                                     type="file"
-                                    accept="image/png,image/jpeg"
+                                    accept="image/*"
+                                    capture="environment"
                                     multiple
-                                    className="form-input"
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                        handlePhotoSelect(e);
+                                        setShowPhotoModal(false);
+                                    }}
+                                />
+                                {/* Hidden gallery input */}
+                                <input
+                                    id="gallery-input"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                        handlePhotoSelect(e);
+                                        setShowPhotoModal(false);
+                                    }}
+                                />
+                                {/* Hidden desktop input */}
+                                <input
+                                    id="desktop-input"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    style={{ display: 'none' }}
                                     onChange={handlePhotoSelect}
                                 />
                                 {photoNotice && (
@@ -635,6 +677,38 @@ export function TestDetails() {
                             </Button>
                             <Button type="button" className="btn btn-primary" onClick={handleUpdateSave}>
                                 Save
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showPhotoModal && (
+                <div className="modal-overlay flex items-center justify-center" onClick={() => setShowPhotoModal(false)}>
+                    <div className="modal-content delete-confirm" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '300px' }}>
+                        <div className="delete-confirm__title">Add Photos</div>
+                        <div className="delete-confirm__body">Choose how to add photos:</div>
+                        <div className="flex flex-col gap-2" style={{ marginTop: '16px' }}>
+                            <Button
+                                type="button"
+                                className="btn btn-primary btn-block"
+                                onClick={() => document.getElementById('camera-input')?.click()}
+                            >
+                                📷 Take Photo
+                            </Button>
+                            <Button
+                                type="button"
+                                className="btn btn-secondary btn-block"
+                                onClick={() => document.getElementById('gallery-input')?.click()}
+                            >
+                                🖼️ Choose from Gallery
+                            </Button>
+                            <Button
+                                type="button"
+                                className="btn btn-secondary btn-block"
+                                onClick={() => setShowPhotoModal(false)}
+                            >
+                                Cancel
                             </Button>
                         </div>
                     </div>

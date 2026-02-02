@@ -14,8 +14,14 @@ export function CreateTest() {
     const [error, setError] = useState<string | null>(null);
     const [photoNotice, setPhotoNotice] = useState<string | null>(null);
     const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
-    const photoInputRef = useRef<HTMLInputElement | null>(null);
+    const [showPhotoModal, setShowPhotoModal] = useState(false);
+    const cameraInputRef = useRef<HTMLInputElement | null>(null);
+    const galleryInputRef = useRef<HTMLInputElement | null>(null);
+    const desktopInputRef = useRef<HTMLInputElement | null>(null);
     const MAX_PHOTOS = 6;
+    
+    // Detect if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     const [formData, setFormData] = useState({
         productId: '',
         testType: 'incoming' as TestType,
@@ -77,6 +83,15 @@ export function CreateTest() {
             return combined.slice(0, MAX_PHOTOS);
         });
         e.target.value = '';
+        setShowPhotoModal(false);
+    };
+
+    const handlePhotoButtonClick = () => {
+        if (isMobile) {
+            setShowPhotoModal(true);
+        } else {
+            desktopInputRef.current?.click();
+        }
     };
 
     const handleRemovePhoto = (index: number) => {
@@ -130,7 +145,9 @@ export function CreateTest() {
             });
             
             // Refresh tests from API to show the new test
+            console.log('Refreshing tests...');
             await refreshTests();
+            console.log('Tests refreshed successfully');
             
             // Show success toast
             setShowToast(true);
@@ -323,26 +340,43 @@ export function CreateTest() {
                                 <Button
                                     type="button"
                                     className="btn btn-secondary"
-                                    onClick={() => photoInputRef.current?.click()}
+                                    onClick={handlePhotoButtonClick}
                                     disabled={isLoading}
                                 >
-                                    Choose images
+                                    {isMobile ? '📷 Add Photos' : 'Choose images'}
                                 </Button>
                                 <span className="upload-helper">
                                     Selected {selectedPhotos.length} of {MAX_PHOTOS}
                                 </span>
                             </div>
+                            {/* Hidden inputs */}
                             <input
-                                ref={photoInputRef}
-                                id="photo-upload"
-                                name="photo-upload"
+                                ref={cameraInputRef}
                                 type="file"
-                                accept="image/png,image/jpeg"
+                                accept="image/*"
+                                capture="environment"
                                 multiple
                                 className="upload-input"
                                 onChange={handlePhotoSelect}
                                 disabled={isLoading}
-                                aria-describedby="photo-upload-help"
+                            />
+                            <input
+                                ref={galleryInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="upload-input"
+                                onChange={handlePhotoSelect}
+                                disabled={isLoading}
+                            />
+                            <input
+                                ref={desktopInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="upload-input"
+                                onChange={handlePhotoSelect}
+                                disabled={isLoading}
                             />
                             {selectedPhotos.length > 0 && (
                                 <div className="upload-list" aria-live="polite">
@@ -374,6 +408,42 @@ export function CreateTest() {
             {showToast && (
                 <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-6 py-3 rounded shadow-lg">
                     ✓ Test created successfully! Redirecting...
+                </div>
+            )}
+
+            {showPhotoModal && (
+                <div className="modal-overlay flex items-center justify-center" onClick={() => setShowPhotoModal(false)}>
+                    <div className="modal-content delete-confirm" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '300px' }}>
+                        <div className="delete-confirm__title">Add Photos</div>
+                        <div className="delete-confirm__body">Choose how to add photos:</div>
+                        <div className="flex flex-col gap-2" style={{ marginTop: '16px' }}>
+                            <Button
+                                type="button"
+                                className="btn btn-primary btn-block"
+                                onClick={() => {
+                                    cameraInputRef.current?.click();
+                                }}
+                            >
+                                📷 Take Photo
+                            </Button>
+                            <Button
+                                type="button"
+                                className="btn btn-secondary btn-block"
+                                onClick={() => {
+                                    galleryInputRef.current?.click();
+                                }}
+                            >
+                                🖼️ Choose from Gallery
+                            </Button>
+                            <Button
+                                type="button"
+                                className="btn btn-secondary btn-block"
+                                onClick={() => setShowPhotoModal(false)}
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

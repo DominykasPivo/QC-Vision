@@ -150,7 +150,9 @@ export function AppShell() {
 
     const refreshTests = useCallback(async () => {
         try {
+            console.log('[refreshTests] Starting fetch from /api/v1/tests/');
             const response = await fetch('/api/v1/tests/');
+            console.log('[refreshTests] Response status:', response.status);
             if (!response.ok) {
                 throw new Error(`Failed to load tests (${response.status})`);
             }
@@ -166,12 +168,20 @@ export function AppShell() {
                         ? payload.tests
                         : [];
 
+            console.log('[refreshTests] Raw tests count:', rawTests.length);
             const mapped = rawTests.map((test: ApiTest) => toFrontendTest(test));
-            const filtered = deletedTestIds.length
-                ? mapped.filter((test) => !deletedTestIds.includes(test.id))
-                : mapped;
-            setTests(filtered);
+            console.log('[refreshTests] Mapped tests count:', mapped.length);
+            
+            // Don't filter by deletedTestIds - the API is the source of truth
+            // If a test exists in the API, it should be shown
+            setTests(mapped);
             setTestsLoaded(true);
+            
+            // Clear deleted IDs since we're syncing with API
+            if (deletedTestIds.length > 0) {
+                console.log('[refreshTests] Clearing deleted test IDs after refresh');
+                setDeletedTestIds([]);
+            }
         } catch (error) {
             if (import.meta.env.DEV) {
                 console.error('[Tests] Failed to load tests:', error);
