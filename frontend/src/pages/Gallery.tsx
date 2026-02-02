@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import type { AppDataContext } from '../components/layout/AppShell';
-import { Button } from '@/components/ui/button';
 
 export function Gallery() {
     const { tests } = useOutletContext<AppDataContext>();
-    const [selectedPhoto, setSelectedPhoto] = useState<{ id: number; test_id: number; file_path: string; url?: string } | null>(null);
     const [photos, setPhotos] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string }>>([]);
     const [loading, setLoading] = useState(true);
 
@@ -59,11 +57,11 @@ export function Gallery() {
                         <p className="page-description">No photos yet. Upload photos when creating a test.</p>
                     ) : (
                         photos.map((photo) => (
-                            <div
+                            <Link
                                 key={photo.id}
                                 className="gallery-item"
                                 style={{ backgroundColor: '#1f2937' }}
-                                onClick={() => setSelectedPhoto(photo)}
+                                to={`/photos/${photo.id}`}
                             >
                                 {photo.url ? (
                                     <img src={photo.url} alt={`Photo ${photo.id}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -72,43 +70,9 @@ export function Gallery() {
                                         Loading...
                                     </span>
                                 )}
-                            </div>
+                            </Link>
                         ))
                     )}
-                </div>
-            )}
-
-            {selectedPhoto && (
-                <div className="modal-overlay flex items-center justify-center" onClick={() => setSelectedPhoto(null)}>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="modal-close text-white"
-                        onClick={() => setSelectedPhoto(null)}
-                        aria-label="Close"
-                    >
-                        ✕
-                    </Button>
-                    <div className="modal-content flex flex-col" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-image flex flex-col items-center justify-center">
-                            {selectedPhoto.url ? (
-                                <img
-                                    src={selectedPhoto.url}
-                                    alt={`Photo ${selectedPhoto.id}`}
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                />
-                            ) : (
-                                <div
-                                    className="flex flex-col items-center text-center"
-                                    style={{ color: 'white', backgroundColor: '#1f2937', width: '100%', height: '100%', justifyContent: 'center' }}
-                                >
-                                    <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>Photo {selectedPhoto.id}</div>
-                                    <div style={{ opacity: 0.8 }}>Test: {selectedPhoto.test_id}</div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
             )}
         </div>

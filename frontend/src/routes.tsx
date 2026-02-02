@@ -5,6 +5,7 @@ import { TestDetails } from './pages/TestDetails';
 import { CreateTest } from './pages/CreateTest';
 import { Gallery } from './pages/Gallery';
 import { AuditLog } from './pages/AuditLog';
+import { PhotoDefects } from './pages/PhotoDefects';
 
 export const router = createBrowserRouter([
     {
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
             {
                 path: 'audit',
                 element: <AuditLog />,
+            },
+            {
+                path: 'photos/:photoId',
+                element: <PhotoDefects />,
             },
         ],
     },

@@ -538,6 +538,7 @@ body {
   color: var(--muted);
   font-size: var(--font-size-sm);
   border: 1px solid var(--border);
+  text-decoration: none;
 }
 
 .gallery-item:active {
@@ -654,6 +655,134 @@ body {
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-md);
   min-height: 44px;
+}
+
+/* Photo Defects */
+.photo-preview {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-meta {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.defect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.defect-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.defect-card {
+  border-radius: var(--radius-md);
+}
+
+.defect-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.defect-card-content {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.defect-category {
+  font-weight: 600;
+}
+
+.defect-date {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.defect-description {
+  font-size: var(--font-size-base);
+  color: var(--text);
+}
+
+.defect-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.defect-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.defect-chip--low {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.defect-chip--medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.defect-chip--high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.defect-chip--critical {
+  background: #111827;
+  color: #fef2f2;
+}
+
+.defect-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.defect-error-text {
+  color: var(--error);
+  font-size: var(--font-size-sm);
+}
+
+.defect-modal {
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  width: min(520px, 100%);
+  color: var(--text);
 }
 
 /* Details Placeholder */

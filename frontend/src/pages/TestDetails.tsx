@@ -377,8 +377,9 @@ export function TestDetails() {
                             ) : (
                                 <div className="gallery-grid">
                                     {apiPhotos.map((photo) => (
-                                        <div
+                                        <Link
                                             key={photo.id}
+                                            to={`/photos/${photo.id}`}
                                             className="gallery-item"
                                             style={{ backgroundColor: '#1f2937' }}
                                         >
@@ -395,7 +396,7 @@ export function TestDetails() {
                                                     Loading...
                                                 </span>
                                             )}
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             )}
@@ -407,7 +408,7 @@ export function TestDetails() {
                             <CardTitle className="details-section-title">Defects</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="details-placeholder" />
+                            <div className="details-placeholder">Select a photo to view defects.</div>
                         </CardContent>
                     </Card>
                 </div>
