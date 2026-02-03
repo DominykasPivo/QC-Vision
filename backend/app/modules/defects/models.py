@@ -18,7 +18,7 @@ class Defect(Base):
     __tablename__ = "defects"
 
     id = Column(Integer, primary_key=True, index=True)
-    photo_id = Column(Integer, ForeignKey("photos.id", ondelete="RESTRICT"), nullable=False, index=True)
+    photo_id = Column(Integer, ForeignKey("photos.id", ondelete="CASCADE"), nullable=False, index=True)
 
     description = Column(Text, nullable=True)
     severity = Column(Text, nullable=False)  # DB enum defect_severity, stored as text in ORM

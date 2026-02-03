@@ -29,9 +29,16 @@ class AnnotationResponse(BaseModel):
 
 
 class DefectCreate(BaseModel):
+    category_id: int
     description: Optional[str] = None
-    severity: str = Field(default="low")  # must match DB enum values
+    severity: str = Field(default='low')
     annotations: List[AnnotationCreate] = Field(default_factory=list)
+
+
+class DefectUpdate(BaseModel):
+    category_id: Optional[int] = None
+    description: Optional[str] = None
+    severity: Optional[str] = None
 
 
 class DefectResponse(BaseModel):
