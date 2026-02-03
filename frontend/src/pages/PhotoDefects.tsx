@@ -190,37 +190,46 @@ export function PhotoDefects() {
   };
 
   return (
-    <div className="page">
+    <div className="page photo-defects-page">
       <button type="button" className="back-link" onClick={() => navigate(-1)}>
         ← Back
       </button>
-      <h2 className="page-title">Photo</h2>
-      <p className="page-description">Defects linked to this photo.</p>
 
-      <Card className="details-section">
-        <CardHeader className="p-0">
-          <CardTitle className="details-section-title">Preview</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="photo-preview">
-            <img src={photo?.url ?? photoPreviewUrl} alt="Selected photo" />
-          </div>
-          {photo?.file_path ? (
-            <div className="photo-meta">File: {photo.file_path}</div>
-          ) : (
-            <div className="photo-meta">Photo ID: {photoId}</div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="photo-defects-header">
+        <div>
+          <h2 className="photo-defects-title">Photo</h2>
+          <p className="photo-defects-subtitle">Defects linked to this photo.</p>
+        </div>
+      </div>
 
-      <Card className="details-section">
-        <CardHeader className="p-0 defect-header">
-          <CardTitle className="details-section-title">Defects</CardTitle>
-          <Button type="button" className="btn btn-primary" onClick={openCreate}>
-            Add defect
-          </Button>
-        </CardHeader>
-        <CardContent className="p-0">
+      <div className="photo-defects-grid">
+        <Card className="details-section photo-defects-card">
+          <CardHeader className="photo-card-header">
+            <CardTitle className="details-section-title">Preview</CardTitle>
+            <span className="photo-pill">Photo #{photoId}</span>
+          </CardHeader>
+          <CardContent className="photo-card-content">
+            <div className="photo-preview-frame">
+              <img className="photo-preview-image" src={photo?.url ?? photoPreviewUrl} alt="Selected photo" />
+            </div>
+            {photo?.file_path ? (
+              <div className="photo-meta">File: {photo.file_path}</div>
+            ) : (
+              <div className="photo-meta">
+                <span className="photo-pill">Photo #{photoId}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="details-section photo-defects-card">
+          <CardHeader className="photo-defects-section-header">
+            <CardTitle className="details-section-title">Defects</CardTitle>
+            <Button type="button" className="btn btn-primary" onClick={openCreate}>
+              Add defect
+            </Button>
+          </CardHeader>
+          <CardContent className="photo-defects-card-content">
           {isLoading ? (
             <div className="details-placeholder">Loading defects...</div>
           ) : loadError ? (
@@ -277,8 +286,9 @@ export function PhotoDefects() {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {showCreate && (
         <div className="modal-overlay flex items-center justify-center" onClick={() => setShowCreate(false)}>

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { auditEvents as initialAuditEvents, photos as initialPhotos, tests as initialTests } from '../../mock/data';
 import type { AuditEvent, Photo, Test } from '../../mock/data';
 import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
+import { logoutUser } from '@/lib/auth';
 
 export type AppDataContext = {
     tests: Test[];
@@ -96,6 +97,7 @@ const toFrontendTest = (raw: ApiTest): Test => {
 };
 
 export function AppShell() {
+    const navigate = useNavigate();
     const [tests, setTests] = useState<Test[]>(initialTests);
     const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(initialAuditEvents);
     const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
@@ -332,6 +334,16 @@ export function AppShell() {
             <div className="main-wrapper">
                 <header className="app-header">
                     <h1>QC Vision</h1>
+                    <button
+                        className="logout-button"
+                        type="button"
+                        onClick={() => {
+                            logoutUser();
+                            navigate('/login', { replace: true });
+                        }}
+                    >
+                        Logout
+                    </button>
                 </header>
 
                 <main className="app-content">

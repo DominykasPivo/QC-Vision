@@ -24,8 +24,7 @@ export function TestDetails() {
     const [showPhotoModal, setShowPhotoModal] = useState(false);
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     const [draft, setDraft] = useState({
-        externalOrderId: test?.externalOrderId ?? '',
-        productType: test?.productType ?? '',
+        productId: test?.productId !== undefined ? String(test.productId) : (test?.externalOrderId ?? ''),
         testType: (test?.testType ?? 'incoming') as TestType,
         requester: test?.requester ?? '',
         assignedTo: test?.assignedTo ?? '',
@@ -97,8 +96,7 @@ export function TestDetails() {
         const safeStatus = TEST_STATUSES.includes(test.status) ? test.status : 'pending';
         const safeDeadline = test.deadline && test.deadline !== 'None' ? test.deadline : '';
         setDraft({
-            externalOrderId: test.externalOrderId ?? '',
-            productType: test.productType ?? '',
+            productId: test.productId !== undefined ? String(test.productId) : (test.externalOrderId ?? ''),
             testType: safeTestType,
             requester: test.requester ?? '',
             assignedTo: test.assignedTo ?? '',
@@ -214,7 +212,7 @@ export function TestDetails() {
             // 2. Update test in backend
             console.log('Updating test...');
             const updateData = {
-                product_id: draft.externalOrderId.trim(),
+                product_id: draft.productId.trim(),
                 test_type: draft.testType,
                 requester: draft.requester.trim(),
                 assigned_to: draft.assignedTo.trim() || null,
@@ -244,8 +242,8 @@ export function TestDetails() {
 
             // 3. Update local state
             updateTest(test.id, {
-                externalOrderId: draft.externalOrderId.trim(),
-                productType: draft.productType.trim(),
+                productId: draft.productId.trim(),
+                externalOrderId: draft.productId.trim(),
                 testType: draft.testType,
                 requester: draft.requester.trim(),
                 assignedTo: draft.assignedTo.trim() || undefined,
@@ -473,19 +471,11 @@ export function TestDetails() {
                         <div className="delete-confirm__body">Edit the fields below and save your changes.</div>
                         <div className="flex flex-col gap-3 update-modal__fields">
                             <div className="form-group">
-                                <label className="form-label">External Order</label>
+                                <label className="form-label">Product ID</label>
                                 <Input
                                     className="form-input"
-                                    value={draft.externalOrderId}
-                                    onChange={(e) => setDraft((prev) => ({ ...prev, externalOrderId: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Product Type</label>
-                                <Input
-                                    className="form-input"
-                                    value={draft.productType}
-                                    onChange={(e) => setDraft((prev) => ({ ...prev, productType: e.target.value }))}
+                                    value={draft.productId}
+                                    onChange={(e) => setDraft((prev) => ({ ...prev, productId: e.target.value }))}
                                 />
                             </div>
                             <div className="form-group">
