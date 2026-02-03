@@ -19,15 +19,7 @@ class DefectsService:
         db.add(defect)
         db.flush()  # get defect.id
 
-        # create main annotation from category_id
-        if payload.category_id:
-            db.add(DefectAnnotation(
-                defect_id=defect.id,
-                category_id=payload.category_id,
-                geometry={}  # empty geometry for now
-            ))
-        
-        # create additional annotations
+        # create annotations from payload
         for ann in payload.annotations:
             db.add(DefectAnnotation(
                 defect_id=defect.id,
