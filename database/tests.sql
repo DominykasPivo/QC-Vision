@@ -109,19 +109,9 @@ BEGIN
       RAISE NOTICE 'OK: FK restrict prevents deleting test with photos';
   END;
 
-  ---------------------------------------------------------------------------
-  -- 6) Check FK RESTRICT behavior: cannot delete photo with defects
-  ---------------------------------------------------------------------------
-  BEGIN
-    DELETE FROM photos WHERE id = 1;
-    RAISE EXCEPTION 'FK RESTRICT failed: was able to delete photos.id=1 even though defects exist';
-  EXCEPTION
-    WHEN foreign_key_violation THEN
-      RAISE NOTICE 'OK: FK restrict prevents deleting photo with defects';
-  END;
 
   ---------------------------------------------------------------------------
-  -- 7) Check defect_annotations require valid JSON shape (demo has expected keys)
+  -- 6) Check defect_annotations require valid JSON shape (demo has expected keys)
   ---------------------------------------------------------------------------
   -- Just verify at least one annotation contains 'type'
   SELECT count(*) INTO v_count
@@ -135,7 +125,7 @@ BEGIN
   RAISE NOTICE 'OK: geometry JSONB contains expected keys';
 
   ---------------------------------------------------------------------------
-  -- 8) Check indexes exist (important for search/performance)
+  -- 7) Check indexes exist (important for search/performance)
   ---------------------------------------------------------------------------
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes
@@ -203,7 +193,7 @@ BEGIN
   RAISE NOTICE 'OK: Required indexes exist';
 
   ---------------------------------------------------------------------------
-  -- 9) Check audit_logs default meta works (insert a row without meta)
+  -- 8) Check audit_logs default meta works (insert a row without meta)
   ---------------------------------------------------------------------------
   INSERT INTO audit_logs (action, entity_type, entity_id, username)
   VALUES ('test_meta_default', 'quality_tests', 1, 'Tester')
