@@ -14,6 +14,10 @@ export type DefectPayload = {
   category_id: number;
   severity: DefectSeverity;
   description?: string | null;
+  annotations?: Array<{
+    category_id: number;
+    geometry: Record<string, any>;
+  }>;
 };
 
 export type DefectAnnotation = {
