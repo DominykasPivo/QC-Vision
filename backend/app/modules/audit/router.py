@@ -8,7 +8,7 @@ from app.database import get_db
 from .schemas import AuditLogOut, AuditLogListOut
 from .service import get_log_by_id, list_logs
 
-router = APIRouter(prefix="/audit", tags=["audit"])
+router = APIRouter(tags=["audit"])
 
 
 @router.get("/logs", response_model=AuditLogListOut)
