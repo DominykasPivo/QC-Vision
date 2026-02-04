@@ -111,6 +111,8 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
     """Update a test"""
     try:
         return await tests_service.update_test(db, test_id, test_data)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -120,5 +122,7 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
     """Delete a test"""
     try:
         await tests_service.delete_test(db, test_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
