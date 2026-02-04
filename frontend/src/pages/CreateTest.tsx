@@ -112,7 +112,11 @@ export function CreateTest() {
             if (formData.assignedTo.trim()) {
                 submitFormData.append('assignedTo', formData.assignedTo.trim());
             }
-            submitFormData.append('status', formData.status);
+            submitFormData.append(
+    'status',
+    formData.status.toLowerCase().replace(' ', '_')
+);
+
             if (formData.deadline) {
                 submitFormData.append('deadlineAt', new Date(formData.deadline).toISOString());
             }
@@ -128,13 +132,21 @@ export function CreateTest() {
                 body: submitFormData,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to create test');
-            }
+const text = await response.text();
+const parsed = text ? JSON.parse(text) : null;
 
-            const result = await response.json();
-            console.log('Test created:', result);
+if (!response.ok) {
+    // FastAPI often returns {"detail": "..."} but sometimes body can be empty
+    const message =
+        (parsed && (parsed.detail || parsed.message)) ||
+        text ||
+        `Failed to create test (${response.status})`;
+    throw new Error(message);
+}
+
+const result = parsed;
+console.log('Test created:', result);
+
 
             const createdTestId = result?.test?.id ? String(result.test.id) : 'unknown';
             
