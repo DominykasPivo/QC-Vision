@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { auditEvents as initialAuditEvents, photos as initialPhotos, tests as initialTests } from '../../mock/data';
 import type { AuditEvent, Photo, Test } from '../../mock/data';
 import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
+import { logoutUser } from '@/lib/auth';
 
 export type AppDataContext = {
     tests: Test[];
@@ -37,6 +38,10 @@ type ApiTest = {
     status?: string | null;
     deadlineAt?: string | null;
     deadline_at?: string | null;
+    createdAt?: string | null;
+    created_at?: string | null;
+    updatedAt?: string | null;
+    updated_at?: string | null;
     externalOrderId?: string;
     productType?: string;
 };
@@ -72,20 +77,27 @@ const toFrontendTest = (raw: ApiTest): Test => {
     const status = normalizeStatus(raw.status);
     const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
     const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
+    const createdAt = raw.createdAt ?? raw.created_at ?? null;
+    const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
 
     return {
         id: String(raw.id),
         externalOrderId: raw.externalOrderId ?? (productId !== undefined ? String(productId) : String(raw.id)),
+        productId,
         productType: raw.productType ?? (productId !== undefined ? `Product ${productId}` : 'Unknown product'),
         testType,
         requester: raw.requester ?? '',
         assignedTo: assignedTo || undefined,
         deadline: formatDeadline(deadlineAt),
+        deadlineAt,
         status,
+        createdAt,
+        updatedAt,
     };
 };
 
 export function AppShell() {
+    const navigate = useNavigate();
     const [tests, setTests] = useState<Test[]>(initialTests);
     const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(initialAuditEvents);
     const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
@@ -322,6 +334,16 @@ export function AppShell() {
             <div className="main-wrapper">
                 <header className="app-header">
                     <h1>QC Vision</h1>
+                    <button
+                        className="logout-button"
+                        type="button"
+                        onClick={() => {
+                            logoutUser();
+                            navigate('/login', { replace: true });
+                        }}
+                    >
+                        Logout
+                    </button>
                 </header>
 
                 <main className="app-content">

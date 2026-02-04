@@ -89,6 +89,23 @@ body {
   color: var(--text);
 }
 
+.logout-button {
+  position: absolute;
+  right: var(--spacing-md);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.logout-button:active {
+  background: var(--bg-secondary);
+}
+
 .app-content {
   flex: 1;
   padding: var(--spacing-md);
@@ -322,6 +339,65 @@ body {
 
 .btn-block {
   width: 100%;
+}
+
+/* Login Page */
+.login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+}
+
+.login-card {
+  width: min(420px, 100%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: clamp(20px, 4vw, 32px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+}
+
+.login-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-xs);
+}
+
+.login-helper {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.login-input {
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-md);
+  min-height: 52px;
+}
+
+.login-button {
+  font-size: var(--font-size-lg);
+  min-height: 52px;
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-error {
+  min-height: 20px;
+  color: var(--error);
+  font-size: var(--font-size-sm);
 }
 
 /* Delete confirm */
@@ -658,9 +734,66 @@ body {
 }
 
 /* Photo Defects */
-.photo-preview {
+.photo-defects-page {
+  max-width: 1100px;
+}
+
+.photo-defects-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.photo-defects-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.photo-defects-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.photo-defects-grid {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 1024px) {
+  .photo-defects-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+}
+
+.photo-defects-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  background: var(--bg);
+}
+
+.photo-card-header,
+.photo-defects-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+}
+
+.photo-card-content,
+.photo-defects-card-content {
+  padding: var(--spacing-md);
+}
+
+.photo-preview-frame {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 360px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-secondary);
@@ -669,23 +802,39 @@ body {
   justify-content: center;
 }
 
-.photo-preview img {
+@media (min-width: 768px) {
+  .photo-preview-frame {
+    height: 420px;
+  }
+}
+
+.photo-preview-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .photo-meta {
   margin-top: var(--spacing-sm);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-}
-
-.defect-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.photo-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
 }
 
 .defect-list {

@@ -5,39 +5,24 @@ const API_BASE = '/api/v1';
 
 export const DEFECT_ENDPOINTS = {
   photo: (photoId: string | number) => `${API_BASE}/photos/${photoId}`,
-  photoDefects: (photoId: string | number) => `${API_BASE}/defects/photo/${photoId}`,
+  photoDefects: (photoId: string | number) => `${API_BASE}/photos/${photoId}/defects`,
   defect: (defectId: string | number) => `${API_BASE}/defects/${defectId}`,
-  categories: `${API_BASE}/defects/categories`,
 };
 
 export type DefectPayload = {
-  category_id: number;
+  category: DefectCategory;
   severity: DefectSeverity;
   description?: string | null;
-  annotations?: Array<{
-    category_id: number;
-    geometry: Record<string, any>;
-  }>;
-};
-
-export type DefectAnnotation = {
-  id: number;
-  defect_id: number;
-  category_id: number;
-  geometry: Record<string, any>;
-  created_at: string;
 };
 
 export type DefectRecord = {
   id: number | string;
   photo_id?: number | string;
-  category_id: number;
-  category: DefectCategoryRecord;
+  category: string;
   severity: string;
   description?: string | null;
   created_at?: string | null;
   createdAt?: string | null;
-  annotations?: DefectAnnotation[];
 };
 
 export type PhotoRecord = {
@@ -73,14 +58,4 @@ export async function updateDefect(defectId: string | number, payload: DefectPay
 
 export async function deleteDefect(defectId: string | number) {
   return request<unknown>(DEFECT_ENDPOINTS.defect(defectId), { method: 'DELETE' });
-}
-
-export type DefectCategoryRecord = {
-  id: number;
-  name: string;
-  is_active: boolean;
-};
-
-export async function getDefectCategories() {
-  return request<DefectCategoryRecord[]>(DEFECT_ENDPOINTS.categories);
 }

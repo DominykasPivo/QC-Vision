@@ -25,8 +25,7 @@ export function TestDetails() {
     const [showPhotoModal, setShowPhotoModal] = useState(false);
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     const [draft, setDraft] = useState({
-        externalOrderId: test?.externalOrderId ?? '',
-        productType: test?.productType ?? '',
+        productId: test?.productId !== undefined ? String(test.productId) : (test?.externalOrderId ?? ''),
         testType: (test?.testType ?? 'incoming') as TestType,
         requester: test?.requester ?? '',
         assignedTo: test?.assignedTo ?? '',
@@ -112,8 +111,7 @@ export function TestDetails() {
         const safeStatus = TEST_STATUSES.includes(test.status) ? test.status : 'pending';
         const safeDeadline = test.deadline && test.deadline !== 'None' ? test.deadline : '';
         setDraft({
-            externalOrderId: test.externalOrderId ?? '',
-            productType: test.productType ?? '',
+            productId: test.productId !== undefined ? String(test.productId) : (test.externalOrderId ?? ''),
             testType: safeTestType,
             requester: test.requester ?? '',
             assignedTo: test.assignedTo ?? '',
@@ -229,7 +227,7 @@ export function TestDetails() {
             // 2. Update test in backend
             console.log('Updating test...');
             const updateData = {
-                product_id: draft.externalOrderId.trim(),
+                product_id: draft.productId.trim(),
                 test_type: draft.testType,
                 requester: draft.requester.trim(),
                 assigned_to: draft.assignedTo.trim() || null,
@@ -259,8 +257,8 @@ export function TestDetails() {
 
             // 3. Update local state
             updateTest(test.id, {
-                externalOrderId: draft.externalOrderId.trim(),
-                productType: draft.productType.trim(),
+                productId: draft.productId.trim(),
+                externalOrderId: draft.productId.trim(),
                 testType: draft.testType,
                 requester: draft.requester.trim(),
                 assignedTo: draft.assignedTo.trim() || undefined,
@@ -423,47 +421,7 @@ export function TestDetails() {
                             <CardTitle className="details-section-title">Defects</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
-                            {photosWithDefects.length === 0 ? (
-                                <div className="details-placeholder">No photos with defects yet.</div>
-                            ) : (
-                                <div className="gallery-grid">
-                                    {photosWithDefects.map((photo) => (
-                                        <Link
-                                            key={photo.id}
-                                            to={`/photos/${photo.id}`}
-                                            className="gallery-item"
-                                            style={{ backgroundColor: '#1f2937', position: 'relative' }}
-                                        >
-                                            {photo.url ? (
-                                                <>
-                                                    <img
-                                                        src={photo.url}
-                                                        alt={`Photo ${photo.id}`}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
-                                                    <div style={{ 
-                                                        position: 'absolute', 
-                                                        bottom: '4px', 
-                                                        right: '4px', 
-                                                        background: 'rgba(239, 68, 68, 0.9)', 
-                                                        color: 'white', 
-                                                        padding: '2px 6px', 
-                                                        borderRadius: '4px',
-                                                        fontSize: '12px',
-                                                        fontWeight: 'bold'
-                                                    }}>
-                                                        {photo.defectCount} defect{photo.defectCount !== 1 ? 's' : ''}
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <span style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                                                    Loading...
-                                                </span>
-                                            )}
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
+                            <div className="details-placeholder">Select a photo to view defects.</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -528,19 +486,11 @@ export function TestDetails() {
                         <div className="delete-confirm__body">Edit the fields below and save your changes.</div>
                         <div className="flex flex-col gap-3 update-modal__fields">
                             <div className="form-group">
-                                <label className="form-label">External Order</label>
+                                <label className="form-label">Product ID</label>
                                 <Input
                                     className="form-input"
-                                    value={draft.externalOrderId}
-                                    onChange={(e) => setDraft((prev) => ({ ...prev, externalOrderId: e.target.value }))}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Product Type</label>
-                                <Input
-                                    className="form-input"
-                                    value={draft.productType}
-                                    onChange={(e) => setDraft((prev) => ({ ...prev, productType: e.target.value }))}
+                                    value={draft.productId}
+                                    onChange={(e) => setDraft((prev) => ({ ...prev, productId: e.target.value }))}
                                 />
                             </div>
                             <div className="form-group">

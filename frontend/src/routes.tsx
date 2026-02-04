@@ -6,11 +6,32 @@ import { CreateTest } from './pages/CreateTest';
 import { Gallery } from './pages/Gallery';
 import { AuditLog } from './pages/AuditLog';
 import { PhotoDefects } from './pages/PhotoDefects';
+import { Login } from './pages/Login';
+import { isLoggedIn } from './lib/auth';
+
+const RequireAuth = ({ children }: { children: React.ReactNode }) => {
+    if (!isLoggedIn()) {
+        return <Navigate to="/login" replace />;
+    }
+    return children;
+};
+
+const LoginRoute = () => {
+    return isLoggedIn() ? <Navigate to="/tests" replace /> : <Login />;
+};
 
 export const router = createBrowserRouter([
     {
+        path: '/login',
+        element: <LoginRoute />,
+    },
+    {
         path: '/',
-        element: <AppShell />,
+        element: (
+            <RequireAuth>
+                <AppShell />
+            </RequireAuth>
+        ),
         children: [
             {
                 index: true,
