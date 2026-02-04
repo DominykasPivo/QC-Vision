@@ -14,6 +14,7 @@ export function TestDetails() {
     const navigate = useNavigate();
     const test = tests.find((t) => t.id === id);
     const [apiPhotos, setApiPhotos] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string }>>([]);
+    const [photosWithDefects, setPhotosWithDefects] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string; defectCount: number }>>([]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -47,6 +48,20 @@ export function TestDetails() {
                     );
                     console.log('Photos with URLs:', photosWithUrls);
                     setApiPhotos(photosWithUrls);
+                    
+                    // Fetch defects for each photo to determine which have defects
+                    const photosWithDefectData = await Promise.all(
+                        photosWithUrls.map(async (photo: any) => {
+                            try {
+                                const defectsRes = await fetch(`/api/v1/defects/photo/${photo.id}`);
+                                const defects = await defectsRes.json();
+                                return { ...photo, defectCount: Array.isArray(defects) ? defects.length : 0 };
+                            } catch {
+                                return { ...photo, defectCount: 0 };
+                            }
+                        })
+                    );
+                    setPhotosWithDefects(photosWithDefectData.filter(p => p.defectCount > 0));
                 })
                 .catch(err => console.error('Failed to fetch photos:', err));
         }
@@ -71,6 +86,26 @@ export function TestDetails() {
             </div>
         );
     }
+
+    const formatDateOnly = (value?: string | null) => {
+        if (!value) {
+            return '—';
+        }
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            return '—';
+        }
+        return parsed.toISOString().slice(0, 10);
+    };
+
+    const productIdValue = test.productId ?? test.externalOrderId;
+    const productIdLabel = productIdValue ? String(productIdValue) : '—';
+    const requesterLabel = test.requester?.trim() ? test.requester : '—';
+    const assignedToLabel = test.assignedTo?.trim() ? test.assignedTo : '—';
+    const deadlineSource = test.deadlineAt ?? (test.deadline && test.deadline !== 'None' ? test.deadline : null);
+    const deadlineLabel = deadlineSource ? formatDateOnly(deadlineSource) : '—';
+    const createdLabel = formatDateOnly(test.createdAt ?? null);
+    const updatedLabel = formatDateOnly(test.updatedAt ?? null);
 
     const openUpdate = () => {
         const safeTestType = TEST_TYPES.includes(test.testType) ? test.testType : 'incoming';
@@ -326,7 +361,7 @@ export function TestDetails() {
             </Link>
 
             <h2 className="page-title">{test.id}</h2>
-            <p className="page-description">{test.productType} • {test.testType}</p>
+            <p className="page-description">Product ID {productIdLabel} • {formatEnumLabel(test.testType)}</p>
 
             <div className="flex flex-col gap-4">
                 <Card className="details-section">
@@ -334,13 +369,15 @@ export function TestDetails() {
                         <CardTitle className="details-section-title">Test Information</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-2 p-0">
-                        <div><strong>External Order:</strong> {test.externalOrderId}</div>
-                        <div><strong>Product Type:</strong> {test.productType}</div>
+                        <div><strong>Test ID:</strong> {test.id}</div>
+                        <div><strong>Product ID:</strong> {productIdLabel}</div>
                         <div><strong>Test Type:</strong> {formatEnumLabel(test.testType)}</div>
-                        <div><strong>Requester:</strong> {test.requester}</div>
-                        {test.assignedTo && <div><strong>Assigned To:</strong> {test.assignedTo}</div>}
-                        <div><strong>Deadline:</strong> {test.deadline}</div>
+                        <div><strong>Requester:</strong> {requesterLabel}</div>
+                        <div><strong>Assigned To:</strong> {assignedToLabel}</div>
                         <div><strong>Status:</strong> {formatEnumLabel(test.status)}</div>
+                        <div><strong>Deadline:</strong> {deadlineLabel}</div>
+                        <div><strong>Created:</strong> {createdLabel}</div>
+                        <div><strong>Updated:</strong> {updatedLabel}</div>
                     </CardContent>
                 </Card>
 
@@ -355,8 +392,9 @@ export function TestDetails() {
                             ) : (
                                 <div className="gallery-grid">
                                     {apiPhotos.map((photo) => (
-                                        <div
+                                        <Link
                                             key={photo.id}
+                                            to={`/photos/${photo.id}`}
                                             className="gallery-item"
                                             style={{ backgroundColor: '#1f2937' }}
                                         >
@@ -373,7 +411,7 @@ export function TestDetails() {
                                                     Loading...
                                                 </span>
                                             )}
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             )}
@@ -385,7 +423,47 @@ export function TestDetails() {
                             <CardTitle className="details-section-title">Defects</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="details-placeholder" />
+                            {photosWithDefects.length === 0 ? (
+                                <div className="details-placeholder">No photos with defects yet.</div>
+                            ) : (
+                                <div className="gallery-grid">
+                                    {photosWithDefects.map((photo) => (
+                                        <Link
+                                            key={photo.id}
+                                            to={`/photos/${photo.id}`}
+                                            className="gallery-item"
+                                            style={{ backgroundColor: '#1f2937', position: 'relative' }}
+                                        >
+                                            {photo.url ? (
+                                                <>
+                                                    <img
+                                                        src={photo.url}
+                                                        alt={`Photo ${photo.id}`}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                    <div style={{ 
+                                                        position: 'absolute', 
+                                                        bottom: '4px', 
+                                                        right: '4px', 
+                                                        background: 'rgba(239, 68, 68, 0.9)', 
+                                                        color: 'white', 
+                                                        padding: '2px 6px', 
+                                                        borderRadius: '4px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        {photo.defectCount} defect{photo.defectCount !== 1 ? 's' : ''}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <span style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                                    Loading...
+                                                </span>
+                                            )}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS defects (
   id          SERIAL PRIMARY KEY,
 
   -- one photo can have multiple defects
-  photo_id    INT NOT NULL REFERENCES photos(id) ON DELETE RESTRICT,
+  photo_id    INT NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
 
   description TEXT,
   severity    defect_severity NOT NULL DEFAULT 'low',
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS defect_annotations (
   id          SERIAL PRIMARY KEY,
 
   -- one defect can have multiple annotations (e.g., multiple areas marked)
-  defect_id   INT NOT NULL REFERENCES defects(id) ON DELETE RESTRICT,
+  defect_id   INT NOT NULL REFERENCES defects(id) ON DELETE CASCADE,
 
   -- multiple annotations can belong to the same category
   category_id INT NOT NULL REFERENCES defect_category(id) ON DELETE RESTRICT,

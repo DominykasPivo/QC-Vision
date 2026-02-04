@@ -99,26 +99,91 @@ BEGIN
   RAISE NOTICE 'OK: updated_at trigger works (old=% new=%)', old_updated_at, new_updated_at;
 
   ---------------------------------------------------------------------------
-  -- 5) Check FK RESTRICT behavior: cannot delete quality_test with photos
+  -- 5) Hierarchy CASCADE test (subtransaction-safe inside DO block)
+  -- Deleting a quality_test should delete its photos AND their defects
+  -- Requires CASCADE FKs on photos.test_id and defects.photo_id
   ---------------------------------------------------------------------------
   BEGIN
-    DELETE FROM quality_tests WHERE id = 1;
-    RAISE EXCEPTION 'FK RESTRICT failed: was able to delete quality_tests.id=1 even though photos exist';
-  EXCEPTION
-    WHEN foreign_key_violation THEN
-      RAISE NOTICE 'OK: FK restrict prevents deleting test with photos';
+    DECLARE
+      t_id INT;
+      p_id1 INT;
+      p_id2 INT;
+      photos_before INT;
+      defects_before INT;
+      photos_after INT;
+      defects_after INT;
+    BEGIN
+      -- Create a fresh test
+      INSERT INTO quality_tests (product_id, test_type, requester, status)
+      VALUES (777, 'incoming', 'HierarchyTester', 'open')
+      RETURNING id INTO t_id;
+
+      -- Create two photos under that test
+      INSERT INTO photos (test_id, file_path)
+      VALUES (t_id, '/uploads/hierarchy/p1.jpg')
+      RETURNING id INTO p_id1;
+
+      INSERT INTO photos (test_id, file_path)
+      VALUES (t_id, '/uploads/hierarchy/p2.jpg')
+      RETURNING id INTO p_id2;
+
+      -- Create defects under each photo
+      INSERT INTO defects (photo_id, description, severity)
+      VALUES
+        (p_id1, 'defect on p1', 'medium'),
+        (p_id1, 'another defect on p1', 'low'),
+        (p_id2, 'defect on p2', 'high');
+
+      -- Sanity checks before delete
+      SELECT count(*) INTO photos_before FROM photos WHERE test_id = t_id;
+
+      SELECT count(*) INTO defects_before
+      FROM defects d
+      JOIN photos p ON p.id = d.photo_id
+      WHERE p.test_id = t_id;
+
+      IF photos_before <> 2 THEN
+        RAISE EXCEPTION 'Hierarchy test invalid: expected 2 photos, got %', photos_before;
+      END IF;
+
+      IF defects_before <> 3 THEN
+        RAISE EXCEPTION 'Hierarchy test invalid: expected 3 defects, got %', defects_before;
+      END IF;
+
+      -- Delete the parent: should cascade to photos and defects
+      DELETE FROM quality_tests WHERE id = t_id;
+
+      -- Verify children removed
+      SELECT count(*) INTO photos_after FROM photos WHERE test_id = t_id;
+
+      SELECT count(*) INTO defects_after
+      FROM defects d
+      JOIN photos p ON p.id = d.photo_id
+      WHERE p.test_id = t_id;
+
+      IF photos_after <> 0 THEN
+        RAISE EXCEPTION 'Hierarchy CASCADE failed: photos still exist for deleted test id=%', t_id;
+      END IF;
+
+      IF defects_after <> 0 THEN
+        RAISE EXCEPTION 'Hierarchy CASCADE failed: defects still exist for deleted test id=%', t_id;
+      END IF;
+
+      RAISE NOTICE 'OK: Hierarchy CASCADE works (test -> photos -> defects) for test id=%', t_id;
+
+      -- Cleanup (if cascade worked, nothing is left; but delete in case cascade isn't enabled)
+      DELETE FROM defects WHERE photo_id IN (p_id1, p_id2);
+      DELETE FROM photos  WHERE id IN (p_id1, p_id2);
+      DELETE FROM quality_tests WHERE id = t_id;
+
+    EXCEPTION WHEN OTHERS THEN
+      -- If cascade is not enabled, subtransaction rolls back inserts automatically
+      -- and we give a clear error message
+      RAISE EXCEPTION 'Hierarchy CASCADE test failed. Make sure FK constraints use ON DELETE CASCADE. Original error: %', SQLERRM;
+    END;
   END;
 
-  ---------------------------------------------------------------------------
-  -- 6) Check FK RESTRICT behavior: cannot delete photo with defects
-  ---------------------------------------------------------------------------
-  BEGIN
-    DELETE FROM photos WHERE id = 1;
-    RAISE EXCEPTION 'FK RESTRICT failed: was able to delete photos.id=1 even though defects exist';
-  EXCEPTION
-    WHEN foreign_key_violation THEN
-      RAISE NOTICE 'OK: FK restrict prevents deleting photo with defects';
-  END;
+
 
   ---------------------------------------------------------------------------
   -- 7) Check defect_annotations require valid JSON shape (demo has expected keys)
