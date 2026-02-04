@@ -14,11 +14,11 @@
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "konva": "^9.3.16",
+    "konva": "^9.3.22",
     "lucide-react": "^0.563.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-konva": "^18.2.10",
+    "react-konva": "^18.2.14",
     "react-router-dom": "^7.12.0",
     "tailwind-merge": "^3.4.0"
   },
