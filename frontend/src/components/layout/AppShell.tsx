@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { auditEvents as initialAuditEvents, photos as initialPhotos, tests as initialTests } from '../../mock/data';
+import { photos as initialPhotos, tests as initialTests } from '../../mock/data';
 import type { AuditEvent, Photo, Test } from '../../mock/data';
 import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
 import { logoutUser } from '@/lib/auth';
+import { fetchAuditLogs } from '@/api/audit';
+
 
 export type AppDataContext = {
     tests: Test[];
@@ -99,7 +101,7 @@ const toFrontendTest = (raw: ApiTest): Test => {
 export function AppShell() {
     const navigate = useNavigate();
     const [tests, setTests] = useState<Test[]>(initialTests);
-    const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(initialAuditEvents);
+    const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
     const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
     const [testsLoaded, setTestsLoaded] = useState(false);
     const [storageHydrated, setStorageHydrated] = useState(false);
@@ -146,12 +148,12 @@ export function AppShell() {
         localStorage.setItem(STORAGE_KEYS.photos, JSON.stringify(safePhotos));
     }, [photos, storageHydrated]);
 
-    useEffect(() => {
-        if (!storageHydrated) {
-            return;
-        }
-        localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify(auditEvents));
-    }, [auditEvents, storageHydrated]);
+    //useEffect(() => {
+        //if (!storageHydrated) {
+        //    return;
+        //}
+        //localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify(auditEvents));
+    //}, [auditEvents, storageHydrated]);
 
     useEffect(() => {
         if (!storageHydrated) {
@@ -200,6 +202,27 @@ export function AppShell() {
             }
         }
     }, [deletedTestIds]);
+
+    useEffect(() => {
+    const loadAuditLogs = async () => {
+        try {
+            const data = await fetchAuditLogs();
+
+            const mapped = data.items.map((log: any) => ({
+                id: log.id,
+                timestamp: log.created_at,
+                event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`,
+            }));
+
+            setAuditEvents(mapped);
+        } catch (error) {
+            console.error('[Audit] Failed to load audit logs:', error);
+        }
+    };
+
+    loadAuditLogs();
+}, []);
+
 
     useEffect(() => {
         let isActive = true;
