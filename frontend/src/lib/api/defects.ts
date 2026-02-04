@@ -5,12 +5,12 @@ const API_BASE = '/api/v1';
 
 export const DEFECT_ENDPOINTS = {
   photo: (photoId: string | number) => `${API_BASE}/photos/${photoId}`,
-  photoDefects: (photoId: string | number) => `${API_BASE}/photos/${photoId}/defects`,
+  photoDefects: (photoId: string | number) => `${API_BASE}/defects/photo/${photoId}`,
   defect: (defectId: string | number) => `${API_BASE}/defects/${defectId}`,
 };
 
 export type DefectPayload = {
-  category: DefectCategory;
+  category_id: number;
   severity: DefectSeverity;
   description?: string | null;
 };
@@ -18,11 +18,17 @@ export type DefectPayload = {
 export type DefectRecord = {
   id: number | string;
   photo_id?: number | string;
-  category: string;
   severity: string;
   description?: string | null;
   created_at?: string | null;
   createdAt?: string | null;
+  annotations?: Array<{
+    id: number;
+    defect_id: number;
+    category_id: number;
+    geometry: Record<string, any>;
+    created_at: string;
+  }>;
 };
 
 export type PhotoRecord = {

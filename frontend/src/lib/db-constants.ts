@@ -16,6 +16,7 @@ export const DEFECT_CATEGORIES = [
 ] as const;
 
 export type DefectCategoryRecord = typeof DEFECT_CATEGORIES[number];
+export type DefectCategory = DefectCategoryRecord['id'];
 
 export function formatEnumLabel(value: string): string {
   const normalized = value.replace(/_/g, ' ');

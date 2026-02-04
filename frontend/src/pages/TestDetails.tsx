@@ -25,7 +25,8 @@ export function TestDetails() {
     const [showPhotoModal, setShowPhotoModal] = useState(false);
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     const [draft, setDraft] = useState({
-        productId: test?.productId !== undefined ? String(test.productId) : (test?.externalOrderId ?? ''),
+        externalOrderId: test?.externalOrderId ?? '',
+        productType: test?.productType ?? '',
         testType: (test?.testType ?? 'incoming') as TestType,
         requester: test?.requester ?? '',
         assignedTo: test?.assignedTo ?? '',
@@ -65,6 +66,33 @@ export function TestDetails() {
                 .catch(err => console.error('Failed to fetch photos:', err));
         }
     }, [id]);
+
+    // Refetch defects when returning to this page
+    useEffect(() => {
+        const refetchDefects = async () => {
+            if (id && apiPhotos.length > 0) {
+                try {
+                    const photosWithDefectData = await Promise.all(
+                        apiPhotos.map(async (photo: any) => {
+                            try {
+                                const defectsRes = await fetch(`/api/v1/defects/photo/${photo.id}`);
+                                const defects = await defectsRes.json();
+                                return { ...photo, defectCount: Array.isArray(defects) ? defects.length : 0 };
+                            } catch {
+                                return { ...photo, defectCount: 0 };
+                            }
+                        })
+                    );
+                    setPhotosWithDefects(photosWithDefectData.filter(p => p.defectCount > 0));
+                } catch (err) {
+                    console.error('Failed to refetch defects:', err);
+                }
+            }
+        };
+
+        window.addEventListener('focus', refetchDefects);
+        return () => window.removeEventListener('focus', refetchDefects);
+    }, [id, apiPhotos]);
 
     useEffect(() => {
         const previews = newPhotos.map((file) => ({ file, url: URL.createObjectURL(file) }));
@@ -111,7 +139,8 @@ export function TestDetails() {
         const safeStatus = TEST_STATUSES.includes(test.status) ? test.status : 'pending';
         const safeDeadline = test.deadline && test.deadline !== 'None' ? test.deadline : '';
         setDraft({
-            productId: test.productId !== undefined ? String(test.productId) : (test.externalOrderId ?? ''),
+            externalOrderId: test.externalOrderId ?? '',
+            productType: test.productType ?? '',
             testType: safeTestType,
             requester: test.requester ?? '',
             assignedTo: test.assignedTo ?? '',
@@ -227,7 +256,7 @@ export function TestDetails() {
             // 2. Update test in backend
             console.log('Updating test...');
             const updateData = {
-                product_id: draft.productId.trim(),
+                product_id: draft.externalOrderId.trim(),
                 test_type: draft.testType,
                 requester: draft.requester.trim(),
                 assigned_to: draft.assignedTo.trim() || null,
@@ -257,8 +286,8 @@ export function TestDetails() {
 
             // 3. Update local state
             updateTest(test.id, {
-                productId: draft.productId.trim(),
-                externalOrderId: draft.productId.trim(),
+                externalOrderId: draft.externalOrderId.trim(),
+                productType: draft.productType.trim(),
                 testType: draft.testType,
                 requester: draft.requester.trim(),
                 assignedTo: draft.assignedTo.trim() || undefined,
@@ -421,7 +450,47 @@ export function TestDetails() {
                             <CardTitle className="details-section-title">Defects</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="details-placeholder">Select a photo to view defects.</div>
+                            {photosWithDefects.length === 0 ? (
+                                <div className="details-placeholder">No photos with defects yet.</div>
+                            ) : (
+                                <div className="gallery-grid">
+                                    {photosWithDefects.map((photo) => (
+                                        <Link
+                                            key={photo.id}
+                                            to={`/photos/${photo.id}`}
+                                            className="gallery-item"
+                                            style={{ backgroundColor: '#1f2937', position: 'relative' }}
+                                        >
+                                            {photo.url ? (
+                                                <>
+                                                    <img
+                                                        src={photo.url}
+                                                        alt={`Photo ${photo.id}`}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                    <div style={{ 
+                                                        position: 'absolute', 
+                                                        bottom: '4px', 
+                                                        right: '4px', 
+                                                        background: 'rgba(239, 68, 68, 0.9)', 
+                                                        color: 'white', 
+                                                        padding: '2px 6px', 
+                                                        borderRadius: '4px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        {photo.defectCount} defect{photo.defectCount !== 1 ? 's' : ''}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <span style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                                    Loading...
+                                                </span>
+                                            )}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -486,11 +555,19 @@ export function TestDetails() {
                         <div className="delete-confirm__body">Edit the fields below and save your changes.</div>
                         <div className="flex flex-col gap-3 update-modal__fields">
                             <div className="form-group">
-                                <label className="form-label">Product ID</label>
+                                <label className="form-label">External Order</label>
                                 <Input
                                     className="form-input"
-                                    value={draft.productId}
-                                    onChange={(e) => setDraft((prev) => ({ ...prev, productId: e.target.value }))}
+                                    value={draft.externalOrderId}
+                                    onChange={(e) => setDraft((prev) => ({ ...prev, externalOrderId: e.target.value }))}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Product Type</label>
+                                <Input
+                                    className="form-input"
+                                    value={draft.productType}
+                                    onChange={(e) => setDraft((prev) => ({ ...prev, productType: e.target.value }))}
                                 />
                             </div>
                             <div className="form-group">
@@ -577,7 +654,7 @@ export function TestDetails() {
                                 <input
                                     id="camera-input"
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/jpeg,image/png,image/webp"
                                     capture="environment"
                                     multiple
                                     style={{ display: 'none' }}
@@ -590,7 +667,7 @@ export function TestDetails() {
                                 <input
                                     id="gallery-input"
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/jpeg,image/png,image/webp"
                                     multiple
                                     style={{ display: 'none' }}
                                     onChange={(e) => {
@@ -602,7 +679,7 @@ export function TestDetails() {
                                 <input
                                     id="desktop-input"
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/jpeg,image/png,image/webp"
                                     multiple
                                     style={{ display: 'none' }}
                                     onChange={handlePhotoSelect}

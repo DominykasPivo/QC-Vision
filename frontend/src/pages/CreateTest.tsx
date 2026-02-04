@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatEnumLabel, TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
 import type { AppDataContext } from '../components/layout/AppShell';
+import { getStoredUsername } from '@/lib/auth';
 
 export function CreateTest() {
     const navigate = useNavigate();
@@ -22,10 +23,11 @@ export function CreateTest() {
     
     // Detect if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    const loggedInUser = getStoredUsername();
     const [formData, setFormData] = useState({
         productId: '',
         testType: 'incoming' as TestType,
-        requester: '',
+        requester: loggedInUser,
         assignedTo: '',
         deadline: '',
         status: 'open' as TestStatus,
@@ -160,7 +162,7 @@ export function CreateTest() {
             setFormData({
                 productId: '',
                 testType: 'incoming',
-                requester: '',
+                requester: loggedInUser,
                 assignedTo: '',
                 deadline: '',
                 status: 'open',
@@ -251,7 +253,8 @@ export function CreateTest() {
                             value={formData.requester}
                             onChange={handleChange}
                             required
-                            disabled={isLoading}
+                            disabled
+                            readOnly
                         />
                     </div>
                 </div>
@@ -353,7 +356,7 @@ export function CreateTest() {
                             <input
                                 ref={cameraInputRef}
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp"
                                 capture="environment"
                                 multiple
                                 className="upload-input"
@@ -363,7 +366,7 @@ export function CreateTest() {
                             <input
                                 ref={galleryInputRef}
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp"
                                 multiple
                                 className="upload-input"
                                 onChange={handlePhotoSelect}
@@ -372,7 +375,7 @@ export function CreateTest() {
                             <input
                                 ref={desktopInputRef}
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp"
                                 multiple
                                 className="upload-input"
                                 onChange={handlePhotoSelect}

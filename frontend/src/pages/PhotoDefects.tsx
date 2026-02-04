@@ -7,7 +7,6 @@ import {
   DEFECT_CATEGORIES,
   DEFECT_SEVERITIES,
   formatEnumLabel,
-  type DefectCategory,
   type DefectSeverity,
 } from '@/lib/db-constants';
 import {
@@ -19,11 +18,15 @@ import {
   type DefectRecord,
   type PhotoRecord,
 } from '@/lib/api/defects';
+import { ImageAnnotator } from '@/components/annotations/ImageAnnotator';
+import { AnnotationToolbar } from '@/components/annotations/AnnotationToolbar';
+import type { Annotation, AnnotationGeometry, DrawingTool } from '@/lib/annotation-types';
 
 type DefectFormState = {
-  category: DefectCategory;
+  category_id: number;
   severity: DefectSeverity;
   description: string;
+  annotations: AnnotationGeometry[];
 };
 
 export function PhotoDefects() {
@@ -39,10 +42,13 @@ export function PhotoDefects() {
   const [editingDefect, setEditingDefect] = useState<DefectRecord | null>(null);
   const [deletingDefect, setDeletingDefect] = useState<DefectRecord | null>(null);
   const [form, setForm] = useState<DefectFormState>({
-    category: DEFECT_CATEGORIES[0],
+    category_id: DEFECT_CATEGORIES[0].id,
     severity: DEFECT_SEVERITIES[0],
     description: '',
+    annotations: [],
   });
+  const [currentTool, setCurrentTool] = useState<DrawingTool>('select');
+  const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
 
   const photoPreviewUrl = useMemo(() => {
     if (!photoId) {
@@ -53,10 +59,13 @@ export function PhotoDefects() {
 
   const resetForm = () => {
     setForm({
-      category: DEFECT_CATEGORIES[0],
+      category_id: DEFECT_CATEGORIES[0].id,
       severity: DEFECT_SEVERITIES[0],
       description: '',
+      annotations: [],
     });
+    setCurrentTool('select');
+    setSelectedAnnotation(null);
   };
 
   const loadDefects = async () => {
@@ -80,9 +89,6 @@ export function PhotoDefects() {
       return;
     }
     loadDefects();
-    getPhoto(photoId)
-      .then((data) => setPhoto(data))
-      .catch(() => setPhoto(null));
   }, [photoId]);
 
   if (!photoId) {
@@ -101,21 +107,42 @@ export function PhotoDefects() {
     resetForm();
     setActionError(null);
     setShowCreate(true);
+    setCurrentTool('rect'); // Start with rectangle tool
   };
 
   const openEdit = (defect: DefectRecord) => {
+    const firstAnnotation = defect.annotations && defect.annotations.length > 0 ? defect.annotations[0] : null;
     setForm({
-      category: (DEFECT_CATEGORIES.includes(defect.category as DefectCategory)
-        ? (defect.category as DefectCategory)
-        : DEFECT_CATEGORIES[0]) as DefectCategory,
+      category_id: firstAnnotation ? firstAnnotation.category_id : DEFECT_CATEGORIES[0].id,
       severity: (DEFECT_SEVERITIES.includes(defect.severity as DefectSeverity)
         ? (defect.severity as DefectSeverity)
         : DEFECT_SEVERITIES[0]) as DefectSeverity,
       description: defect.description ?? '',
+      annotations: [],
     });
     setActionError(null);
     setEditingDefect(defect);
   };
+
+  const handleAnnotationCreate = (geometry: AnnotationGeometry) => {
+    setForm(prev => ({
+      ...prev,
+      annotations: [...prev.annotations, geometry],
+    }));
+    setCurrentTool('select');
+  };
+
+  const handleAnnotationDelete = (index: number) => {
+    setForm(prev => ({
+      ...prev,
+      annotations: prev.annotations.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Get all annotations for the photo
+  const allAnnotations: Annotation[] = useMemo(() => {
+    return defects.flatMap(defect => defect.annotations || []);
+  }, [defects]);
 
   const formatTimestamp = (value?: string | null) => {
     if (!value) {
@@ -132,22 +159,51 @@ export function PhotoDefects() {
     if (!photoId || isSaving) {
       return;
     }
+    if (form.annotations.length === 0) {
+      setActionError('Please draw at least one annotation on the photo.');
+      return;
+    }
     setIsSaving(true);
     setActionError(null);
     try {
-      await createDefect(photoId, {
-        category: form.category,
+      const annotationsPayload = form.annotations.map(geometry => ({
+        category_id: form.category_id,
+        geometry,
+      }));
+      console.log('Creating defect with payload:', {
+        category_id: form.category_id,
         severity: form.severity,
         description: form.description.trim() || null,
+        annotations: annotationsPayload,
+      });
+      await createDefect(photoId, {
+        category_id: form.category_id,
+        severity: form.severity,
+        description: form.description.trim() || null,
+        annotations: annotationsPayload,
       });
       setShowCreate(false);
       resetForm();
       await loadDefects();
     } catch (error) {
+      console.error('Failed to create defect:', error);
       setActionError(error instanceof Error ? error.message : 'Failed to create defect.');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const cancelCreate = () => {
+    setShowCreate(false);
+    resetForm();
+  };
+
+  const openFormModal = () => {
+    if (form.annotations.length === 0) {
+      setActionError('Please draw at least one annotation on the photo first.');
+      return;
+    }
+    // Keep showCreate true, but we'll show a different modal
   };
 
   const handleUpdate = async () => {
@@ -157,8 +213,13 @@ export function PhotoDefects() {
     setIsSaving(true);
     setActionError(null);
     try {
+      console.log('Updating defect with payload:', {
+        category_id: form.category_id,
+        severity: form.severity,
+        description: form.description.trim() || null,
+      });
       await updateDefect(editingDefect.id, {
-        category: form.category,
+        category_id: form.category_id,
         severity: form.severity,
         description: form.description.trim() || null,
       });
@@ -166,6 +227,7 @@ export function PhotoDefects() {
       resetForm();
       await loadDefects();
     } catch (error) {
+      console.error('Failed to update defect:', error);
       setActionError(error instanceof Error ? error.message : 'Failed to update defect.');
     } finally {
       setIsSaving(false);
@@ -190,46 +252,169 @@ export function PhotoDefects() {
   };
 
   return (
-    <div className="page photo-defects-page">
+    <div className="page">
       <button type="button" className="back-link" onClick={() => navigate(-1)}>
         ← Back
       </button>
+      <h2 className="page-title">Photo</h2>
+      <p className="page-description">Defects linked to this photo.</p>
 
-      <div className="photo-defects-header">
-        <div>
-          <h2 className="photo-defects-title">Photo</h2>
-          <p className="photo-defects-subtitle">Defects linked to this photo.</p>
-        </div>
-      </div>
-
-      <div className="photo-defects-grid">
-        <Card className="details-section photo-defects-card">
-          <CardHeader className="photo-card-header">
-            <CardTitle className="details-section-title">Preview</CardTitle>
-            <span className="photo-pill">Photo #{photoId}</span>
-          </CardHeader>
-          <CardContent className="photo-card-content">
-            <div className="photo-preview-frame">
-              <img className="photo-preview-image" src={photo?.url ?? photoPreviewUrl} alt="Selected photo" />
-            </div>
+      <Card className="details-section">
+        <CardHeader className="p-0">
+          <CardTitle className="details-section-title">Photo with Annotations</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="space-y-4 p-4">
+            {showCreate && (
+              <>
+                <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-lg space-y-4">
+                  <div className="text-base font-semibold text-blue-900">
+                    📝 New Defect - Fill details and draw on image below
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="form-group">
+                      <label className="form-label font-medium">Category *</label>
+                      <Select
+                        value={String(form.category_id)}
+                        onValueChange={(value) => setForm((prev) => ({ ...prev, category_id: Number(value) }))}
+                      >
+                        <SelectTrigger className="form-select">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent className="update-select-content">
+                          {DEFECT_CATEGORIES.map((category) => (
+                            <SelectItem key={category.id} value={String(category.id)}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label className="form-label font-medium">Severity *</label>
+                      <Select
+                        value={form.severity}
+                        onValueChange={(value) => setForm((prev) => ({ ...prev, severity: value as DefectSeverity }))}
+                      >
+                        <SelectTrigger className="form-select">
+                          <SelectValue placeholder="Select severity" />
+                        </SelectTrigger>
+                        <SelectContent className="update-select-content">
+                          {DEFECT_SEVERITIES.map((severity) => (
+                            <SelectItem key={severity} value={severity}>
+                              {formatEnumLabel(severity)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label className="form-label font-medium">Description</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={form.description}
+                        onChange={(event) =>
+                          setForm((prev) => ({ ...prev, description: event.target.value }))
+                        }
+                        placeholder="Optional description..."
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 items-center justify-between">
+                    <span className="text-sm text-gray-700">
+                      {form.annotations.length === 0 ? (
+                        <span className="text-orange-600 font-medium">⚠️ Draw at least one shape on the image</span>
+                      ) : (
+                        <span className="text-green-600 font-medium">✓ {form.annotations.length} annotation{form.annotations.length !== 1 ? 's' : ''} drawn</span>
+                      )}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={cancelCreate}
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="button" 
+                        className="btn btn-primary"
+                        onClick={handleCreate}
+                        disabled={form.annotations.length === 0 || isSaving}
+                      >
+                        {isSaving ? 'Saving...' : 'Save Defect'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <AnnotationToolbar
+                  currentTool={currentTool}
+                  onToolChange={setCurrentTool}
+                  disabled={false}
+                />
+              </>
+            )}
+            <ImageAnnotator
+              imageUrl={photo?.url ?? photoPreviewUrl}
+              annotations={showCreate ? form.annotations.map((geom, idx) => ({
+                id: -idx - 1,
+                defect_id: -1,
+                category_id: form.category_id,
+                geometry: geom,
+                created_at: new Date().toISOString(),
+              })) : allAnnotations}
+              currentTool={showCreate ? currentTool : 'select'}
+              onAnnotationCreate={showCreate ? handleAnnotationCreate : undefined}
+              onAnnotationSelect={setSelectedAnnotation}
+              selectedAnnotationId={selectedAnnotation?.id}
+              readonly={!showCreate}
+            />
+            {showCreate && form.annotations.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-gray-700">
+                  Drawn annotations ({form.annotations.length}):
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {form.annotations.map((ann, index) => (
+                    <div key={index} className="flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded">
+                      <span className="text-sm capitalize">{ann.type}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAnnotationDelete(index)}
+                        className="text-red-600 hover:text-red-800 font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {photo?.file_path ? (
               <div className="photo-meta">File: {photo.file_path}</div>
             ) : (
-              <div className="photo-meta">
-                <span className="photo-pill">Photo #{photoId}</span>
-              </div>
+              <div className="photo-meta">Photo ID: {photoId}</div>
             )}
-          </CardContent>
-        </Card>
+            {actionError && <div className="text-red-600 text-sm font-medium">{actionError}</div>}
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="details-section photo-defects-card">
-          <CardHeader className="photo-defects-section-header">
-            <CardTitle className="details-section-title">Defects</CardTitle>
-            <Button type="button" className="btn btn-primary" onClick={openCreate}>
-              Add defect
-            </Button>
-          </CardHeader>
-          <CardContent className="photo-defects-card-content">
+      <Card className="details-section">
+        <CardHeader className="p-0 defect-header">
+          <CardTitle className="details-section-title">Defects</CardTitle>
+          <Button type="button" className="btn btn-primary" onClick={openCreate}>
+            Add defect
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="details-placeholder">Loading defects...</div>
           ) : loadError ? (
@@ -246,7 +431,9 @@ export function PhotoDefects() {
               {defects.map((defect) => {
                 const severityValue = String(defect.severity ?? 'unknown');
                 const severityKey = severityValue.toLowerCase();
-                const categoryLabel = formatEnumLabel(String(defect.category ?? 'Unknown'));
+                const firstAnnotation = defect.annotations && defect.annotations.length > 0 ? defect.annotations[0] : null;
+                const category = firstAnnotation ? DEFECT_CATEGORIES.find(c => c.id === firstAnnotation.category_id) : null;
+                const categoryLabel = category ? category.name : 'Unknown';
                 return (
                   <Card key={defect.id} className="defect-card">
                     <CardHeader className="defect-card-header">
@@ -286,81 +473,8 @@ export function PhotoDefects() {
               })}
             </div>
           )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {showCreate && (
-        <div className="modal-overlay flex items-center justify-center" onClick={() => setShowCreate(false)}>
-          <div className="modal-content defect-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="delete-confirm__title">Add Defect</div>
-            <div className="delete-confirm__body">Fill out the details below.</div>
-            <div className="flex flex-col gap-3 update-modal__fields">
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <Select
-                  value={form.category}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, category: value as DefectCategory }))}
-                >
-                  <SelectTrigger className="form-select" id="defect-category-create">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent className="update-select-content">
-                    {DEFECT_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Severity</label>
-                <Select
-                  value={form.severity}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, severity: value as DefectSeverity }))}
-                >
-                  <SelectTrigger className="form-select" id="defect-severity-create">
-                    <SelectValue placeholder="Select severity" />
-                  </SelectTrigger>
-                  <SelectContent className="update-select-content">
-                    {DEFECT_SEVERITIES.map((severity) => (
-                      <SelectItem key={severity} value={severity}>
-                        {formatEnumLabel(severity)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Description (optional)</label>
-                <textarea
-                  className="form-input"
-                  rows={4}
-                  value={form.description}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, description: event.target.value }))
-                  }
-                />
-              </div>
-              {actionError && <div className="defect-error-text">{actionError}</div>}
-            </div>
-            <div className="delete-confirm__actions" style={{ marginTop: '16px' }}>
-              <Button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setShowCreate(false)}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button type="button" className="btn btn-primary" onClick={handleCreate} disabled={isSaving}>
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
       {editingDefect && (
         <div className="modal-overlay flex items-center justify-center" onClick={() => setEditingDefect(null)}>
@@ -371,16 +485,16 @@ export function PhotoDefects() {
               <div className="form-group">
                 <label className="form-label">Category</label>
                 <Select
-                  value={form.category}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, category: value as DefectCategory }))}
+                  value={String(form.category_id)}
+                  onValueChange={(value) => setForm((prev) => ({ ...prev, category_id: Number(value) }))}
                 >
                   <SelectTrigger className="form-select" id="defect-category-edit">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent className="update-select-content">
                     {DEFECT_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                      <SelectItem key={category.id} value={String(category.id)}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
