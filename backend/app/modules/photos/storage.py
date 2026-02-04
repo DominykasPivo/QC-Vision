@@ -93,6 +93,7 @@ class PhotoStorage:
             return data
         except S3Error as e:
             logger.error(f"Failed to retrieve photo: {str(e)}")
+            raise
     
     async def delete_photo(self, file_path: str) -> bool:
         """Delete photo from MinIO"""
@@ -104,6 +105,7 @@ class PhotoStorage:
             return True
         except S3Error as e:
             logger.error(f"Failed to delete photo: {str(e)}")
+            raise
     
     def generate_presigned_url(self, file_path: str, expiration: int = 3600) -> str:
         """Generate a public URL for photo access

@@ -15,7 +15,11 @@ DATABASE_URL = os.getenv(
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,  # Verify connections before using
-    echo=False  # Set to True for SQL query logging
+    echo=False,  # Set to True for SQL query logging
+    pool_size=20,  # Increased from default 5 to handle concurrent users
+    max_overflow=30,  # Increased from default 10 to handle traffic spikes
+    pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_timeout=30  # Wait up to 30 seconds for a connection
 )
 
 # Create session factory
