@@ -14,6 +14,7 @@ export function TestDetails() {
     const navigate = useNavigate();
     const test = tests.find((t) => t.id === id);
     const [apiPhotos, setApiPhotos] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string }>>([]);
+    const [photosWithDefects, setPhotosWithDefects] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string; defectCount: number }>>([]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -46,6 +47,20 @@ export function TestDetails() {
                     );
                     console.log('Photos with URLs:', photosWithUrls);
                     setApiPhotos(photosWithUrls);
+                    
+                    // Fetch defects for each photo to determine which have defects
+                    const photosWithDefectData = await Promise.all(
+                        photosWithUrls.map(async (photo: any) => {
+                            try {
+                                const defectsRes = await fetch(`/api/v1/defects/photo/${photo.id}`);
+                                const defects = await defectsRes.json();
+                                return { ...photo, defectCount: Array.isArray(defects) ? defects.length : 0 };
+                            } catch {
+                                return { ...photo, defectCount: 0 };
+                            }
+                        })
+                    );
+                    setPhotosWithDefects(photosWithDefectData.filter(p => p.defectCount > 0));
                 })
                 .catch(err => console.error('Failed to fetch photos:', err));
         }

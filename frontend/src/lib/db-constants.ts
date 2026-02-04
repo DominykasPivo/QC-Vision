@@ -8,13 +8,14 @@ export const DEFECT_SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
 export type DefectSeverity = (typeof DEFECT_SEVERITIES)[number];
 
 export const DEFECT_CATEGORIES = [
-  'Incorrect Colors',
-  'Damage',
-  'Print Errors',
-  'Embroidery Issues',
-  'Other',
+  { id: 1, name: 'Incorrect Colors' },
+  { id: 2, name: 'Damage' },
+  { id: 3, name: 'Print Errors' },
+  { id: 4, name: 'Embroidery Issues' },
+  { id: 5, name: 'Other' },
 ] as const;
-export type DefectCategory = (typeof DEFECT_CATEGORIES)[number];
+
+export type DefectCategoryRecord = typeof DEFECT_CATEGORIES[number];
 
 export function formatEnumLabel(value: string): string {
   const normalized = value.replace(/_/g, ' ');

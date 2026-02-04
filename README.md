@@ -139,11 +139,62 @@ QC-Vision/
 # Enter backend container
 docker-compose exec backend bash
 
-# Run tests
-pytest
-
 # Check logs
 docker-compose logs -f backend
+```
+
+#### Running Tests
+
+**Prerequisites:**
+```bash
+# Create virtual environment (first time only)
+cd backend
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies including pytest
+pip install -r requirements.txt
+```
+
+**All tests with coverage:**
+```bash
+cd backend
+pytest test_suite/ --cov=app --cov-report=term
+```
+
+**Quick test run:**
+```bash
+pytest test_suite/ -q
+```
+
+**Unit tests only:**
+```bash
+pytest test_suite/unit_tests/
+```
+
+**Integration tests only:**
+```bash
+pytest test_suite/integration_tests/
+```
+
+**Specific test file:**
+```bash
+pytest test_suite/unit_tests/test_photos_service.py
+```
+
+**Stop on first failure:**
+```bash
+pytest test_suite/ -x
+```
+
+**Verbose output:**
+```bash
+pytest test_suite/ -v
 ```
 
 ### Frontend Development
@@ -205,6 +256,16 @@ docker-compose restart postgres
 docker-compose down -v
 docker-compose build --no-cache
 docker-compose up
+```
+
+**Database Testing:**
+```bash
+docker compose down -v
+docker compose up -d postgres
+
+Get-Content .\database\init.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
+Get-Content .\database\demo.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
+Get-Content .\database\tests.sql | docker compose exec -T postgres psql -U qc_user -d qc_vision
 ```
 
 ## Team
