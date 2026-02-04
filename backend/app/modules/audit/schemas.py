@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AuditLogOut(BaseModel):
@@ -12,8 +12,7 @@ class AuditLogOut(BaseModel):
     created_at: datetime
     username: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
        
 
 

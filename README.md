@@ -152,8 +152,9 @@ cd backend
 python -m venv venv
 
 # Activate virtual environment
-# Windows:
+# Windows
 venv\Scripts\activate
+
 # macOS/Linux:
 source venv/bin/activate
 

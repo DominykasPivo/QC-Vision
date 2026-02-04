@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -9,8 +9,7 @@ class CategoryResponse(BaseModel):
     name: str
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AnnotationCreate(BaseModel):
@@ -27,8 +26,7 @@ class AnnotationResponse(BaseModel):
     geometry: Dict[str, Any]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DefectCreate(BaseModel):
@@ -55,5 +53,4 @@ class DefectResponse(BaseModel):
     created_at: datetime
     annotations: List[AnnotationResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

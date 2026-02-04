@@ -1,7 +1,7 @@
 import logging
 from typing import BinaryIO
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 from sqlalchemy.orm import Session
@@ -169,7 +169,7 @@ class PhotoService:
         
         # 3. Generate paths
         photo_id = str(uuid4())
-        timestamp = datetime.utcnow().strftime("%Y%m%d")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
         photo_path = f"photos/{timestamp}/{photo_id}.jpg"
         #thumb_path = f"thumbnails/{timestamp}/{photo_id}_thumb.jpg"
         
@@ -183,7 +183,7 @@ class PhotoService:
         photo = Photo(
             test_id=test_id,
             file_path=photo_path,
-            time_stamp=datetime.utcnow(),
+            time_stamp=datetime.now(timezone.utc),
             analysis_results=None
         )
         db.add(photo)

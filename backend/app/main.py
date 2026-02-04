@@ -110,11 +110,8 @@ async def api_status():
     }
 
 
-# TODO: Add routers for each service module
-# from app.routers import tests, photos, defects, audit, ai
+
 app.include_router(tests_router, prefix="/api/v1/tests", tags=["Tests"])
-# app.include_router(tests_router, prefix="/api/v1")
 app.include_router(photos_router, prefix="/api/v1/photos", tags=["Photos"])
 app.include_router(audit_router, prefix="/api/v1/audit", tags=["Audit"])
-# app.include_router(ai.router, prefix="/api/v1/ai", tags=["AI Recognition"])
 app.include_router(defects_router, prefix="/api/v1/defects", tags=["Defects"])

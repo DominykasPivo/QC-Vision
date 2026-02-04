@@ -1,6 +1,6 @@
 """Photo request/response schemas."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -28,8 +28,7 @@ class PhotoResponse(BaseModel):
     time_stamp: datetime
     analysis_results: Optional[str] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PhotoListResponse(BaseModel):

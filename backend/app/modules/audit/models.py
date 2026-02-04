@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Integer, Text, DateTime
+from sqlalchemy import Column, Integer, Text, DateTime, JSON
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import text
 
 from app.database import Base
@@ -15,7 +14,7 @@ class AuditLog(Base):
     entity_type = Column(Text, nullable=False)
     entity_id = Column(Integer, nullable=False)
 
-    meta = Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    meta = Column(JSON, nullable=False, server_default=text("'{}'"))
 
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

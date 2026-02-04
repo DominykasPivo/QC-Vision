@@ -24,12 +24,12 @@ from app.modules.photos.models import Photo
 class TestCreateTest:
     async def test_all_fields_persisted(self, mock_db):
         data = TestCreate(
-            productId=103,
-            testType="final",
+            product_id=103,
+            test_type="final",
             requester="Dave",
-            assignedTo="Eve",
+            assigned_to="Eve",
             status="finalized",
-            deadlineAt=datetime(2026, 3, 15),
+            deadline_at=datetime(2026, 3, 15),
         )
 
         await tests_service.create_test(mock_db, data)
@@ -46,7 +46,7 @@ class TestCreateTest:
         mock_db.commit.assert_called_once()
 
     async def test_optional_fields_use_defaults(self, mock_db):
-        data = TestCreate(productId=104, testType="incoming", requester="Mona")
+        data = TestCreate(product_id=104, test_type="incoming", requester="Mona")
 
         await tests_service.create_test(mock_db, data)
 
