@@ -1,12 +1,3 @@
-"""
-https://medium.com/@mojimich2015/fastapi-minio-integration-31b35076afcb
-
-
-https://resources.min.io/c/how-to-upload-a-file-to-minio-using-python?x=p9k0ng&xs=468691
-https://docs.min.io/enterprise/aistor-object-store/developers/sdk/python/
-"""
-
-
 import logging
 import os
 import sys
@@ -23,16 +14,15 @@ class PhotoStorage:
     """Handles photo storage operations with MinIO"""
     
     def __init__(self):
-        # Client for all operations
         self.client = Minio(
             endpoint=os.getenv("MINIO_ENDPOINT", "minio:9000"),
             access_key=os.getenv("MINIO_ACCESS_KEY", "minioadmin"),
             secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
-            secure=False  # Set to True if using HTTPS
+            secure=False  
         )
         
         self.bucket_name = os.getenv("MINIO_BUCKET", "qc-vision-photos")
-        # Public endpoint for browser-accessible URLs (external access point)
+        
         self.public_endpoint = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
         self.internal_endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
         self._ensure_bucket_exists()
@@ -91,10 +81,7 @@ class PhotoStorage:
             raise
     
     async def get_photo(self, file_path: str) -> bytes:
-        """Retrieve photo from MinIO
-        
-            Downloads the photo data as bytes
-        """
+        """Retrieve photo from MinIO. Downloads the photo data as bytes"""
         try:
             response = self.client.get_object(
                 bucket_name=self.bucket_name,

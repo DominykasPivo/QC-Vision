@@ -23,7 +23,6 @@ class Defect(Base):
     description = Column(Text, nullable=True)
     severity = Column(Text, nullable=False)  # DB enum defect_severity, stored as text in ORM
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-
     annotations = relationship("DefectAnnotation", back_populates="defect", cascade="all, delete-orphan")
 
 
@@ -37,6 +36,5 @@ class DefectAnnotation(Base):
 
     geometry = Column(JSONB, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-
     defect = relationship("Defect", back_populates="annotations")
     category = relationship("DefectCategory")

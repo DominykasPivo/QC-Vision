@@ -3,7 +3,6 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 import logging
-import traceback
 import io
 
 from .service import photo_service
@@ -11,15 +10,9 @@ from .schemas import PhotoResponse, PhotoUrlResponse
 from app.database import get_db
 from .models import Photo
 from .storage import photo_storage
-
-from app.modules.audit.service import log_action  
+from app.modules.audit.service import log_action
 
 logger = logging.getLogger("backend_photos_router")
-
-
-"""
-https://medium.com/@mlopsengineer/routers-in-fastapi-tutorial-2-adf3e505fdca
-"""
 
 router = APIRouter(prefix="", tags=["photos"])
 
@@ -97,7 +90,9 @@ async def upload_photo(
     Upload a photo for a quality test.
 
     - **test_id**: Quality test ID this photo belongs to
-    - **file**: Image file (JPEG, PNG, WEBP)
+    - **file**: Image file (JPEG, PNG, WEBP, max 10MB)
+    
+    Returns photo details including ID and file path.
     """
     username = "system"  
 
@@ -167,18 +162,16 @@ async def upload_photo(
     except Exception as e:
         # Server errors (MinIO down, DB error, etc.)
         logger.error(f"Upload failed with exception: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
 
         log_action(
             db,
             action="UPLOAD_FAILED",
             entity_type="Photo",
-            entity_id=0,  
+            entity_id=0,
             username=username,
             meta={
                 "reason": "server_error",
                 "error": str(e),
-                "traceback": traceback.format_exc()[:4000],  
                 "filename": file.filename,
                 "content_type": file.content_type,
                 "test_id": test_id,
@@ -248,7 +241,6 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Failed to delete photo: {str(e)}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
 
         log_action(
             db,
@@ -259,7 +251,6 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
             meta={
                 "reason": "server_error",
                 "error": str(e),
-                "traceback": traceback.format_exc()[:4000],  
             },
         )
 

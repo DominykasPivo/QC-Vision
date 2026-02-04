@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form
 from typing import List, Optional
+from datetime import datetime
 import logging
-import traceback
 
 from .schemas import TestCreate, TestResponse
 from .service import tests_service
@@ -21,18 +21,16 @@ async def create_test(
     productId: int = Form(...),
     testType: str = Form(...),
     requester: str = Form(...),
-    assignedTo: Optional[int] = Form(None),
+    assignedTo: Optional[str] = Form(None),
     status_field: str = Form("pending", alias="status"),
     deadlineAt: str = Form(None),
     photos: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
 ):
+    """Create a new quality control test with optional photo uploads."""
     username = "system"
 
     try:
-        # Parse deadline if provided
-        from datetime import datetime
-
         deadline = None
         if deadlineAt:
             try:
@@ -57,17 +55,15 @@ async def create_test(
                     detail="Invalid deadline format. Use ISO 8601 format.",
                 )
 
-        # Create test data
         test_data = TestCreate(
-            productId=productId,
-            testType=testType,
+            product_id=productId,
+            test_type=testType,
             requester=requester,
-            assignedTo=assignedTo,
+            assigned_to=assignedTo,
             status=status_field,
-            deadlineAt=deadline,
+            deadline_at=deadline,
         )
 
-        # Create test
         test = await tests_service.create_test(db, test_data)
         logger.info(f"Created test with ID: {test.id}")
 
@@ -88,7 +84,6 @@ async def create_test(
             },
         )
 
-        # Upload photos (if any)
         uploaded_photos = []
         failed_photos = []
 
@@ -162,7 +157,6 @@ async def create_test(
                             "filename": photo_file.filename,
                             "test_id": test.id,
                             "error": str(photo_error),
-                            "traceback": traceback.format_exc()[:4000],
                             "source": "tests.create_test",
                         },
                     )
@@ -191,7 +185,6 @@ async def create_test(
             meta={
                 "reason": "server_error",
                 "error": str(e),
-                "traceback": traceback.format_exc()[:4000],
                 "productId": productId,
                 "testType": testType,
                 "requester": requester,
@@ -203,6 +196,8 @@ async def create_test(
 
 @router.get("/{test_id}", response_model=TestResponse)
 async def get_test(test_id: int, db: Session = Depends(get_db)):
+    """Retrieve a specific quality test by ID."""
+
     test = await tests_service.get_test(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
@@ -211,11 +206,13 @@ async def get_test(test_id: int, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=List[TestResponse])
 async def list_tests(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """List all quality tests with pagination."""
     return await tests_service.get_all_tests(db, skip=skip, limit=limit)
 
 
 @router.patch("/{test_id}", response_model=TestResponse)
 async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_db)):
+    """Update an existing quality test (partial update)."""
     username = "system"
 
     try:
@@ -245,7 +242,6 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
             meta={
                 "reason": "server_error",
                 "error": str(e),
-                "traceback": traceback.format_exc()[:4000],
             },
         )
         raise HTTPException(status_code=500, detail=str(e))
@@ -253,6 +249,11 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
 
 @router.delete("/{test_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_test(test_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a quality test and all associated photos.
+    
+    - **test_id**: Test ID to delete
+    """
     username = "system"
 
     try:
@@ -280,7 +281,6 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
             meta={
                 "reason": "server_error",
                 "error": str(e),
-                "traceback": traceback.format_exc()[:4000],
             },
         )
         raise HTTPException(status_code=500, detail=str(e))

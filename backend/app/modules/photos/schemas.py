@@ -1,19 +1,27 @@
-"""
-Photo request/response schemas
-"""
+"""Photo request/response schemas."""
+
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
 
 
 class PhotoCreate(BaseModel):
-    """Schema for photo upload"""
+    """
+    Schema for photo upload metadata.
+    
+    Not directly used in API (uses UploadFile instead),
+    but defines expected structure.
+    """
     test_id: int = Field(..., description="Quality test ID this photo belongs to")
     file_name: str = Field(..., description="Original filename")
 
 
 class PhotoResponse(BaseModel):
-    """Schema for photo retrieval"""
+    """
+    Schema for photo retrieval.
+    
+    Contains photo metadata including storage path and timestamps.
+    """
     id: int
     test_id: int
     file_path: str
@@ -25,18 +33,18 @@ class PhotoResponse(BaseModel):
 
 
 class PhotoListResponse(BaseModel):
-    """Schema for listing photos"""
+    """Schema for paginated photo listing."""
     total: int
     photos: list[PhotoResponse]
 
 
 class PhotoUrlResponse(BaseModel):
-    """Schema for presigned URL response"""
+    """Schema for presigned URL response (MinIO direct access)."""
     url: str
     expires_in: int
 
 
 class PhotoUploadResponse(BaseModel):
-    """Extended response after upload with URL"""
+    """Extended response after photo upload with access URL."""
     photo: PhotoResponse
     url: str

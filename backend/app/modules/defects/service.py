@@ -7,10 +7,19 @@ from .schemas import DefectCreate, DefectUpdate, AnnotationCreate
 
 
 class DefectsService:
+    """
+    Service layer for defect management operations.
+    
+    Handles creation, retrieval, updating, and deletion of defects
+    and their associated annotations.
+    """
+    
     async def list_categories(self, db: Session) -> List[DefectCategory]:
+        """Get all defect categories ordered by name."""
         return db.query(DefectCategory).order_by(DefectCategory.name.asc()).all()
 
     async def create_defect_for_photo(self, db: Session, photo_id: int, payload: DefectCreate) -> Defect:
+        """Create a defect with annotations for a photo."""
         defect = Defect(
             photo_id=photo_id,
             description=payload.description,
@@ -32,12 +41,15 @@ class DefectsService:
         return defect
 
     async def list_defects_for_photo(self, db: Session, photo_id: int) -> List[Defect]:
+        """Get all defects for a photo with annotations, ordered by creation date (newest first)."""
         return db.query(Defect).options(joinedload(Defect.annotations)).filter(Defect.photo_id == photo_id).order_by(Defect.created_at.desc()).all()
 
     async def get_defect(self, db: Session, defect_id: int) -> Optional[Defect]:
+        """Get a single defect by ID."""
         return db.query(Defect).filter(Defect.id == defect_id).first()
 
     async def add_annotation(self, db: Session, defect_id: int, ann: AnnotationCreate) -> DefectAnnotation:
+        """Add an annotation to an existing defect."""
         row = DefectAnnotation(
             defect_id=defect_id,
             category_id=ann.category_id,
@@ -49,22 +61,24 @@ class DefectsService:
         return row
 
     async def update_defect(self, db: Session, defect_id: int, payload: DefectUpdate) -> Optional[Defect]:
+        """
+        Update a defect's properties.
+        
+        Supports partial updates. Only updates fields that are explicitly provided.
+        Can update defect description, severity, and category (via first annotation).
+        """
         defect = db.query(Defect).filter(Defect.id == defect_id).first()
         if not defect:
             return None
         
-        # Update defect fields only if explicitly provided
         update_data = payload.model_dump(exclude_unset=True)
         
-        # Update simple fields
         if 'description' in update_data:
             defect.description = payload.description
         if 'severity' in update_data:
             defect.severity = payload.severity
         
-        # Update category annotation if provided
         if 'category_id' in update_data and payload.category_id is not None:
-            # Get the first annotation (main category)
             first_annotation = db.query(DefectAnnotation).filter(
                 DefectAnnotation.defect_id == defect_id
             ).first()
@@ -72,7 +86,6 @@ class DefectsService:
             if first_annotation:
                 first_annotation.category_id = payload.category_id
             else:
-                # Create new annotation if none exists
                 db.add(DefectAnnotation(
                     defect_id=defect_id,
                     category_id=payload.category_id,
@@ -84,6 +97,7 @@ class DefectsService:
         return defect
 
     async def delete_defect(self, db: Session, defect_id: int) -> bool:
+        """Delete a defect and all its annotations. Returns True if deleted, False if not found."""
         defect = db.query(Defect).filter(Defect.id == defect_id).first()
         if not defect:
             return False
