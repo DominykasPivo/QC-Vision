@@ -16,6 +16,7 @@ QC Vision enables QC personnel to efficiently track and manage product testing a
 | Backend | Python 3.11, FastAPI |
 | Database | PostgreSQL 15 |
 | Storage | MinIO (S3-compatible) |
+| Admin UI | NocoDB |
 | Container | Docker + Docker Compose |
 
 ## Quick Start
@@ -49,10 +50,11 @@ docker compose up --build -d
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Frontend** | http://localhost | Main web application |
+| **Frontend** | http://localhost:3000 | Main web application |
 | **Backend API** | http://localhost:8000 | REST API |
 | **API Docs** | http://localhost:8000/docs | Swagger UI |
 | **MinIO Console** | http://localhost:9001 | Object storage admin |
+| **NocoDB** | http://localhost:8080 | Database admin UI |
 
 **MinIO Credentials:** `minioadmin` / `minioadmin123`
 
@@ -133,7 +135,7 @@ QC-Vision/
 ┌─────────────┐     ┌─────────────┐
 │   Frontend  │────▶│   Backend   │
 │  (React)    │     │  (FastAPI)  │
-│   :80       │     │   :8000     │
+│   :3000     │     │   :8000     │
 └─────────────┘     └──────┬──────┘
                            │
               ┌────────────┼────────────┐
@@ -149,11 +151,11 @@ QC-Vision/
 
 | Container | Port | Purpose |
 |-----------|------|---------|
-| `qc_vision_frontend` | 80 | Nginx serving React SPA |
+| `qc_vision_frontend` | 3000 | Vite dev server (React SPA) |
 | `qc_vision_backend` | 8000 | FastAPI REST + WebSocket |
 | `qc_vision_postgres` | 5432 | PostgreSQL database |
 | `qc_vision_minio` | 9000, 9001 | Object storage (photos) |
-| `qc_vision_minio_init` | - | Bucket initialization (exits) |
+| `qc_vision_nocodb` | 8080 | Database admin UI |
 
 ## Development
 
@@ -205,31 +207,6 @@ pytest test_suite/unit_tests/
 **Integration tests only:**
 ```bash
 pytest test_suite/integration_tests/
-```
-
-**Specific test file:**
-```bash
-pytest test_suite/unit_tests/test_photos_service.py
-```
-
-**Stop on first failure:**
-```bash
-pytest test_suite/ -x
-```
-
-**Verbose output:**
-```bash
-pytest test_suite/ -v
-```
-
-### Frontend Development
-
-For hot-reload development (outside Docker):
-
-```bash
-cd frontend
-npm install
-npm run dev  # Runs on localhost:3000
 ```
 
 ### Database Access

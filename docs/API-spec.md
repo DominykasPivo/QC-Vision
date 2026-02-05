@@ -4,15 +4,17 @@
 2. [Photo Management Service](#photo-management-service)
 3. [Defect Documentation Service](#defect-documentation-service)
 4. [Audit & Review Service](#audit--review-service)
-5. [AI Recognition Service](#ai-recognition-service)
-6. [WebSocket Service](#websocket-service)
+5. [AI Recognition Service](#ai-recognition-service) *(Planned)*
+6. [WebSocket Service](#websocket-service) *(Planned)*
+
+---
 
 ## Test Management Service
 
-**Service Name:** `test_management`
+**Base Path:** `/api/v1/tests`
 
-**Responsibility:**  
-Orchestrates quality test lifecycle management — handles test creation, status transitions, search/filtering, and test-order linking. Coordinates with Photo and Defect services.
+**Responsibility:**
+Orchestrates quality test lifecycle management — handles test creation with photo uploads, status transitions, and test-order linking. Coordinates with Photo and Defect services.
 
 **Data Owned:**
 * Quality test records
@@ -22,166 +24,195 @@ Orchestrates quality test lifecycle management — handles test creation, status
 
 **API Endpoints:**
 
-### [POST] /tests
-Create a new quality test
+### [POST] /
+Create a new quality test with optional photo uploads (multipart form data)
 
-### [GET] /tests
-List all tests with filtering and pagination
+**Form Fields:**
+- `productId` (required): Product ID
+- `testType` (required): Type of test
+- `requester` (required): Who requested the test
+- `assignedTo` (optional): Assigned user
+- `status` (optional): Initial status (default: "pending")
+- `deadlineAt` (optional): Deadline in ISO 8601 format
+- `photos` (optional): Multiple image files
 
-### [GET] /tests/:testId
-Get detailed test information including photos and defects
+### [GET] /
+List all tests with pagination
 
-### [PATCH] /tests/:testId
-Update test details
+**Query Parameters:**
+- `skip`: Number of records to skip (default: 0)
+- `limit`: Maximum records to return (default: 100)
 
-### [PATCH] /tests/:testId/status
-Update test status with validation for allowed transitions
+### [GET] /{test_id}
+Get detailed test information by ID
 
-### [DELETE] /tests/:testId
-Soft delete a test (only if status is 'open')
+### [PATCH] /{test_id}
+Update test details (partial update)
+
+### [DELETE] /{test_id}
+Delete a test and all associated photos
 
 ---
 
 ## Photo Management Service
 
-**Service Name:** `photo_management`
+**Base Path:** `/api/v1/photos`
 
-**Responsibility:**  
-Manages product photo lifecycle — handles multipart file uploads, thumbnail generation, MinIO storage integration, metadata extraction, and photo-test associations. Coordinates with AI Recognition for design detection.
+**Responsibility:**
+Manages product photo lifecycle — handles file uploads, MinIO storage integration, and photo-test associations.
 
 **Data Owned:**
-* Photo metadata (filename, size, dimensions, MIME type)
+* Photo metadata (filename, size, MIME type)
 * Photo-test associations
-* Upload history and capture method tracking
 * MinIO storage references
 
 **API Endpoints:**
 
-### [POST] /photos/upload
-Upload one or more photos and link to a test
+### [POST] /upload
+Upload a photo and link to a test
 
-### [GET] /photos
-List photos with filtering
+**Query Parameters:**
+- `test_id` (required): Test ID to link the photo to
 
-### [GET] /photos/:photoId
-Get detailed photo information including defects and AI results
+**Body:** Multipart form with image file
 
-### [DELETE] /photos/:photoId
-Delete a photo (only if no defects are linked)
+### [GET] /test/{test_id}
+Get all photos for a specific test
 
-### [POST] /photos/:photoId/link-test
-Link an existing photo to a different test
+### [GET] /{photo_id}/url
+Get a presigned URL for direct photo access
+
+**Response:**
+- `url`: Presigned URL
+- `expires_in`: Expiration time in seconds (default: 3600)
+
+### [GET] /{photo_id}/image
+Get photo image data directly (proxied through backend)
+
+Returns the actual image binary with appropriate content-type header. Works on any device without exposing MinIO URLs.
+
+### [DELETE] /{photo_id}
+Delete a photo from storage and database
 
 ---
 
 ## Defect Documentation Service
 
-**Service Name:** `defect_documentation`
+**Base Path:** `/api/v1/defects`
 
-**Responsibility:**  
-Manages quality defect reporting and tracking — handles defect creation with visual annotations, severity classification, category management, and defect-photo associations. Coordinates with Test Management for defect counts and alerts.
+**Responsibility:**
+Manages quality defect reporting and tracking — handles defect creation with visual annotations, severity classification, and category management.
 
 **Data Owned:**
 * Defect records (category, severity, description)
 * Visual annotations (coordinates, shapes, colors)
-* Defect-photo-test associations
+* Defect-photo associations
 * Defect categories and definitions
 
 **API Endpoints:**
 
-### [POST] /defects
-Create a new defect report with visual annotations
+### [GET] /categories
+Get all available defect categories
 
-### [GET] /defects
-List defects with filtering
+### [POST] /photo/{photo_id}
+Create a new defect for a specific photo
 
-### [GET] /defects/:defectId
-Get detailed defect information
+**Body:** DefectCreate schema with category, severity, description, and optional annotations
 
-### [PATCH] /defects/:defectId
-Update defect information
+### [GET] /photo/{photo_id}
+Get all defects for a specific photo
 
-### [DELETE] /defects/:defectId
-Delete a defect report
+### [GET] /{defect_id}
+Get detailed defect information by ID
 
-### [GET] /defects/categories
-Get available defect categories with descriptions
+### [POST] /{defect_id}/annotations
+Add an annotation to an existing defect
+
+**Body:** AnnotationCreate schema with annotation details
+
+### [PUT] /{defect_id}
+Update an existing defect
+
+### [DELETE] /{defect_id}
+Delete a defect and all its annotations
 
 ---
 
 ## Audit & Review Service
 
-**Service Name:** `audit_review`
+**Base Path:** `/api/v1/audit`
 
-**Responsibility:**  
-Manages system audit trail and reporting — handles action logging with timestamps, global search across all entities, dashboard statistics generation, and data export to CSV/JSON. Provides traceability for compliance and quality metrics analysis.
+**Responsibility:**
+Manages system audit trail — handles action logging with timestamps and filtering capabilities.
 
 **Data Owned:**
-* Audit log records (user actions, timestamps, IP addresses)
-* Search indices
-* Dashboard statistics cache
-* Export file metadata
+* Audit log records (user actions, timestamps, metadata)
 
 **API Endpoints:**
 
-### [GET] /audit/logs
+### [GET] /logs
 Get audit logs with filtering
 
-### [GET] /search
+**Query Parameters:**
+- `action`: Filter by action type (CREATE, UPDATE, DELETE, etc.)
+- `entity_type`: Filter by entity (Test, Photo, Defect)
+- `entity_id`: Filter by specific entity ID
+- `username`: Filter by username
+- `created_from`: Start date filter (ISO 8601)
+- `created_to`: End date filter (ISO 8601)
+- `limit`: Maximum records (default: 50, max: 200)
+- `offset`: Pagination offset (default: 0)
+
+### [GET] /logs/{log_id}
+Get a specific audit log entry by ID
+
+### *[Planned]* [GET] /search
 Global search across tests, photos, and defects
 
-### [GET] /reports/summary
+### *[Planned]* [GET] /reports/summary
 Get dashboard statistics and summary metrics
 
-### [POST] /reports/export
+### *[Planned]* [POST] /reports/export
 Export data to CSV or JSON format
 
 ---
 
-## AI Recognition Service
+## AI Recognition Service *(Planned)*
 
-**Service Name:** `ai_recognition`
+**Base Path:** `/api/v1/ai`
 
-**Responsibility:**  
-Manages AI-powered design recognition from product photos — handles image preprocessing, model inference, confidence scoring, multi-design suggestions, and recognition result storage. Provides fallback to manual search when confidence is low.
+**Responsibility:**
+Manages AI-powered design recognition from product photos — handles image preprocessing, model inference, confidence scoring, and recognition result storage.
 
 **Data Owned:**
 * AI recognition results
 * Design matching history
 * Confidence scores and suggestions
-* Processing performance metrics
 
-**API Endpoints:**
+**Planned Endpoints:**
 
-### [POST] /ai/recognize-design
+### *[Planned]* [POST] /recognize-design
 Recognize product design from uploaded photo
 
-### [POST] /ai/suggest-test-order
+### *[Planned]* [POST] /suggest-test-order
 Suggest matching test orders based on recognized design
 
-### [GET] /ai/recognition-history
+### *[Planned]* [GET] /recognition-history
 Get AI recognition history for auditing and analytics
 
 ---
 
-## WebSocket Service
+## WebSocket Service *(Planned)*
 
-**Service Name:** `websocket`
+**Responsibility:**
+Manages real-time bidirectional communication — handles persistent connections and broadcasts events to connected clients.
 
-**Responsibility:**  
-Manages real-time bidirectional communication — handles persistent connections, broadcasts events to all connected clients, manages connection lifecycle, and coordinates real-time collaboration between multiple users.
+**Planned Connection Endpoint:**
 
-**Data Owned:**
-* Active WebSocket connections
-* Connection metadata (user, timestamp)
-* Event broadcast queue
-
-**Connection Endpoint:**
-
-### [WebSocket] /ws
+### *[Planned]* [WebSocket] /ws
 Establish persistent WebSocket connection for real-time updates
 
-**Events Emitted:**
+**Planned Events:**
 - `test.created` - New test created
 - `test.status_changed` - Test status updated
 - `test.updated` - Test details modified
@@ -190,5 +221,3 @@ Establish persistent WebSocket connection for real-time updates
 - `defect.updated` - Defect modified
 - `defect.deleted` - Defect removed
 - `ai.recognition_complete` - AI processing finished
----
-

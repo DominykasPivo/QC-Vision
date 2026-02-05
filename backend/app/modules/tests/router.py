@@ -249,11 +249,7 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
 
 @router.delete("/{test_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_test(test_id: int, db: Session = Depends(get_db)):
-    """
-    Delete a quality test and all associated photos.
-    
-    - **test_id**: Test ID to delete
-    """
+    """Delete a quality test and all associated photos."""
     username = "system"
 
     try:

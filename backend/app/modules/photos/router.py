@@ -37,28 +37,22 @@ async def get_photo_url(photo_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{photo_id}/image")
 async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
-    """
-    Get photo image data directly (proxy through backend).
+    """Get photo image data directly (proxy through backend).
     Works on any device without exposing MinIO URLs.
-
-    - **photo_id**: Photo ID
     """
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
     try:
-        # Get image data from MinIO
         image_data = await photo_storage.get_photo(photo.file_path)
 
-        # Determine content type from file extension
         content_type = "image/jpeg"
         if photo.file_path.lower().endswith(".png"):
             content_type = "image/png"
         elif photo.file_path.lower().endswith(".webp"):
             content_type = "image/webp"
 
-        # Return image as streaming response
         return StreamingResponse(
             io.BytesIO(image_data),
             media_type=content_type,
@@ -80,9 +74,6 @@ async def upload_photo(
 ):
     """
     Upload a photo for a quality test.
-
-    - **test_id**: Quality test ID this photo belongs to
-    - **file**: Image file (JPEG, PNG, WEBP, max 10MB)
     
     Returns photo details including ID and file path.
     """

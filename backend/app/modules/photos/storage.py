@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import sys
+from io import BytesIO
 
 from minio import Minio
 from minio.error import S3Error
@@ -48,7 +50,6 @@ class PhotoStorage:
                 ]
             }
             
-            import json
             try:
                 self.client.set_bucket_policy(self.bucket_name, json.dumps(policy))
                 logger.info(f"Public read policy set for bucket: {self.bucket_name}")
@@ -62,8 +63,6 @@ class PhotoStorage:
     async def upload_photo(self, photo_bytes: bytes, photo_path: str, content_type: str):
         """Upload a photo to MinIO storage."""
         try:
-            from io import BytesIO
-            
             file_data = BytesIO(photo_bytes)
             file_size = len(photo_bytes)
 
@@ -121,5 +120,5 @@ class PhotoStorage:
             logger.error(f"Failed to generate URL: {str(e)}")
             return ""
 
-# Singleton instance
+
 photo_storage = PhotoStorage()
