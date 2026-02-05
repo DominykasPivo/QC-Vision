@@ -39,10 +39,10 @@ cp example_env.env .env
 
 ```bash
 # Build and start all containers
-docker-compose up --build
+docker compose up --build
 
 # Or run in detached mode (background)
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 ### 3. Access the Application
@@ -60,22 +60,22 @@ docker-compose up --build -d
 
 ```bash
 # Start services
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # View specific service logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Stop services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (clean slate)
-docker-compose down -v
+docker compose down -v
 
 # Rebuild a specific service
-docker-compose up --build backend
+docker compose up --build backend
 ```
 
 ## Project Structure
@@ -87,20 +87,44 @@ QC-Vision/
 ├── example_env.env         # Example environment template
 ├── backend/
 │   ├── Dockerfile
+│   ├── pytest.ini
 │   ├── requirements.txt
-│   └── app/
-│       └── main.py         # FastAPI application
+│   ├── app/
+│   │   ├── main.py         # FastAPI application
+│   │   ├── database.py     # Database configuration
+│   │   └── modules/        # Feature modules
+│   │       ├── audit/      # Audit logging
+│   │       ├── defects/    # Defect management
+│   │       ├── photos/     # Photo handling
+│   │       └── tests/      # QC tests
+│   ├── test_suite/         # Pytest test suite
+│   │   ├── integration_tests/
+│   │   └── unit_tests/
+│   └── tests/              # Additional tests
 ├── frontend/
 │   ├── Dockerfile
-│   ├── nginx.conf
 │   ├── package.json
+│   ├── vite.config.ts
 │   └── src/
-│       └── App.jsx         # React application
+│       ├── App.tsx         # React application
+│       ├── routes.tsx      # Route configuration
+│       ├── api/            # API client
+│       ├── components/     # React components
+│       │   ├── annotations/
+│       │   ├── layout/
+│       │   └── ui/
+│       ├── lib/            # Utilities and types
+│       ├── mock/           # Mock data
+│       └── pages/          # Page components
 ├── database/
-│   └── init.sql            # Database schema
+│   ├── init.sql            # Database schema
+│   ├── demo.sql            # Demo data
+│   └── tests.sql           # Test data
 └── docs/
     ├── API-spec.md
-    └── detailed_architecture.md
+    ├── detailed_architecture.md
+    ├── sprint-1-plan.md
+    └── diagrams/
 ```
 
 ## Architecture
@@ -137,10 +161,10 @@ QC-Vision/
 
 ```bash
 # Enter backend container
-docker-compose exec backend bash
+docker compose exec backend bash
 
 # Check logs
-docker-compose logs -f backend
+docker compose logs -f backend
 ```
 
 #### Running Tests
@@ -212,7 +236,7 @@ npm run dev  # Runs on localhost:3000
 
 ```bash
 # Connect to PostgreSQL
-docker-compose exec postgres psql -U qc_user -d qc_vision
+docker compose exec postgres psql -U qc_user -d qc_vision
 
 # View tables
 \dt
@@ -241,22 +265,22 @@ See [example_env.env](example_env.env) for all available configuration options.
 # Check what's using the port
 netstat -ano | findstr :8000
 # Stop Docker and retry
-docker-compose down
+docker compose down
 ```
 
 **Database connection issues:**
 ```bash
 # Check postgres is healthy
-docker-compose ps
+docker compose ps
 # Restart database
-docker-compose restart postgres
+docker compose restart postgres
 ```
 
 **Clean rebuild:**
 ```bash
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up
+docker compose down -v
+docker compose build --no-cache
+docker compose up
 ```
 
 **Database Testing:**
