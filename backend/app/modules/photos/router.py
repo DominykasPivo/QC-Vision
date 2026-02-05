@@ -19,22 +19,14 @@ router = APIRouter(prefix="", tags=["photos"])
 
 @router.get("/test/{test_id}", response_model=List[PhotoResponse])
 async def get_photos_for_test(test_id: int, db: Session = Depends(get_db)):
-    """
-    Get all photos for a specific test.
-
-    - **test_id**: Quality test ID
-    """
+    """Get all photos for a specific test."""
     photos = db.query(Photo).filter(Photo.test_id == test_id).all()
     return photos
 
 
 @router.get("/{photo_id}/url", response_model=PhotoUrlResponse)
 async def get_photo_url(photo_id: int, db: Session = Depends(get_db)):
-    """
-    Get a presigned URL for a photo.
-
-    - **photo_id**: Photo ID
-    """
+    """Get a presigned URL for a photo."""
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")

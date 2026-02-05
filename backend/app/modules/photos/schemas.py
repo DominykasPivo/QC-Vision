@@ -6,22 +6,13 @@ from typing import Optional
 
 
 class PhotoCreate(BaseModel):
-    """
-    Schema for photo upload metadata.
-    
-    Not directly used in API (uses UploadFile instead),
-    but defines expected structure.
-    """
+    """Schema for photo upload metadata."""
     test_id: int = Field(..., description="Quality test ID this photo belongs to")
     file_name: str = Field(..., description="Original filename")
 
 
 class PhotoResponse(BaseModel):
-    """
-    Schema for photo retrieval.
-    
-    Contains photo metadata including storage path and timestamps.
-    """
+    """Schema for photo retrieval."""
     id: int
     test_id: int
     file_path: str

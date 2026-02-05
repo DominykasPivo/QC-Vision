@@ -2,7 +2,7 @@ import logging
 from typing import BinaryIO
 from uuid import uuid4
 from datetime import datetime, timezone
-
+from io import BytesIO
 
 from sqlalchemy.orm import Session
 from .models import Photo
@@ -28,19 +28,7 @@ class PhotoService:
         self.storage = PhotoStorage()
     
     async def validate_photo(self, file, filename) -> tuple:
-        """
-        Validate photo file (size, format, integrity).
-        
-        Args:
-            file: File object to validate
-            filename: Original filename
-            
-        Returns:
-            tuple: (image, format, width, height, file_size)
-            
-        Raises:
-            ValueError: If validation fails
-        """
+        """Validate photo file (size, format, integrity)."""
         try:
             # 1. Check file size BEFORE opening
             file.seek(0, 2)  # Seek to end
@@ -51,7 +39,7 @@ class PhotoService:
                 raise ValueError(f"File too large: {file_size} bytes (max {self.MAX_FILE_SIZE})")
             
             if file_size == 0:
-                raise ValueError("File is empty")
+                raise ValueError("File is empty") 
             
             
             try:
@@ -67,11 +55,9 @@ class PhotoService:
             file.seek(0)
             img = Image.open(file)
         
-            # 5. Check format
             if img.format not in PhotoService.ALLOWED_FORMATS:
                 raise ValueError(f"Unsupported format: {img.format}. Allowed: {', '.join(PhotoService.ALLOWED_FORMATS)}")
             
-            # 6. Get dimensions
             width, height = img.size
         
             if width < 10 or height < 10:
@@ -82,7 +68,7 @@ class PhotoService:
             
             logger.info(f"Validated photo: {filename} ({img.format}, {width}x{height}, {file_size} bytes)")
             
-            return img, img.format, width, height, file_size
+            return img
         
         except ValueError:
             # Re-raise validation errors
@@ -92,16 +78,7 @@ class PhotoService:
             raise ValueError(f"Validation error: {str(e)}")
         
     async def process_image(self, image: Image.Image, max_dimension: int = 2000) -> Image.Image:
-        """
-        Process image: resize if too large, convert to RGB.
-        
-        Args:
-            image: PIL Image to process
-            max_dimension: Maximum width/height (default 2000px)
-            
-        Returns:
-            Processed PIL Image in RGB format
-        """
+        """Process image: resize if too large, convert to RGB."""
         width, height = image.size
         
         # Resize if too large
@@ -124,18 +101,7 @@ class PhotoService:
         return image
     
     def image_to_bytes(self, image: Image.Image, format: str = 'JPEG', quality: int = 85) -> bytes:
-        """
-        Convert PIL Image to bytes.
-        
-        Args:
-            image: PIL Image to convert
-            format: Output format (JPEG, PNG, WEBP)
-            quality: JPEG quality (1-100)
-            
-        Returns:
-            Image data as bytes
-        """
-        from io import BytesIO
+        """Convert PIL Image to bytes."""
         buffer = BytesIO()
         image.save(buffer, format=format, quality=quality)
         buffer.seek(0)
@@ -147,39 +113,19 @@ class PhotoService:
         
         Validates the photo, processes it (resize, format conversion),
         uploads to MinIO storage, and saves metadata to database.
-        
-        Args:
-            db: Database session
-            file: File object to upload
-            filename: Original filename
-            test_id: Test ID to associate with photo
-            
-        Returns:
-            Photo: Database photo record
-            
-        Raises:
-            ValueError: If validation fails
         """
-        # 1. Validate
-        img, img_format, width, height, file_size = await self.validate_photo(file, filename)
+        img = await self.validate_photo(file, filename)
         
-        # 2. Process
         processed = await self.process_image(img)
-        #thumbnail = await self.process_image(processed)
         
-        # 3. Generate paths
         photo_id = str(uuid4())
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
         photo_path = f"photos/{timestamp}/{photo_id}.jpg"
-        #thumb_path = f"thumbnails/{timestamp}/{photo_id}_thumb.jpg"
         
-        # 4. Convert to bytes
         photo_bytes = self.image_to_bytes(processed, quality=85)
         
-        # 5. Upload to MinIO
-        await self.storage.upload_photo(photo_bytes, photo_path, "image/jpeg")  # can store as thumbnails later for performance
+        await self.storage.upload_photo(photo_bytes, photo_path, "image/jpeg") 
         
-        # 6. Save to database
         photo = Photo(
             test_id=test_id,
             file_path=photo_path,
