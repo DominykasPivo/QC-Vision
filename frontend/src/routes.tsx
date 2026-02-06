@@ -1,0 +1,66 @@
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { AppShell } from './components/layout/AppShell';
+import { TestsList } from './pages/TestsList';
+import { TestDetails } from './pages/TestDetails';
+import { CreateTest } from './pages/CreateTest';
+import { Gallery } from './pages/Gallery';
+import { AuditLog } from './pages/AuditLog';
+import { PhotoDefects } from './pages/PhotoDefects';
+import { Login } from './pages/Login';
+import { isLoggedIn } from './lib/auth';
+
+const RequireAuth = ({ children }: { children: React.ReactNode }) => {
+    if (!isLoggedIn()) {
+        return <Navigate to="/login" replace />;
+    }
+    return children;
+};
+
+const LoginRoute = () => {
+    return isLoggedIn() ? <Navigate to="/tests" replace /> : <Login />;
+};
+
+export const router = createBrowserRouter([
+    {
+        path: '/login',
+        element: <LoginRoute />,
+    },
+    {
+        path: '/',
+        element: (
+            <RequireAuth>
+                <AppShell />
+            </RequireAuth>
+        ),
+        children: [
+            {
+                index: true,
+                element: <Navigate to="/tests" replace />,
+            },
+            {
+                path: 'tests',
+                element: <TestsList />,
+            },
+            {
+                path: 'tests/:id',
+                element: <TestDetails />,
+            },
+            {
+                path: 'create',
+                element: <CreateTest />,
+            },
+            {
+                path: 'gallery',
+                element: <Gallery />,
+            },
+            {
+                path: 'audit',
+                element: <AuditLog />,
+            },
+            {
+                path: 'photos/:photoId',
+                element: <PhotoDefects />,
+            },
+        ],
+    },
+]);

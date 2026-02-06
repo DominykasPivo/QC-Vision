@@ -1,0 +1,86 @@
+import logging
+from typing import List, Optional
+from datetime import datetime
+
+from .schemas import TestCreate, TestResponse
+from sqlalchemy.orm import Session  
+from .models import Tests
+from app.modules.photos.models import Photo
+from app.modules.photos.storage import photo_storage
+
+
+logger = logging.getLogger("backend_tests_service")
+
+
+class TestsService:
+    """
+    Service layer for quality test management.
+    
+    Handles CRUD operations for quality tests including creation,
+    retrieval, updates, and deletion with associated photos.
+    """
+    
+    async def create_test(self, db: Session, test_data: TestCreate) -> TestResponse:
+        """Create a new quality test."""
+        test = Tests(
+            product_id=test_data.product_id,
+            test_type=test_data.test_type,
+            requester=test_data.requester,
+            assigned_to=test_data.assigned_to,
+            status=test_data.status,
+            deadline_at=test_data.deadline_at,
+        )
+        db.add(test)
+        db.commit()
+        db.refresh(test)
+        return test
+    
+    async def get_test(self, db: Session, test_id: int) -> Optional[Tests]:
+        """Get a single test by ID."""
+        return db.query(Tests).filter(Tests.id == test_id).first()
+    
+    async def get_all_tests(self, db: Session, skip: int = 0, limit: int = 100) -> List[Tests]:
+        """Get all tests with pagination."""
+        return db.query(Tests).offset(skip).limit(limit).all()
+    
+    async def update_test(self, db: Session, test_id: int, test_data: dict) -> Tests:
+        """Update a test's properties."""
+        test = db.query(Tests).filter(Tests.id == test_id).first()
+        if not test:
+            raise ValueError("Test not found")
+        
+        for key, value in test_data.items():
+            if hasattr(test, key):
+                setattr(test, key, value)
+        
+        db.commit()
+        db.refresh(test)
+        return test
+    
+    async def delete_test(self, db: Session, test_id: int):
+        """
+        Delete a test and all associated photos. 
+        
+        Deletes photos from MinIO storage and database, then deletes the test.
+        """
+        test = db.query(Tests).filter(Tests.id == test_id).first()
+        if not test:
+            raise ValueError("Test not found")
+        
+        photos = db.query(Photo).filter(Photo.test_id == test_id).all()
+        for photo in photos:
+            try:
+                await photo_storage.delete_photo(photo.file_path)
+                logger.info(f"Deleted photo from MinIO: {photo.file_path}")
+            except Exception as e:
+                logger.error(f"Failed to delete photo from MinIO: {photo.file_path}, Error: {str(e)}")
+        
+        db.query(Photo).filter(Photo.test_id == test_id).delete()
+        
+        db.delete(test)
+        db.commit()
+        
+        logger.info(f"Deleted test {test_id} with {len(photos)} photo(s)")
+
+
+tests_service = TestsService()
