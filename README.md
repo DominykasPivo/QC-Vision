@@ -34,6 +34,7 @@ cd QC-Vision
 
 # Copy environment file
 cp example_env.env .env
+
 ```
 
 ### 2. Start All Services
@@ -157,6 +158,50 @@ QC-Vision/
 | `qc_vision_minio` | 9000, 9001 | Object storage (photos) |
 | `qc_vision_nocodb` | 8080 | Database admin UI |
 
+## MinIO (Object Storage)
+
+MinIO provides S3-compatible object storage for photo uploads and attachments.
+
+### Accessing MinIO Console
+
+1. Navigate to http://localhost:9001
+2. Login with credentials: `minioadmin` / `minioadmin123`
+
+### MinIO Features
+
+- **Buckets**: Storage containers for organizing files (e.g., `qc-photos` for defect images)
+- **Object Browser**: View, upload, and download files directly
+- **Access Keys**: Manage API credentials for application access
+
+The backend automatically connects to MinIO using the credentials in `.env` to store and retrieve photos attached to QC tests and defects.
+
+## NocoDB (Database Documentation)
+
+NocoDB provides a spreadsheet-like interface to view and document the PostgreSQL database. It is used **for documentation purposes only** - no API keys or additional configuration required.
+
+### Accessing NocoDB
+
+1. Navigate to http://localhost:8080
+2. Create a local account (first-time setup)
+3. Connect to the database:
+   - Click "New Base" → "Connect to External Database"
+   - Select **PostgreSQL**
+   - Use these connection details:
+     - **Host**: `postgres` (Docker network name)
+     - **Port**: `5432`
+     - **Database**: `qc_vision`
+     - **Username**: `qc_user`
+     - **Password**: `qc_password_123`
+
+### NocoDB Use Cases
+
+- **Browse tables**: View all database tables in a familiar spreadsheet format
+- **Documentation**: Understand table relationships and data structures
+- **Quick lookups**: Search and filter records without writing SQL
+- **Schema reference**: See column types, constraints, and relationships
+
+> **Note**: NocoDB is a read/exploration tool for this project. All data modifications should go through the application API to maintain data integrity and audit trails.
+
 ## Development
 
 ### Backend Development
@@ -240,7 +285,12 @@ See [example_env.env](example_env.env) for all available configuration options.
 **Port already in use:**
 ```bash
 # Check what's using the port
+# Windows
 netstat -ano | findstr :8000
+
+# macOS/Linux
+lsof -i :8000
+
 # Stop Docker and retry
 docker compose down
 ```
@@ -265,9 +315,15 @@ docker compose up
 docker compose down -v
 docker compose up -d postgres
 
+# Windows (PowerShell)
 Get-Content .\database\init.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
 Get-Content .\database\demo.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
 Get-Content .\database\tests.sql | docker compose exec -T postgres psql -U qc_user -d qc_vision
+
+# macOS/Linux
+cat ./database/init.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
+cat ./database/demo.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
+cat ./database/tests.sql | docker compose exec -T postgres psql -U qc_user -d qc_vision
 ```
 
 ## Team

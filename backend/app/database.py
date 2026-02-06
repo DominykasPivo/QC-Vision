@@ -11,16 +11,20 @@ DATABASE_URL = os.getenv(
     "postgresql://qcvision:qcvision123@localhost:5432/qcvision_db"
 )
 
-# Create SQLAlchemy engine
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,  # Verify connections before using
-    echo=False,  # Set to True for SQL query logging
-    pool_size=20,  # Increased from default 5 to handle concurrent users
-    max_overflow=30,  # Increased from default 10 to handle traffic spikes
-    pool_recycle=3600,  # Recycle connections after 1 hour
-    pool_timeout=30  # Wait up to 30 seconds for a connection
-)
+# Create SQLAlchemy engine with appropriate settings for the database type
+# SQLite (used in tests) doesn't support connection pooling arguments
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, echo=False)
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,  # Verify connections before using
+        echo=False,  # Set to True for SQL query logging
+        pool_size=20,  # Increased from default 5 to handle concurrent users
+        max_overflow=30,  # Increased from default 10 to handle traffic spikes
+        pool_recycle=3600,  # Recycle connections after 1 hour
+        pool_timeout=30  # Wait up to 30 seconds for a connection
+    )
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

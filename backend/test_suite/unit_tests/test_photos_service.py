@@ -44,14 +44,14 @@ class TestValidatePhoto:
     async def test_valid_images_pass(self, svc):
         # JPEG
         buf = _make_image(200, 150, fmt="JPEG")
-        img, fmt, w, h, size = await svc.validate_photo(buf, "sample.jpg")
-        assert fmt == "JPEG"
-        assert (w, h) == (200, 150)
-        
+        img = await svc.validate_photo(buf, "sample.jpg")
+        assert img.format == "JPEG"
+        assert img.size == (200, 150)
+
         # PNG with alpha
         buf = _make_image(80, 80, mode="RGBA", fmt="PNG")
-        img, fmt, w, h, _ = await svc.validate_photo(buf, "alpha.png")
-        assert fmt == "PNG"
+        img = await svc.validate_photo(buf, "alpha.png")
+        assert img.format == "PNG"
 
     async def test_invalid_images_rejected(self, svc):
         # Empty file
