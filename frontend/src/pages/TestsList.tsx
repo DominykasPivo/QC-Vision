@@ -1,11 +1,14 @@
-import { type FormEvent, useMemo, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
-import type { AppDataContext } from '../components/layout/AppShell';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import { formatEnumLabel, TEST_STATUSES, type TestStatus } from '@/lib/db-constants';
+import { request } from '@/lib/api/http';
+
+const PAGE_SIZE = 20;
 
 const statusClass: Record<TestStatus, string> = {
     open: 'badge-open',
@@ -16,49 +19,118 @@ const statusClass: Record<TestStatus, string> = {
 
 const statusLabel = (status: TestStatus) => formatEnumLabel(status);
 
+interface ApiTest {
+    id: number;
+    product_id: number;
+    test_type: string;
+    requester: string;
+    assigned_to?: string | null;
+    status: string;
+    deadline_at?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+interface PaginatedResponse {
+    items: ApiTest[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+interface DisplayTest {
+    id: string;
+    productType: string;
+    status: TestStatus;
+    deadline: string;
+}
+
+function toDisplayTest(raw: ApiTest): DisplayTest {
+    const deadlineAt = raw.deadline_at;
+    let deadline = 'None';
+    if (deadlineAt) {
+        const parsed = new Date(deadlineAt);
+        deadline = Number.isNaN(parsed.getTime()) ? deadlineAt : parsed.toISOString().slice(0, 10);
+    }
+
+    return {
+        id: String(raw.id),
+        productType: `Product ${raw.product_id}`,
+        status: (TEST_STATUSES.includes(raw.status as TestStatus) ? raw.status : 'pending') as TestStatus,
+        deadline,
+    };
+}
+
 export function TestsList() {
-    const { tests, testsLoaded } = useOutletContext<AppDataContext>();
-    const [searchInput, setSearchInput] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const currentPage = Math.max(1, Number(searchParams.get('page')) || 1);
+    const statusFilter = searchParams.get('status') || '';
+    const searchQuery = searchParams.get('search') || '';
+
+    const [searchInput, setSearchInput] = useState(searchQuery);
+    const [tests, setTests] = useState<DisplayTest[]>([]);
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(true);
+
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+    const fetchTests = useCallback(async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.set('limit', String(PAGE_SIZE));
+            params.set('offset', String((currentPage - 1) * PAGE_SIZE));
+            if (statusFilter) {
+                params.set('status', statusFilter);
+            }
+            if (searchQuery) {
+                params.set('search', searchQuery);
+            }
+
+            const data = await request<PaginatedResponse>(`/api/v1/tests/?${params.toString()}`);
+            setTests(data.items.map(toDisplayTest));
+            setTotal(data.total);
+        } catch (error) {
+            console.error('[TestsList] Failed to fetch tests:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentPage, statusFilter, searchQuery]);
+
+    useEffect(() => {
+        fetchTests();
+    }, [fetchTests]);
+
+    const updateParams = (updates: Record<string, string>) => {
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            for (const [key, value] of Object.entries(updates)) {
+                if (value) {
+                    next.set(key, value);
+                } else {
+                    next.delete(key);
+                }
+            }
+            return next;
+        });
+    };
 
     const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setSearchQuery(searchInput.trim());
+        updateParams({ search: searchInput.trim(), page: '' });
     };
 
-    const filteredTests = useMemo(() => {
-        const normalizedQuery = searchQuery.toLowerCase();
-        const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+    const handleStatusChange = (value: string) => {
+        updateParams({ status: value === 'all' ? '' : value, page: '' });
+    };
 
-        return tests.filter((test) => {
-            if (statusFilter && test.status !== statusFilter) {
-                return false;
-            }
+    const handlePageChange = (page: number) => {
+        updateParams({ page: page === 1 ? '' : String(page) });
+    };
 
-            if (tokens.length === 0) {
-                return true;
-            }
-
-            const haystack = [
-                test.id,
-                test.externalOrderId,
-                test.productType,
-                test.testType,
-                test.requester,
-                test.deadline,
-                test.status,
-                statusLabel(test.status),
-            ]
-                .join(' ')
-                .toLowerCase();
-
-            return tokens.every((token) => haystack.includes(token));
-        });
-    }, [searchQuery, statusFilter, tests]);
-
-    const showEmptyState = testsLoaded && tests.length === 0;
-    const showNoMatches = testsLoaded && tests.length > 0 && filteredTests.length === 0;
+    const showEmptyState = !loading && total === 0 && !statusFilter && !searchQuery;
+    const showNoMatches = !loading && total === 0 && (!!statusFilter || !!searchQuery);
 
     return (
         <div className="page">
@@ -78,7 +150,7 @@ export function TestsList() {
                         const nextValue = event.target.value;
                         setSearchInput(nextValue);
                         if (nextValue.trim() === '') {
-                            setSearchQuery('');
+                            updateParams({ search: '', page: '' });
                         }
                     }}
                 />
@@ -87,7 +159,7 @@ export function TestsList() {
                 </Button>
                 <Select
                     value={statusFilter || 'all'}
-                    onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}
+                    onValueChange={handleStatusChange}
                 >
                     <SelectTrigger className="form-select">
                         <SelectValue placeholder="All Status" />
@@ -106,32 +178,39 @@ export function TestsList() {
             {showEmptyState ? (
                 <p className="page-description">No tests yet. Create a test to see it here.</p>
             ) : (
-                <div className="tests-list">
-                    {showNoMatches ? (
-                        <p className="page-description">No tests match your search or filters.</p>
-                    ) : (
-                        filteredTests.map((test) => (
-                            <Link
-                                to={`/tests/${test.id}`}
-                                key={test.id}
-                                style={{ textDecoration: 'none', color: 'inherit' }}
-                            >
-                                <Card className="card">
-                                    <CardHeader className="card-header flex-row items-center justify-between p-0">
-                                        <CardTitle className="card-title">{test.id}</CardTitle>
-                                        <span className={`badge ${statusClass[test.status]}`}>
-                                            {statusLabel(test.status)}
-                                        </span>
-                                    </CardHeader>
-                                    <CardContent className="card-meta p-0">
-                                        <span>{test.productType}</span>
-                                        <span>{test.deadline}</span>
-                                    </CardContent>
-                                </Card>
-                            </Link>
-                        ))
-                    )}
-                </div>
+                <>
+                    <div className="tests-list">
+                        {showNoMatches ? (
+                            <p className="page-description">No tests match your search or filters.</p>
+                        ) : (
+                            tests.map((test) => (
+                                <Link
+                                    to={`/tests/${test.id}`}
+                                    key={test.id}
+                                    style={{ textDecoration: 'none', color: 'inherit' }}
+                                >
+                                    <Card className="card">
+                                        <CardHeader className="card-header flex-row items-center justify-between p-0">
+                                            <CardTitle className="card-title">{test.id}</CardTitle>
+                                            <span className={`badge ${statusClass[test.status]}`}>
+                                                {statusLabel(test.status)}
+                                            </span>
+                                        </CardHeader>
+                                        <CardContent className="card-meta p-0">
+                                            <span>{test.productType}</span>
+                                            <span>{test.deadline}</span>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            ))
+                        )}
+                    </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                    />
+                </>
             )}
         </div>
     );

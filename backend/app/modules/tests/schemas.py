@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class TestCreate(BaseModel):
@@ -25,6 +25,13 @@ class TestResponse(BaseModel):
     updated_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
+
+class TestListResponse(BaseModel):
+    """Paginated response for test listing."""
+    items: List[TestResponse]
+    total: int
+    limit: int
+    offset: int
     
 
 

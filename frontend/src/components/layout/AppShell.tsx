@@ -165,7 +165,7 @@ export function AppShell() {
     const refreshTests = useCallback(async () => {
         try {
             console.log('[refreshTests] Starting fetch from /api/v1/tests/');
-            const response = await fetch('/api/v1/tests/');
+            const response = await fetch('/api/v1/tests/?limit=100');
             console.log('[refreshTests] Response status:', response.status);
             if (!response.ok) {
                 throw new Error(`Failed to load tests (${response.status})`);

@@ -1,9 +1,10 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import datetime
 
+from sqlalchemy import cast, String as SAString, or_
 from .schemas import TestCreate, TestResponse
-from sqlalchemy.orm import Session  
+from sqlalchemy.orm import Session
 from .models import Tests
 from app.modules.photos.models import Photo
 from app.modules.photos.storage import photo_storage
@@ -42,6 +43,36 @@ class TestsService:
     async def get_all_tests(self, db: Session, skip: int = 0, limit: int = 100) -> List[Tests]:
         """Get all tests with pagination."""
         return db.query(Tests).offset(skip).limit(limit).all()
+
+    async def get_tests_paginated(
+        self,
+        db: Session,
+        offset: int = 0,
+        limit: int = 20,
+        status: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> Tuple[List[Tests], int]:
+        """Get tests with pagination, filtering, and total count."""
+        query = db.query(Tests)
+
+        if status:
+            query = query.filter(Tests.status == status)
+
+        if search:
+            pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Tests.requester.ilike(pattern),
+                    Tests.test_type.ilike(pattern),
+                    Tests.assigned_to.ilike(pattern),
+                    cast(Tests.id, SAString).ilike(pattern),
+                    cast(Tests.product_id, SAString).ilike(pattern),
+                )
+            )
+
+        total = query.count()
+        items = query.order_by(Tests.created_at.desc()).offset(offset).limit(limit).all()
+        return items, total
     
     async def update_test(self, db: Session, test_id: int, test_data: dict) -> Tests:
         """Update a test's properties."""

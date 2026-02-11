@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form, Query
 from typing import List, Optional
 from datetime import datetime
 import logging
 
-from .schemas import TestCreate, TestResponse
+from .schemas import TestCreate, TestResponse, TestListResponse
 from .service import tests_service
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -204,10 +204,19 @@ async def get_test(test_id: int, db: Session = Depends(get_db)):
     return test
 
 
-@router.get("/", response_model=List[TestResponse])
-async def list_tests(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """List all quality tests with pagination."""
-    return await tests_service.get_all_tests(db, skip=skip, limit=limit)
+@router.get("/", response_model=TestListResponse)
+async def list_tests(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    status_filter: Optional[str] = Query(default=None, alias="status"),
+    search: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """List quality tests with pagination, optional status filter and search."""
+    items, total = await tests_service.get_tests_paginated(
+        db, offset=offset, limit=limit, status=status_filter, search=search
+    )
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 @router.patch("/{test_id}", response_model=TestResponse)
