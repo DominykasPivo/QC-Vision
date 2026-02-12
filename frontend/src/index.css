@@ -1073,7 +1073,7 @@ body {
   gap: var(--spacing-xs);
   margin-top: var(--spacing-lg);
 }
- 
+
 .pagination-btn {
   min-width: 36px;
   min-height: 36px;
@@ -1081,11 +1081,11 @@ body {
   font-size: var(--font-size-sm);
   border-radius: var(--radius-md);
 }
- 
+
 .pagination-btn--active {
   pointer-events: none;
 }
- 
+
 .pagination-ellipsis {
   min-width: 36px;
   display: inline-flex;
@@ -1094,7 +1094,7 @@ body {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
- 
+
 .pagination-icon {
   width: 16px;
   height: 16px;

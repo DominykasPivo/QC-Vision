@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import type { AppDataContext } from '../components/layout/AppShell';
+import { Pagination } from '@/components/ui/pagination';
+
+const PAGE_SIZE = 20;
 
 export function Gallery() {
     const { tests } = useOutletContext<AppDataContext>();
     const [photos, setPhotos] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string }>>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         const fetchAllPhotos = async () => {
@@ -42,6 +46,12 @@ export function Gallery() {
         fetchAllPhotos();
     }, [tests]);
 
+    const totalPages = Math.max(1, Math.ceil(photos.length / PAGE_SIZE));
+    const paginatedPhotos = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return photos.slice(start, start + PAGE_SIZE);
+    }, [photos, currentPage]);
+
     return (
         <div className="page">
             <div className="flex flex-col gap-1">
@@ -51,12 +61,12 @@ export function Gallery() {
 
             {loading ? (
                 <p className="page-description">Loading photos...</p>
+            ) : photos.length === 0 ? (
+                <p className="page-description">No photos yet. Upload photos when creating a test.</p>
             ) : (
-                <div className="gallery-grid">
-                    {photos.length === 0 ? (
-                        <p className="page-description">No photos yet. Upload photos when creating a test.</p>
-                    ) : (
-                        photos.map((photo) => (
+                <>
+                    <div className="gallery-grid">
+                        {paginatedPhotos.map((photo) => (
                             <Link
                                 key={photo.id}
                                 className="gallery-item"
@@ -71,9 +81,14 @@ export function Gallery() {
                                     </span>
                                 )}
                             </Link>
-                        ))
-                    )}
-                </div>
+                        ))}
+                    </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </>
             )}
         </div>
     );
