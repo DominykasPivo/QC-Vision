@@ -16,7 +16,10 @@ export default defineConfig({
     host: '0.0.0.0',  
     port: 3000,
     strictPort: true,
-    allowedHosts: ['subapparently-undeprived-jacquetta.ngrok-free.dev'],
+    allowedHosts: [
+      'subapparently-undeprived-jacquetta.ngrok-free.dev',
+      'qcvision.dpdns.org'
+    ],
     watch: {
       usePolling: true,
     },
