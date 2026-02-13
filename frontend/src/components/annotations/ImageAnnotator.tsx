@@ -11,8 +11,6 @@ import type {
   PolygonGeometry,
   ArrowGeometry,
   FreehandGeometry,
-  pointToPixel,
-  pointToNormalized,
 } from '@/lib/annotation-types';
 
 type ImageAnnotatorProps = {
@@ -21,8 +19,11 @@ type ImageAnnotatorProps = {
   currentTool: DrawingTool;
   onAnnotationCreate?: (geometry: AnnotationGeometry) => void;
   onAnnotationSelect?: (annotation: Annotation | null) => void;
+  onAnnotationUpdate?: (annotationId: number, geometry: AnnotationGeometry) => void;
+  onAnnotationDelete?: (annotationId: number) => void;
   selectedAnnotationId?: number | null;
   readonly?: boolean;
+  enableMove?: boolean;
 };
 
 export function ImageAnnotator({
@@ -31,8 +32,11 @@ export function ImageAnnotator({
   currentTool,
   onAnnotationCreate,
   onAnnotationSelect,
+  onAnnotationUpdate,
+  onAnnotationDelete,
   selectedAnnotationId,
   readonly = false,
+  enableMove = false,
 }: ImageAnnotatorProps) {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -40,6 +44,7 @@ export function ImageAnnotator({
   const [drawingStart, setDrawingStart] = useState<Point | null>(null);
   const [tempPoints, setTempPoints] = useState<Point[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<Konva.Stage>(null);
 
   // Load image
   useEffect(() => {
@@ -58,6 +63,19 @@ export function ImageAnnotator({
     };
     img.src = imageUrl;
   }, [imageUrl]);
+
+  // Keyboard handler for deleting annotations
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAnnotationId && onAnnotationDelete) {
+        e.preventDefault();
+        onAnnotationDelete(selectedAnnotationId);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAnnotationId, onAnnotationDelete]);
 
   const handleStart = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (readonly || currentTool === 'select') return;
@@ -176,11 +194,90 @@ export function ImageAnnotator({
     setTempPoints([]);
   };
 
+  const handleAnnotationDragEnd = (annotation: Annotation, e: Konva.KonvaEventObject<DragEvent>) => {
+    if (readonly || !onAnnotationUpdate) return;
+
+    const node = e.target;
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+
+    // Get the drag delta before resetting
+    const dragDeltaX = node.x() / dimensions.width;
+    const dragDeltaY = node.y() / dimensions.height;
+
+    // Reset scale and position after drag
+    node.scaleX(1);
+    node.scaleY(1);
+    node.x(0);
+    node.y(0);
+
+    const { geometry } = annotation;
+    let updatedGeometry: AnnotationGeometry | null = null;
+
+    switch (geometry.type) {
+      case 'circle': {
+        const g = geometry as CircleGeometry;
+        updatedGeometry = {
+          ...g,
+          center: {
+            x: g.center.x + dragDeltaX,
+            y: g.center.y + dragDeltaY,
+          },
+          radius: g.radius * scaleX,
+        };
+        break;
+      }
+      case 'rect': {
+        const g = geometry as RectGeometry;
+        updatedGeometry = {
+          ...g,
+          x: g.x + dragDeltaX,
+          y: g.y + dragDeltaY,
+          width: g.width * scaleX,
+          height: g.height * scaleY,
+        };
+        break;
+      }
+      case 'arrow': {
+        const g = geometry as ArrowGeometry;
+        updatedGeometry = {
+          ...g,
+          from: {
+            x: g.from.x + dragDeltaX,
+            y: g.from.y + dragDeltaY,
+          },
+          to: {
+            x: g.to.x + dragDeltaX,
+            y: g.to.y + dragDeltaY,
+          },
+        };
+        break;
+      }
+      case 'freehand':
+      case 'polygon': {
+        const g = geometry as FreehandGeometry | PolygonGeometry;
+        updatedGeometry = {
+          ...g,
+          points: g.points.map(p => ({
+            x: p.x + dragDeltaX,
+            y: p.y + dragDeltaY,
+          })),
+        };
+        break;
+      }
+    }
+
+    if (updatedGeometry) {
+      onAnnotationUpdate(annotation.id, updatedGeometry);
+    }
+  };
+
   const renderAnnotation = (annotation: Annotation) => {
     const { geometry } = annotation;
     const isSelected = annotation.id === selectedAnnotationId;
-    const strokeColor = isSelected ? '#3b82f6' : '#ef4444';
+    const strokeColor = isSelected ? '#3b82f6' : (annotation.color ?? '#ef4444');
     const strokeWidth = isSelected ? 3 : 2;
+    const isDraggable = !readonly && enableMove;
 
     switch (geometry.type) {
       case 'circle': {
@@ -193,7 +290,19 @@ export function ImageAnnotator({
             radius={g.radius * dimensions.width}
             stroke={strokeColor}
             strokeWidth={strokeWidth}
+            draggable={isDraggable}
             onClick={() => onAnnotationSelect?.(annotation)}
+            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
+            onMouseEnter={(e) => {
+              if (isDraggable) {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'move';
+              }
+            }}
+            onMouseLeave={(e) => {
+              const container = e.target.getStage()?.container();
+              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+            }}
           />
         );
       }
@@ -208,7 +317,19 @@ export function ImageAnnotator({
             height={g.height * dimensions.height}
             stroke={strokeColor}
             strokeWidth={strokeWidth}
+            draggable={isDraggable}
             onClick={() => onAnnotationSelect?.(annotation)}
+            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
+            onMouseEnter={(e) => {
+              if (isDraggable) {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'move';
+              }
+            }}
+            onMouseLeave={(e) => {
+              const container = e.target.getStage()?.container();
+              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+            }}
           />
         );
       }
@@ -227,7 +348,19 @@ export function ImageAnnotator({
             strokeWidth={strokeWidth}
             pointerLength={10}
             pointerWidth={10}
+            draggable={isDraggable}
             onClick={() => onAnnotationSelect?.(annotation)}
+            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
+            onMouseEnter={(e) => {
+              if (isDraggable) {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'move';
+              }
+            }}
+            onMouseLeave={(e) => {
+              const container = e.target.getStage()?.container();
+              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+            }}
           />
         );
       }
@@ -245,7 +378,19 @@ export function ImageAnnotator({
             stroke={strokeColor}
             strokeWidth={strokeWidth}
             closed={geometry.type === 'polygon'}
+            draggable={isDraggable}
             onClick={() => onAnnotationSelect?.(annotation)}
+            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
+            onMouseEnter={(e) => {
+              if (isDraggable) {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'move';
+              }
+            }}
+            onMouseLeave={(e) => {
+              const container = e.target.getStage()?.container();
+              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+            }}
           />
         );
       }
@@ -333,6 +478,7 @@ export function ImageAnnotator({
   return (
     <div ref={containerRef} className="w-full">
       <Stage
+        ref={stageRef}
         width={dimensions.width}
         height={dimensions.height}
         onMouseDown={handleStart}
@@ -341,7 +487,10 @@ export function ImageAnnotator({
         onTouchStart={handleStart}
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}
-        className="border border-gray-300 rounded-lg cursor-crosshair"
+        className="border border-gray-300 rounded-lg"
+        style={{ 
+          cursor: currentTool === 'select' ? 'default' : 'crosshair',
+        }}
       >
         <Layer>
           {image && <KonvaImage image={image} width={dimensions.width} height={dimensions.height} />}
@@ -349,6 +498,28 @@ export function ImageAnnotator({
           {renderTempShape()}
         </Layer>
       </Stage>
+      {selectedAnnotationId && !readonly && (
+        <div className="mt-2 flex items-center gap-2">
+          {enableMove ? (
+            <div className="text-sm text-green-700 font-medium">
+              ✓ Selected - Drag to reposition
+            </div>
+          ) : (
+            <div className="text-sm text-gray-700 font-medium">
+              Selected annotation - {annotations.find(a => a.id === selectedAnnotationId)?.geometry.type || 'Unknown'}
+            </div>
+          )}
+          {onAnnotationDelete && (
+            <button
+              onClick={() => onAnnotationDelete(selectedAnnotationId)}
+              className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors"
+              style={{ minWidth: '70px' }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

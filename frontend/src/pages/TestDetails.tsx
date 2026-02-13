@@ -30,6 +30,7 @@ export function TestDetails() {
         testType: (test?.testType ?? 'incoming') as TestType,
         requester: test?.requester ?? '',
         assignedTo: test?.assignedTo ?? '',
+        description: test?.description ?? '',
         deadline: test?.deadline ?? '',
         status: (test?.status ?? 'pending') as TestStatus,
     });
@@ -144,6 +145,7 @@ export function TestDetails() {
             testType: safeTestType,
             requester: test.requester ?? '',
             assignedTo: test.assignedTo ?? '',
+            description: test.description ?? '',
             deadline: safeDeadline,
             status: safeStatus,
         });
@@ -260,6 +262,7 @@ export function TestDetails() {
                 test_type: draft.testType,
                 requester: draft.requester.trim(),
                 assigned_to: draft.assignedTo.trim() || null,
+                description: draft.description.trim() || null,
                 status: draft.status,
                 deadline_at: draft.deadline ? new Date(draft.deadline).toISOString() : null,
             };
@@ -291,6 +294,7 @@ export function TestDetails() {
                 testType: draft.testType,
                 requester: draft.requester.trim(),
                 assignedTo: draft.assignedTo.trim() || undefined,
+                description: draft.description.trim() || null,
                 deadline: draft.deadline,
                 status: draft.status,
             });
@@ -401,6 +405,7 @@ export function TestDetails() {
                         <div><strong>Test Type:</strong> {formatEnumLabel(test.testType)}</div>
                         <div><strong>Requester:</strong> {requesterLabel}</div>
                         <div><strong>Assigned To:</strong> {assignedToLabel}</div>
+                        <div><strong>Description:</strong> {test.description?.trim() ? test.description : '—'}</div>
                         <div><strong>Status:</strong> {formatEnumLabel(test.status)}</div>
                         <div><strong>Deadline:</strong> {deadlineLabel}</div>
                         <div><strong>Created:</strong> {createdLabel}</div>
@@ -604,6 +609,17 @@ export function TestDetails() {
                                     className="form-input"
                                     value={draft.assignedTo}
                                     onChange={(e) => setDraft((prev) => ({ ...prev, assignedTo: e.target.value }))}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Description</label>
+                                <textarea
+                                    className="form-input"
+                                    placeholder="Enter test description"
+                                    value={draft.description}
+                                    onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
+                                    rows={3}
+                                    style={{ resize: 'vertical' }}
                                 />
                             </div>
                             <div className="form-group">

@@ -16,6 +16,14 @@ class AnnotationCreate(BaseModel):
     """Schema for creating a defect annotation with geometric data."""
     category_id: int
     geometry: Dict[str, Any]
+    color: Optional[str] = None
+
+
+class AnnotationUpdate(BaseModel):
+    """Schema for updating a defect annotation."""
+    category_id: Optional[int] = None
+    geometry: Optional[Dict[str, Any]] = None
+    color: Optional[str] = None
 
 
 class AnnotationResponse(BaseModel):
@@ -24,6 +32,7 @@ class AnnotationResponse(BaseModel):
     defect_id: int
     category_id: int
     geometry: Dict[str, Any]
+    color: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -42,6 +51,7 @@ class DefectUpdate(BaseModel):
     category_id: Optional[int] = None
     description: Optional[str] = None
     severity: Optional[str] = None
+    color: Optional[str] = None
 
 
 class DefectResponse(BaseModel):

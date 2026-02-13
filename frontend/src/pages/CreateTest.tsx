@@ -29,6 +29,7 @@ export function CreateTest() {
         testType: 'incoming' as TestType,
         requester: loggedInUser,
         assignedTo: '',
+        description: '',
         deadline: '',
         status: 'open' as TestStatus,
     });
@@ -114,6 +115,9 @@ export function CreateTest() {
             if (formData.assignedTo.trim()) {
                 submitFormData.append('assignedTo', formData.assignedTo.trim());
             }
+            if (formData.description.trim()) {
+                submitFormData.append('description', formData.description.trim());
+            }
             submitFormData.append(
     'status',
     formData.status.toLowerCase().replace(' ', '_')
@@ -176,6 +180,7 @@ console.log('Test created:', result);
                 testType: 'incoming',
                 requester: loggedInUser,
                 assignedTo: '',
+                description: '',
                 deadline: '',
                 status: 'open',
             });
@@ -302,6 +307,23 @@ console.log('Test created:', result);
                             disabled={isLoading}
                         />
                     </div>
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label" htmlFor="description">
+                        Description (Optional)
+                    </label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        className="form-input"
+                        placeholder="Enter test description"
+                        value={formData.description}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                        disabled={isLoading}
+                        rows={3}
+                        style={{ resize: 'vertical' }}
+                    />
                 </div>
 
                 <div className="form-group">

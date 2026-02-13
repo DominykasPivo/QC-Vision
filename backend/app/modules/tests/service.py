@@ -28,6 +28,7 @@ class TestsService:
             test_type=test_data.test_type,
             requester=test_data.requester,
             assigned_to=test_data.assigned_to,
+            description=test_data.description,
             status=test_data.status,
             deadline_at=test_data.deadline_at,
         )
@@ -65,6 +66,7 @@ class TestsService:
                     Tests.requester.ilike(pattern),
                     Tests.test_type.ilike(pattern),
                     Tests.assigned_to.ilike(pattern),
+                    Tests.description.ilike(pattern),
                     cast(Tests.id, SAString).ilike(pattern),
                     cast(Tests.product_id, SAString).ilike(pattern),
                 )

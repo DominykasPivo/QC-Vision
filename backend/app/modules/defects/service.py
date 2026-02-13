@@ -33,7 +33,8 @@ class DefectsService:
             db.add(DefectAnnotation(
                 defect_id=defect.id,
                 category_id=ann.category_id,
-                geometry=ann.geometry
+                geometry=ann.geometry,
+                color=ann.color,
             ))
 
         db.commit()
@@ -53,7 +54,8 @@ class DefectsService:
         row = DefectAnnotation(
             defect_id=defect_id,
             category_id=ann.category_id,
-            geometry=ann.geometry
+            geometry=ann.geometry,
+            color=ann.color,
         )
         db.add(row)
         db.commit()
@@ -82,7 +84,7 @@ class DefectsService:
             first_annotation = db.query(DefectAnnotation).filter(
                 DefectAnnotation.defect_id == defect_id
             ).first()
-            
+
             if first_annotation:
                 first_annotation.category_id = payload.category_id
             else:
@@ -91,7 +93,14 @@ class DefectsService:
                     category_id=payload.category_id,
                     geometry={}
                 ))
-        
+
+        if 'color' in update_data and payload.color is not None:
+            annotations = db.query(DefectAnnotation).filter(
+                DefectAnnotation.defect_id == defect_id
+            ).all()
+            for ann in annotations:
+                ann.color = payload.color
+
         db.commit()
         db.refresh(defect)
         return defect
@@ -103,6 +112,35 @@ class DefectsService:
             return False
         
         db.delete(defect)
+        db.commit()
+        return True
+
+    async def update_annotation(self, db: Session, annotation_id: int, payload) -> Optional[DefectAnnotation]:
+        """Update an annotation's geometry, category, or color."""
+        annotation = db.query(DefectAnnotation).filter(DefectAnnotation.id == annotation_id).first()
+        if not annotation:
+            return None
+        
+        update_data = payload.model_dump(exclude_unset=True)
+        
+        if 'geometry' in update_data:
+            annotation.geometry = payload.geometry
+        if 'category_id' in update_data:
+            annotation.category_id = payload.category_id
+        if 'color' in update_data:
+            annotation.color = payload.color
+        
+        db.commit()
+        db.refresh(annotation)
+        return annotation
+
+    async def delete_annotation(self, db: Session, annotation_id: int) -> bool:
+        """Delete a specific annotation. Returns True if deleted, False if not found."""
+        annotation = db.query(DefectAnnotation).filter(DefectAnnotation.id == annotation_id).first()
+        if not annotation:
+            return False
+        
+        db.delete(annotation)
         db.commit()
         return True     
 

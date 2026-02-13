@@ -35,6 +35,7 @@ class DefectAnnotation(Base):
     category_id = Column(Integer, ForeignKey("defect_category.id", ondelete="RESTRICT"), nullable=False, index=True)
 
     geometry = Column(JSONB, nullable=False)
+    color = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     defect = relationship("Defect", back_populates="annotations")
     category = relationship("DefectCategory")

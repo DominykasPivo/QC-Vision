@@ -9,6 +9,7 @@ class TestCreate(BaseModel):
     test_type: str = Field(..., description="Type of the test")
     requester: str = Field(..., description="Requester of the test")
     assigned_to: Optional[str] = Field(None, description="Person assigned to the test")
+    description: Optional[str] = Field(None, description="Description of the test")
     status: Optional[str] = Field("pending", description="Status of the test")
     deadline_at: Optional[datetime] = Field(None, description="Deadline for the test")
 
@@ -19,6 +20,7 @@ class TestResponse(BaseModel):
     test_type: str
     requester: str
     assigned_to: Optional[str] = None
+    description: Optional[str] = None
     status: str
     deadline_at: Optional[datetime] = None
     created_at: datetime

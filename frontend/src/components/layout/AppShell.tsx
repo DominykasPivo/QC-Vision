@@ -37,6 +37,7 @@ type ApiTest = {
     requester?: string;
     assignedTo?: string | null;
     assigned_to?: string | null;
+    description?: string | null;
     status?: string | null;
     deadlineAt?: string | null;
     deadline_at?: string | null;
@@ -90,6 +91,7 @@ const toFrontendTest = (raw: ApiTest): Test => {
         testType,
         requester: raw.requester ?? '',
         assignedTo: assignedTo || undefined,
+        description: raw.description ?? null,
         deadline: formatDeadline(deadlineAt),
         deadlineAt,
         status,

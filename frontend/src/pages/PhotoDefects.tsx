@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DEFECT_CATEGORIES,
+  DEFECT_COLORS,
   DEFECT_SEVERITIES,
   formatEnumLabel,
   type DefectSeverity,
@@ -15,6 +16,8 @@ import {
   getDefectsByPhoto,
   getPhoto,
   updateDefect,
+  updateAnnotation,
+  deleteAnnotation,
   type DefectRecord,
   type PhotoRecord,
 } from '@/lib/api/defects';
@@ -26,6 +29,7 @@ type DefectFormState = {
   category_id: number;
   severity: DefectSeverity;
   description: string;
+  color: string;
   annotations: AnnotationGeometry[];
 };
 
@@ -45,10 +49,13 @@ export function PhotoDefects() {
     category_id: DEFECT_CATEGORIES[0].id,
     severity: DEFECT_SEVERITIES[0],
     description: '',
+    color: DEFECT_COLORS[0].value,
     annotations: [],
   });
   const [currentTool, setCurrentTool] = useState<DrawingTool>('select');
   const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
+  const [previewingDefect, setPreviewingDefect] = useState<DefectRecord | null>(null);
+  const [isMoveMode, setIsMoveMode] = useState(false);
 
   const photoPreviewUrl = useMemo(() => {
     if (!photoId) {
@@ -62,6 +69,7 @@ export function PhotoDefects() {
       category_id: DEFECT_CATEGORIES[0].id,
       severity: DEFECT_SEVERITIES[0],
       description: '',
+      color: DEFECT_COLORS[0].value,
       annotations: [],
     });
     setCurrentTool('select');
@@ -74,6 +82,7 @@ export function PhotoDefects() {
     }
     setIsLoading(true);
     setLoadError(null);
+    setPreviewingDefect(null);
     try {
       const data = await getDefectsByPhoto(photoId);
       setDefects(Array.isArray(data) ? data : []);
@@ -106,8 +115,10 @@ export function PhotoDefects() {
   const openCreate = () => {
     resetForm();
     setActionError(null);
+    setPreviewingDefect(null);
+    setEditingDefect(null); 
     setShowCreate(true);
-    setCurrentTool('rect'); // Start with rectangle tool
+    setCurrentTool('rect'); 
   };
 
   const openEdit = (defect: DefectRecord) => {
@@ -118,9 +129,11 @@ export function PhotoDefects() {
         ? (defect.severity as DefectSeverity)
         : DEFECT_SEVERITIES[0]) as DefectSeverity,
       description: defect.description ?? '',
+      color: firstAnnotation?.color ?? DEFECT_COLORS[0].value,
       annotations: [],
     });
     setActionError(null);
+    setShowCreate(false);
     setEditingDefect(defect);
   };
 
@@ -139,10 +152,74 @@ export function PhotoDefects() {
     }));
   };
 
+  const handleAnnotationUpdate = async (annotationId: number, geometry: AnnotationGeometry) => {
+    if (annotationId < 0) {
+      // Temporary annotation (from form)
+      const index = -annotationId - 1;
+      setForm(prev => ({
+        ...prev,
+        annotations: prev.annotations.map((ann, i) => i === index ? geometry : ann),
+      }));
+      return;
+    }
+
+    // Existing annotation (from database)
+    try {
+      await updateAnnotation(annotationId, { geometry });
+      const refreshedDefects = await getDefectsByPhoto(photoId!);
+      setDefects(Array.isArray(refreshedDefects) ? refreshedDefects : []);
+      
+      // Update editingDefect if we're editing
+      if (editingDefect) {
+        const updated = refreshedDefects.find(d => d.id === editingDefect.id);
+        if (updated) setEditingDefect(updated);
+      }
+    } catch (error) {
+      console.error('Failed to update annotation:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to update annotation.');
+    }
+  };
+
+  const handleAnnotationDeletePermanent = async (annotationId: number) => {
+    if (annotationId < 0) {
+      // Temporary annotation (from form)
+      const index = -annotationId - 1;
+      handleAnnotationDelete(index);
+      return;
+    }
+
+    // Existing annotation (from database)
+    try {
+      await deleteAnnotation(annotationId);
+      const refreshedDefects = await getDefectsByPhoto(photoId!);
+      setDefects(Array.isArray(refreshedDefects) ? refreshedDefects : []);
+      
+      // Update editingDefect if we're editing
+      if (editingDefect) {
+        const updated = refreshedDefects.find(d => d.id === editingDefect.id);
+        if (updated) setEditingDefect(updated);
+      }
+    } catch (error) {
+      console.error('Failed to delete annotation:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to delete annotation.');
+    }
+  };
+
   // Get all annotations for the photo
   const allAnnotations: Annotation[] = useMemo(() => {
     return defects.flatMap(defect => defect.annotations || []);
   }, [defects]);
+
+  // Annotations to display: filtered when previewing a single defect or editing
+  const displayedAnnotations: Annotation[] = useMemo(() => {
+    if (previewingDefect) {
+      return previewingDefect.annotations || [];
+    }
+    if (editingDefect) {
+      return editingDefect.annotations || [];
+    }
+    return allAnnotations;
+  }, [previewingDefect, editingDefect, allAnnotations]);
 
   const formatTimestamp = (value?: string | null) => {
     if (!value) {
@@ -169,6 +246,7 @@ export function PhotoDefects() {
       const annotationsPayload = form.annotations.map(geometry => ({
         category_id: form.category_id,
         geometry,
+        color: form.color,
       }));
       console.log('Creating defect with payload:', {
         category_id: form.category_id,
@@ -217,11 +295,13 @@ export function PhotoDefects() {
         category_id: form.category_id,
         severity: form.severity,
         description: form.description.trim() || null,
+        color: form.color,
       });
       await updateDefect(editingDefect.id, {
         category_id: form.category_id,
         severity: form.severity,
         description: form.description.trim() || null,
+        color: form.color,
       });
       setEditingDefect(null);
       resetForm();
@@ -313,18 +393,36 @@ export function PhotoDefects() {
                     
                     <div className="form-group">
                       <label className="form-label font-medium">Description</label>
-                      <input
-                        type="text"
+                      <textarea
                         className="form-input"
                         value={form.description}
                         onChange={(event) =>
                           setForm((prev) => ({ ...prev, description: event.target.value }))
                         }
                         placeholder="Optional description..."
+                        rows={5}
+                        maxLength={500}
+                        style={{ resize: 'vertical', minHeight: '100px' }}
                       />
                     </div>
                   </div>
-                  
+
+                  <div className="form-group">
+                    <label className="form-label font-medium">Annotation Color</label>
+                    <div className="flex gap-2 items-center">
+                      {DEFECT_COLORS.map(c => (
+                        <button
+                          key={c.value}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, color: c.value }))}
+                          className={`w-7 h-7 rounded-full border-2 transition-transform ${form.color === c.value ? 'border-gray-800 scale-110' : 'border-gray-300'}`}
+                          style={{ backgroundColor: c.value }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="flex gap-2 items-center justify-between">
                     <span className="text-sm text-gray-700">
                       {form.annotations.length === 0 ? (
@@ -361,6 +459,71 @@ export function PhotoDefects() {
                 />
               </>
             )}
+            {!showCreate && !editingDefect && (
+              <div className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                <span className="text-sm text-gray-700 font-medium">
+                  {previewingDefect 
+                    ? `Previewing defect #${previewingDefect.id} (${previewingDefect.annotations?.length ?? 0} annotations)` 
+                    : 'View all defects'}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    className={`btn ${isMoveMode ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '2px 10px', fontSize: '0.8rem' }}
+                    onClick={() => setIsMoveMode(!isMoveMode)}
+                  >
+                    {isMoveMode ? '🔓 Moving' : '🔒 Move'}
+                  </Button>
+                  {previewingDefect && (
+                    <Button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '2px 10px', fontSize: '0.8rem' }}
+                      onClick={() => setPreviewingDefect(null)}
+                    >
+                      Show All
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            {editingDefect && !showCreate && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                  <span className="text-sm text-orange-800 font-medium">
+                    ✏️ Editing defect #{editingDefect.id} - {editingDefect.annotations?.length ?? 0} annotation(s)
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      className={`btn ${isMoveMode ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ padding: '2px 10px', fontSize: '0.8rem' }}
+                      onClick={() => setIsMoveMode(!isMoveMode)}
+                    >
+                      {isMoveMode ? '🔓 Moving' : '🔒 Move'}
+                    </Button>
+                    <Button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '2px 10px', fontSize: '0.8rem' }}
+                      onClick={() => {
+                        setEditingDefect(null);
+                        setSelectedAnnotation(null);
+                        setIsMoveMode(false);
+                      }}
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </div>
+                {isMoveMode && (
+                  <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                    🔓 <strong>Move Mode Active:</strong> Click and drag annotations to reposition them
+                  </div>
+                )}
+              </div>
+            )}
             <ImageAnnotator
               imageUrl={photo?.url ?? photoPreviewUrl}
               annotations={showCreate ? form.annotations.map((geom, idx) => ({
@@ -368,14 +531,23 @@ export function PhotoDefects() {
                 defect_id: -1,
                 category_id: form.category_id,
                 geometry: geom,
+                color: form.color,
                 created_at: new Date().toISOString(),
-              })) : allAnnotations}
+              })) : displayedAnnotations}
               currentTool={showCreate ? currentTool : 'select'}
               onAnnotationCreate={showCreate ? handleAnnotationCreate : undefined}
               onAnnotationSelect={setSelectedAnnotation}
+              onAnnotationUpdate={handleAnnotationUpdate}
+              onAnnotationDelete={handleAnnotationDeletePermanent}
               selectedAnnotationId={selectedAnnotation?.id}
-              readonly={!showCreate}
+              readonly={false}
+              enableMove={!showCreate && isMoveMode}
             />
+            {!showCreate && !editingDefect && isMoveMode && (
+              <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                🔓 <strong>Move Mode Active:</strong> Click and drag any annotation to reposition it
+              </div>
+            )}
             {showCreate && form.annotations.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-700">
@@ -454,6 +626,13 @@ export function PhotoDefects() {
                     <div className="defect-actions">
                       <Button
                         type="button"
+                        className={`btn ${previewingDefect?.id === defect.id ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setPreviewingDefect(prev => prev?.id === defect.id ? null : defect)}
+                      >
+                        {previewingDefect?.id === defect.id ? 'Previewing' : 'Preview'}
+                      </Button>
+                      <Button
+                        type="button"
                         className="btn btn-secondary"
                         onClick={() => openEdit(defect)}
                       >
@@ -529,6 +708,60 @@ export function PhotoDefects() {
                   }
                 />
               </div>
+              <div className="form-group">
+                <label className="form-label">Annotation Color</label>
+                <div className="flex gap-2 items-center">
+                  {DEFECT_COLORS.map(c => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, color: c.value }))}
+                      className={`w-7 h-7 rounded-full border-2 transition-transform ${form.color === c.value ? 'border-gray-800 scale-110' : 'border-gray-300'}`}
+                      style={{ backgroundColor: c.value }}
+                      title={c.label}
+                    />
+                  ))}
+                </div>
+              </div>
+              {editingDefect && editingDefect.annotations && editingDefect.annotations.length > 0 && (
+                <div className="form-group">
+                  <label className="form-label">Annotations ({editingDefect.annotations.length})</label>
+                  <div className="space-y-2">
+                    {editingDefect.annotations.map((ann) => {
+                      const category = DEFECT_CATEGORIES.find(c => c.id === ann.category_id);
+                      return (
+                        <div key={ann.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-4 h-4 rounded-full border border-gray-300" 
+                              style={{ backgroundColor: ann.color ?? form.color }}
+                            />
+                            <span className="text-sm capitalize font-medium">{ann.geometry.type}</span>
+                            {category && <span className="text-xs text-gray-500">• {category.name}</span>}
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={async () => {
+                              if (confirm('Delete this annotation?')) {
+                                await handleAnnotationDeletePermanent(ann.id);
+                                setEditingDefect({
+                                  ...editingDefect,
+                                  annotations: editingDefect.annotations?.filter(a => a.id !== ann.id)
+                                });
+                              }
+                            }}
+                            className="btn btn-danger"
+                            style={{ padding: '4px 12px', fontSize: '0.875rem' }}
+                            disabled={isSaving}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {actionError && <div className="defect-error-text">{actionError}</div>}
             </div>
             <div className="delete-confirm__actions" style={{ marginTop: '16px' }}>

@@ -61,6 +61,7 @@ export type Annotation = {
   defect_id: number;
   category_id: number;
   geometry: AnnotationGeometry;
+  color?: string | null;
   created_at: string;
 };
 

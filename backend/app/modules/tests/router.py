@@ -22,6 +22,7 @@ async def create_test(
     testType: str = Form(...),
     requester: str = Form(...),
     assignedTo: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
     status_field: str = Form("pending", alias="status"),
     deadlineAt: str = Form(None),
     photos: List[UploadFile] = File(default=[]),
@@ -60,6 +61,7 @@ async def create_test(
             test_type=testType,
             requester=requester,
             assigned_to=assignedTo,
+            description=description,
             status=status_field,
             deadline_at=deadline,
         )
@@ -78,6 +80,7 @@ async def create_test(
                 "testType": testType,
                 "requester": requester,
                 "assignedTo": assignedTo,
+                "description": description,
                 "status": status_field,
                 "deadlineAt": deadlineAt,
                 "photo_count": len(photos) if photos else 0,

@@ -11,6 +11,7 @@ from .schemas import (
     DefectUpdate,
     DefectResponse,
     AnnotationCreate,
+    AnnotationUpdate,
     AnnotationResponse,
 )
 
@@ -79,3 +80,22 @@ async def delete_defect(defect_id: int, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=404, detail="Defect not found")
     logger.info(f"Deleted defect {defect_id}")
+
+
+@router.put("/annotations/{annotation_id}", response_model=AnnotationResponse)
+async def update_annotation(annotation_id: int, payload: AnnotationUpdate, db: Session = Depends(get_db)):
+    """Update an annotation's geometry (to move it), category, or color."""
+    annotation = await defects_service.update_annotation(db, annotation_id, payload)
+    if not annotation:
+        raise HTTPException(status_code=404, detail="Annotation not found")
+    logger.info(f"Updated annotation {annotation_id}")
+    return annotation
+
+
+@router.delete("/annotations/{annotation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_annotation(annotation_id: int, db: Session = Depends(get_db)):
+    """Remove a specific annotation from its defect."""
+    success = await defects_service.delete_annotation(db, annotation_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Annotation not found")
+    logger.info(f"Deleted annotation {annotation_id}")

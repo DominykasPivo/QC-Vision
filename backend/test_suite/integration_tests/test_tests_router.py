@@ -53,6 +53,7 @@ class TestCreateTestRoute:
                 testType="final",
                 requester="Dave",
                 assignedTo="Eve",
+                description="Test description for final inspection",
                 status="finalized",
                 deadlineAt="2026-03-15T00:00:00Z",
             ),
@@ -61,8 +62,17 @@ class TestCreateTestRoute:
 
         test = resp.json()["test"]
         assert test["assigned_to"] == "Eve"
+        assert test["description"] == "Test description for final inspection"
         assert test["status"] == "finalized"
         assert test["deadline_at"] is not None
+
+    def test_201_without_description(self, client):
+        resp = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(productId=105, testType="incoming", requester="Frank"),
+        )
+        assert resp.status_code == 201
+        assert resp.json()["test"]["description"] is None
 
     def test_400_on_invalid_deadline_format(self, client):
         resp = client.post(
@@ -151,6 +161,13 @@ class TestUpdateTestRoute:
         )
         assert resp.status_code == 200
         assert resp.json()["assigned_to"] == "Omar"
+
+        # Update description
+        resp = client.patch(
+            f"/api/v1/tests/{test_id}", json={"description": "Updated description"}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["description"] == "Updated description"
 
     def test_404_for_nonexistent_test(self, client):
         resp = client.patch("/api/v1/tests/9999", json={"status": "open"})

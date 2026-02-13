@@ -10,6 +10,7 @@ export interface Test {
   testType: TestType;
   requester: string;
   assignedTo?: string;
+  description?: string | null;
   deadline: string;
   deadlineAt?: string | null;
   status: TestStatus;

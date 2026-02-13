@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS quality_tests (
   test_type     test_type NOT NULL,
   requester     TEXT,
   assigned_to  TEXT,
+  description  TEXT,
 
   status        test_status NOT NULL DEFAULT 'open',
   deadline_at TIMESTAMPTZ,
@@ -108,6 +109,7 @@ CREATE TABLE IF NOT EXISTS defect_annotations (
   category_id INT NOT NULL REFERENCES defect_category(id) ON DELETE RESTRICT,
 
   geometry    JSONB NOT NULL,
+  color       TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
