@@ -100,10 +100,22 @@ class DefectsService:
             ).all()
             for ann in annotations:
                 ann.color = payload.color
+        
+        # Add new annotations if provided
+        if 'annotations' in update_data and payload.annotations:
+            for ann in payload.annotations:
+                db.add(DefectAnnotation(
+                    defect_id=defect_id,
+                    category_id=ann.category_id,
+                    geometry=ann.geometry,
+                    color=ann.color,
+                ))
 
         db.commit()
         db.refresh(defect)
-        return defect
+        
+        # Reload with annotations to return complete data
+        return db.query(Defect).options(joinedload(Defect.annotations)).filter(Defect.id == defect_id).first()
 
     async def delete_defect(self, db: Session, defect_id: int) -> bool:
         """Delete a defect and all its annotations. Returns True if deleted, False if not found."""

@@ -52,6 +52,7 @@ class DefectUpdate(BaseModel):
     description: Optional[str] = None
     severity: Optional[str] = None
     color: Optional[str] = None
+    annotations: Optional[List[AnnotationCreate]] = None
 
 
 class DefectResponse(BaseModel):

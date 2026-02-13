@@ -56,6 +56,7 @@ export function PhotoDefects() {
   const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
   const [previewingDefect, setPreviewingDefect] = useState<DefectRecord | null>(null);
   const [isMoveMode, setIsMoveMode] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
 
   const photoPreviewUrl = useMemo(() => {
     if (!photoId) {
@@ -134,6 +135,8 @@ export function PhotoDefects() {
     });
     setActionError(null);
     setShowCreate(false);
+    setIsDrawingMode(false);
+    setIsMoveMode(false);
     setEditingDefect(defect);
   };
 
@@ -291,19 +294,25 @@ export function PhotoDefects() {
     setIsSaving(true);
     setActionError(null);
     try {
-      console.log('Updating defect with payload:', {
+      const payload: any = {
         category_id: form.category_id,
         severity: form.severity,
         description: form.description.trim() || null,
         color: form.color,
-      });
-      await updateDefect(editingDefect.id, {
-        category_id: form.category_id,
-        severity: form.severity,
-        description: form.description.trim() || null,
-        color: form.color,
-      });
+      };
+      
+      // Add new annotations if any were drawn
+      if (form.annotations.length > 0) {
+        payload.annotations = form.annotations.map(geom => ({
+          category_id: form.category_id,
+          geometry: geom,
+          color: form.color,
+        }));
+      }
+      
+      await updateDefect(editingDefect.id, payload);
       setEditingDefect(null);
+      setIsDrawingMode(false);
       resetForm();
       await loadDefects();
     } catch (error) {
@@ -492,14 +501,34 @@ export function PhotoDefects() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-2 bg-orange-50 border border-orange-200 rounded-lg">
                   <span className="text-sm text-orange-800 font-medium">
-                    ✏️ Editing defect #{editingDefect.id} - {editingDefect.annotations?.length ?? 0} annotation(s)
+                    ✏️ Editing defect #{editingDefect.id} - {(editingDefect.annotations?.length ?? 0) + form.annotations.length} annotation(s)
                   </span>
                   <div className="flex gap-2">
                     <Button
                       type="button"
+                      className={`btn ${isDrawingMode ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ padding: '2px 10px', fontSize: '0.8rem' }}
+                      onClick={() => {
+                        setIsDrawingMode(!isDrawingMode);
+                        setIsMoveMode(false);
+                        if (!isDrawingMode) {
+                          setCurrentTool('rect');
+                        } else {
+                          setCurrentTool('select');
+                        }
+                      }}
+                    >
+                      {isDrawingMode ? '✏️ Drawing' : '➕ Draw'}
+                    </Button>
+                    <Button
+                      type="button"
                       className={`btn ${isMoveMode ? 'btn-primary' : 'btn-secondary'}`}
                       style={{ padding: '2px 10px', fontSize: '0.8rem' }}
-                      onClick={() => setIsMoveMode(!isMoveMode)}
+                      onClick={() => {
+                        setIsMoveMode(!isMoveMode);
+                        setIsDrawingMode(false);
+                        setCurrentTool('select');
+                      }}
                     >
                       {isMoveMode ? '🔓 Moving' : '🔒 Move'}
                     </Button>
@@ -508,12 +537,18 @@ export function PhotoDefects() {
                       className="btn btn-secondary"
                       style={{ padding: '2px 10px', fontSize: '0.8rem' }}
                       onClick={() => {
-                        setEditingDefect(null);
-                        setSelectedAnnotation(null);
-                        setIsMoveMode(false);
+                        if (form.annotations.length > 0) {
+                          handleUpdate();
+                        } else {
+                          setEditingDefect(null);
+                          setSelectedAnnotation(null);
+                          setIsMoveMode(false);
+                          setIsDrawingMode(false);
+                          setCurrentTool('select');
+                        }
                       }}
                     >
-                      Done
+                      {form.annotations.length > 0 ? 'Save' : 'Done'}
                     </Button>
                   </div>
                 </div>
@@ -522,30 +557,80 @@ export function PhotoDefects() {
                     🔓 <strong>Move Mode Active:</strong> Click and drag annotations to reposition them
                   </div>
                 )}
+                {isDrawingMode && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                    ✏️ <strong>Drawing Mode Active:</strong> Draw new annotations to add to this defect
+                  </div>
+                )}
+                
+                {isDrawingMode && (
+                  <AnnotationToolbar
+                    currentTool={currentTool}
+                    onToolChange={setCurrentTool}
+                    disabled={false}
+                  />
+                )}
               </div>
             )}
             <ImageAnnotator
               imageUrl={photo?.url ?? photoPreviewUrl}
-              annotations={showCreate ? form.annotations.map((geom, idx) => ({
-                id: -idx - 1,
-                defect_id: -1,
-                category_id: form.category_id,
-                geometry: geom,
-                color: form.color,
-                created_at: new Date().toISOString(),
-              })) : displayedAnnotations}
-              currentTool={showCreate ? currentTool : 'select'}
-              onAnnotationCreate={showCreate ? handleAnnotationCreate : undefined}
+              annotations={
+                showCreate 
+                  ? form.annotations.map((geom, idx) => ({
+                      id: -idx - 1,
+                      defect_id: -1,
+                      category_id: form.category_id,
+                      geometry: geom,
+                      color: form.color,
+                      created_at: new Date().toISOString(),
+                    }))
+                  : editingDefect
+                    ? [
+                        ...(editingDefect.annotations || []),
+                        ...form.annotations.map((geom, idx) => ({
+                          id: -(idx + 1 + (editingDefect.annotations?.length || 0)),
+                          defect_id: editingDefect.id as number,
+                          category_id: form.category_id,
+                          geometry: geom,
+                          color: form.color,
+                          created_at: new Date().toISOString(),
+                        }))
+                      ]
+                    : displayedAnnotations
+              }
+              currentTool={showCreate || isDrawingMode ? currentTool : 'select'}
+              onAnnotationCreate={showCreate || isDrawingMode ? handleAnnotationCreate : undefined}
               onAnnotationSelect={setSelectedAnnotation}
               onAnnotationUpdate={handleAnnotationUpdate}
               onAnnotationDelete={handleAnnotationDeletePermanent}
               selectedAnnotationId={selectedAnnotation?.id}
               readonly={false}
-              enableMove={!showCreate && isMoveMode}
+              enableMove={!showCreate && !isDrawingMode && isMoveMode}
             />
             {!showCreate && !editingDefect && isMoveMode && (
               <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
                 🔓 <strong>Move Mode Active:</strong> Click and drag any annotation to reposition it
+              </div>
+            )}
+            {editingDefect && form.annotations.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-gray-700">
+                  New annotations to add ({form.annotations.length}):
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {form.annotations.map((ann, index) => (
+                    <div key={index} className="flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded">
+                      <span className="text-sm capitalize">{ann.type}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAnnotationDelete(index)}
+                        className="text-red-600 hover:text-red-800 font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {showCreate && form.annotations.length > 0 && (
@@ -655,7 +740,7 @@ export function PhotoDefects() {
         </CardContent>
       </Card>
 
-      {editingDefect && (
+      {editingDefect && !isDrawingMode && (
         <div className="modal-overlay flex items-center justify-center" onClick={() => setEditingDefect(null)}>
           <div className="modal-content defect-modal" onClick={(event) => event.stopPropagation()}>
             <div className="delete-confirm__title">Edit Defect</div>
@@ -737,17 +822,14 @@ export function PhotoDefects() {
                               style={{ backgroundColor: ann.color ?? form.color }}
                             />
                             <span className="text-sm capitalize font-medium">{ann.geometry.type}</span>
-                            {category && <span className="text-xs text-gray-500">• {category.name}</span>}
+                            <span className="text-xs text-gray-500">• {category ? category.name : 'Unknown'}</span>
                           </div>
                           <Button
                             type="button"
                             onClick={async () => {
                               if (confirm('Delete this annotation?')) {
                                 await handleAnnotationDeletePermanent(ann.id);
-                                setEditingDefect({
-                                  ...editingDefect,
-                                  annotations: editingDefect.annotations?.filter(a => a.id !== ann.id)
-                                });
+                                
                               }
                             }}
                             className="btn btn-danger"
@@ -762,16 +844,57 @@ export function PhotoDefects() {
                   </div>
                 </div>
               )}
+              {form.annotations.length > 0 && (
+                <div className="form-group">
+                  <label className="form-label">New Annotations to Add ({form.annotations.length})</label>
+                  <div className="space-y-2">
+                    {form.annotations.map((ann, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full border border-gray-300" 
+                            style={{ backgroundColor: form.color }}
+                          />
+                          <span className="text-sm capitalize font-medium">{ann.type}</span>
+                          <span className="text-xs text-green-600">• New</span>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => handleAnnotationDelete(index)}
+                          className="btn btn-danger"
+                          style={{ padding: '4px 12px', fontSize: '0.875rem' }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {actionError && <div className="defect-error-text">{actionError}</div>}
             </div>
             <div className="delete-confirm__actions" style={{ marginTop: '16px' }}>
               <Button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setEditingDefect(null)}
+                onClick={() => {
+                  setEditingDefect(null);
+                  resetForm();
+                }}
                 disabled={isSaving}
               >
                 Cancel
+              </Button>
+              <Button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsDrawingMode(true);
+                  setCurrentTool('rect');
+                }}
+                disabled={isSaving}
+              >
+                ✏️ Add Annotations
               </Button>
               <Button type="button" className="btn btn-primary" onClick={handleUpdate} disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Save'}

@@ -198,48 +198,43 @@ export function ImageAnnotator({
     if (readonly || !onAnnotationUpdate) return;
 
     const node = e.target;
-    const scaleX = node.scaleX();
-    const scaleY = node.scaleY();
-
-    // Get the drag delta before resetting
-    const dragDeltaX = node.x() / dimensions.width;
-    const dragDeltaY = node.y() / dimensions.height;
-
-    // Reset scale and position after drag
-    node.scaleX(1);
-    node.scaleY(1);
-    node.x(0);
-    node.y(0);
-
     const { geometry } = annotation;
     let updatedGeometry: AnnotationGeometry | null = null;
+
+    // Get absolute position to account for any transformations
+    const pos = node.getAbsolutePosition();
+    const normalizedX = pos.x / dimensions.width;
+    const normalizedY = pos.y / dimensions.height;
 
     switch (geometry.type) {
       case 'circle': {
         const g = geometry as CircleGeometry;
+        
         updatedGeometry = {
           ...g,
           center: {
-            x: g.center.x + dragDeltaX,
-            y: g.center.y + dragDeltaY,
+            x: normalizedX,
+            y: normalizedY,
           },
-          radius: g.radius * scaleX,
         };
         break;
       }
       case 'rect': {
         const g = geometry as RectGeometry;
+        
         updatedGeometry = {
           ...g,
-          x: g.x + dragDeltaX,
-          y: g.y + dragDeltaY,
-          width: g.width * scaleX,
-          height: g.height * scaleY,
+          x: normalizedX,
+          y: normalizedY,
         };
         break;
       }
       case 'arrow': {
         const g = geometry as ArrowGeometry;
+        // For shapes with points, pos gives us the drag offset from (0,0)
+        const dragDeltaX = pos.x / dimensions.width;
+        const dragDeltaY = pos.y / dimensions.height;
+        
         updatedGeometry = {
           ...g,
           from: {
@@ -251,11 +246,18 @@ export function ImageAnnotator({
             y: g.to.y + dragDeltaY,
           },
         };
+        
+        // Reset node position after capturing offset
+        node.position({ x: 0, y: 0 });
         break;
       }
       case 'freehand':
       case 'polygon': {
         const g = geometry as FreehandGeometry | PolygonGeometry;
+        // For shapes with points, pos gives us the drag offset from (0,0)
+        const dragDeltaX = pos.x / dimensions.width;
+        const dragDeltaY = pos.y / dimensions.height;
+        
         updatedGeometry = {
           ...g,
           points: g.points.map(p => ({
@@ -263,6 +265,9 @@ export function ImageAnnotator({
             y: p.y + dragDeltaY,
           })),
         };
+        
+        // Reset node position after capturing offset
+        node.position({ x: 0, y: 0 });
         break;
       }
     }
@@ -278,6 +283,11 @@ export function ImageAnnotator({
     const strokeColor = isSelected ? '#3b82f6' : (annotation.color ?? '#ef4444');
     const strokeWidth = isSelected ? 3 : 2;
     const isDraggable = !readonly && enableMove;
+    
+    // Larger hit area for touch devices
+    const hitStrokeWidth = Math.max(strokeWidth, 20);
+    
+    const handleSelect = () => onAnnotationSelect?.(annotation);
 
     switch (geometry.type) {
       case 'circle': {
@@ -290,8 +300,10 @@ export function ImageAnnotator({
             radius={g.radius * dimensions.width}
             stroke={strokeColor}
             strokeWidth={strokeWidth}
+            hitStrokeWidth={hitStrokeWidth}
             draggable={isDraggable}
-            onClick={() => onAnnotationSelect?.(annotation)}
+            onClick={handleSelect}
+            onTap={handleSelect}
             onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
             onMouseEnter={(e) => {
               if (isDraggable) {
@@ -317,8 +329,10 @@ export function ImageAnnotator({
             height={g.height * dimensions.height}
             stroke={strokeColor}
             strokeWidth={strokeWidth}
+            hitStrokeWidth={hitStrokeWidth}
             draggable={isDraggable}
-            onClick={() => onAnnotationSelect?.(annotation)}
+            onClick={handleSelect}
+            onTap={handleSelect}
             onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
             onMouseEnter={(e) => {
               if (isDraggable) {
@@ -348,8 +362,10 @@ export function ImageAnnotator({
             strokeWidth={strokeWidth}
             pointerLength={10}
             pointerWidth={10}
+            hitStrokeWidth={hitStrokeWidth}
             draggable={isDraggable}
-            onClick={() => onAnnotationSelect?.(annotation)}
+            onClick={handleSelect}
+            onTap={handleSelect}
             onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
             onMouseEnter={(e) => {
               if (isDraggable) {
@@ -377,9 +393,11 @@ export function ImageAnnotator({
             points={points}
             stroke={strokeColor}
             strokeWidth={strokeWidth}
+            hitStrokeWidth={hitStrokeWidth}
             closed={geometry.type === 'polygon'}
             draggable={isDraggable}
-            onClick={() => onAnnotationSelect?.(annotation)}
+            onClick={handleSelect}
+            onTap={handleSelect}
             onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
             onMouseEnter={(e) => {
               if (isDraggable) {
