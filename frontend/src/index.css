@@ -92,9 +92,9 @@ body {
 .logout-button {
   position: absolute;
   right: var(--spacing-md);
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  color: #ffffff;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
@@ -103,7 +103,7 @@ body {
 }
 
 .logout-button:active {
-  background: var(--bg-secondary);
+  background: #b91c1c;
 }
 
 .app-content {
