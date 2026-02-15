@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { photos as initialPhotos, tests as initialTests } from '../../mock/data';
 import type { AuditEvent, Photo, Test } from '../../mock/data';
 import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
@@ -102,6 +102,7 @@ const toFrontendTest = (raw: ApiTest): Test => {
 
 export function AppShell() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [tests, setTests] = useState<Test[]>(initialTests);
     const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
     const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
@@ -333,6 +334,7 @@ export function AppShell() {
             ),
         },
     ];
+    const isTestDetailsRoute = /^\/tests\/[^/]+\/?$/.test(location.pathname);
 
     return (
         <div className="app-shell">
@@ -371,7 +373,7 @@ export function AppShell() {
                     </button>
                 </header>
 
-                <main className="app-content">
+                <main className={`app-content ${isTestDetailsRoute ? 'app-content--test-details' : ''}`}>
                     <Outlet context={contextValue} />
                 </main>
             </div>

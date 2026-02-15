@@ -61,6 +61,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 40;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.test-details-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.test-details-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.test-details-page::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
 /* App Shell Layout */
 .app-shell {
   display: flex;
@@ -112,6 +131,11 @@ body {
   padding-top: calc(var(--header-height) + var(--spacing-md));
   padding-bottom: calc(var(--nav-height) + var(--spacing-md));
   overflow-y: auto;
+}
+
+.app-content.app-content--test-details {
+  width: 100%;
+  max-width: none;
 }
 
 /* Bottom Navigation */
@@ -983,8 +1007,12 @@ body {
   }
 
   .sidebar-header {
-    padding: var(--spacing-lg);
+    height: var(--header-height);
+    padding: 0 var(--spacing-lg);
+    display: flex;
+    align-items: center;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
   .sidebar-header h2 {
@@ -1056,6 +1084,12 @@ body {
     padding-right: var(--spacing-lg);
   }
 
+  .app-content.app-content--test-details {
+    max-width: none;
+    padding-left: clamp(20px, 3vw, 40px);
+    padding-right: clamp(20px, 3vw, 40px);
+  }
+
   .bottom-nav {
     display: none;
   }
@@ -1109,5 +1143,11 @@ body {
   .app-content {
     max-width: 800px;
     margin: 0 auto;
+  }
+
+  .app-content.app-content--test-details {
+    max-width: none;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
   }
 }
