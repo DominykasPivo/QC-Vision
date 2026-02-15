@@ -1,15 +1,26 @@
-from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form, Query
-from typing import List, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import List, Optional
 
-from .schemas import TestCreate, TestResponse, TestListResponse
-from .service import tests_service
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.modules.photos.service import photo_service
-from app.modules.photos.schemas import PhotoResponse
 from app.modules.audit.service import log_action
+from app.modules.photos.schemas import PhotoResponse
+from app.modules.photos.service import photo_service
+
+from .schemas import TestCreate, TestListResponse, TestResponse
+from .service import tests_service
 
 logger = logging.getLogger("backend_tests_router")
 
@@ -93,11 +104,15 @@ async def create_test(
         if photos:
             for photo_file in photos:
                 try:
-                    if not photo_file.content_type or not photo_file.content_type.startswith(
-                        "image/"
+                    if (
+                        not photo_file.content_type
+                        or not photo_file.content_type.startswith("image/")
                     ):
                         failed_photos.append(
-                            {"filename": photo_file.filename, "error": "Not an image file"}
+                            {
+                                "filename": photo_file.filename,
+                                "error": "Not an image file",
+                            }
                         )
 
                         log_action(

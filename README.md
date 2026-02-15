@@ -326,6 +326,25 @@ cat ./database/demo.sql  | docker compose exec -T postgres psql -U qc_user -d qc
 cat ./database/tests.sql | docker compose exec -T postgres psql -U qc_user -d qc_vision
 ```
 
+
+## CI (GitHub Actions)
+
+We use a simple CI pipeline to modify the format of Python code.
+
+### What CI checks
+- **black** formatting
+- **isort** import order
+
+### Run the checks
+
+```bash
+pip install black==25.1.0 isort==5.13.2
+isort backend
+black backend
+isort --check-only backend
+black --check backend
+```
+
 ## Team
 
 Production Intelligence Team - Spreadgroup

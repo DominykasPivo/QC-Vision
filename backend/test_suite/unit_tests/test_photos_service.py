@@ -7,19 +7,21 @@ PIL images / BytesIO buffers.  A fresh ``PhotoService()`` is provided by the
 ``minio`` package is stubbed in conftest).
 """
 
-import pytest
 from io import BytesIO
+
+import pytest
 from PIL import Image
 
 from app.modules.photos.service import PhotoService
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _make_image(width: int = 100, height: int = 100, mode: str = "RGB", fmt: str = "JPEG") -> BytesIO:
+def _make_image(
+    width: int = 100, height: int = 100, mode: str = "RGB", fmt: str = "JPEG"
+) -> BytesIO:
     """Create a valid in-memory image and return the buffer seeked to 0."""
     img = Image.new(mode, (width, height))
     if fmt == "JPEG" and mode != "RGB":
@@ -57,17 +59,17 @@ class TestValidatePhoto:
         # Empty file
         with pytest.raises(ValueError, match="[Ee]mpty"):
             await svc.validate_photo(BytesIO(b""), "empty.jpg")
-        
+
         # File too large
         big = BytesIO(b"\x00" * (10 * 1024 * 1024 + 1))
         with pytest.raises(ValueError, match="[Tt]oo large"):
             await svc.validate_photo(big, "big.jpg")
-        
+
         # Image too small
         buf = _make_image(3, 3, fmt="JPEG")
         with pytest.raises(ValueError, match="[Tt]oo small"):
             await svc.validate_photo(buf, "tiny.jpg")
-        
+
         # Unsupported format
         img = Image.new("RGB", (100, 100))
         buf = BytesIO()
@@ -75,7 +77,7 @@ class TestValidatePhoto:
         buf.seek(0)
         with pytest.raises(ValueError, match="[Uu]nsupported format"):
             await svc.validate_photo(buf, "test.bmp")
-        
+
         # Corrupted data
         with pytest.raises(ValueError, match="[Ii]nvalid"):
             await svc.validate_photo(BytesIO(b"definitely not an image"), "bad.jpg")
@@ -103,7 +105,7 @@ class TestProcessImage:
         img = Image.new("RGBA", (50, 50), (255, 0, 0, 128))
         result = await svc.process_image(img)
         assert result.mode == "RGB"
-        
+
         # Palette → RGB
         img = Image.new("P", (60, 60))
         result = await svc.process_image(img)
@@ -120,7 +122,7 @@ class TestImageToBytes:
         # JPEG starts with SOI marker
         data = svc.image_to_bytes(Image.new("RGB", (10, 10)), format="JPEG")
         assert data[:2] == b"\xff\xd8"
-        
+
         # PNG starts with PNG signature
         data = svc.image_to_bytes(Image.new("RGB", (10, 10)), format="PNG")
         assert data[:4] == b"\x89PNG"

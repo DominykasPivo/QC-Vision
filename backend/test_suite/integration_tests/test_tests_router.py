@@ -14,7 +14,6 @@ because FastAPI's jsonable_encoder defaults to ``by_alias=True``.
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helper – build multipart form-field tuples
 # ---------------------------------------------------------------------------
@@ -78,7 +77,10 @@ class TestCreateTestRoute:
         resp = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                productId=104, testType="incoming", requester="Mona", deadlineAt="not-a-date"
+                productId=104,
+                testType="incoming",
+                requester="Mona",
+                deadlineAt="not-a-date",
             ),
         )
         assert resp.status_code == 400
@@ -93,7 +95,7 @@ class TestGetTestRoute:
     def test_get_test(self, client):
         # 404 for nonexistent
         assert client.get("/api/v1/tests/9999").status_code == 404
-        
+
         # Returns created test
         created = client.post(
             "/api/v1/tests/",
@@ -117,23 +119,25 @@ class TestListTestsRoute:
         for i in range(n):
             client.post(
                 "/api/v1/tests/",
-                files=_form_fields(productId=101+i, testType="incoming", requester=requesters[i % 5]),
+                files=_form_fields(
+                    productId=101 + i, testType="incoming", requester=requesters[i % 5]
+                ),
             )
 
     def test_listing_and_pagination(self, client):
         self._create_n(client, 5)
-        
+
         # Returns all tests
         resp = client.get("/api/v1/tests/")
         assert resp.status_code == 200
         assert len(resp.json()) == 5
-        
+
         # Limit restricts count
         assert len(client.get("/api/v1/tests/?limit=2").json()) == 2
-        
+
         # Skip offsets results (skip 4 of 5 → 1 remaining)
         assert len(client.get("/api/v1/tests/?skip=4").json()) == 1
-        
+
         # Skip beyond total returns empty
         assert client.get("/api/v1/tests/?skip=100").json() == []
 
@@ -156,9 +160,7 @@ class TestUpdateTestRoute:
         assert resp.json()["status"] == "in_progress"
 
         # Update assigned_to
-        resp = client.patch(
-            f"/api/v1/tests/{test_id}", json={"assigned_to": "Omar"}
-        )
+        resp = client.patch(f"/api/v1/tests/{test_id}", json={"assigned_to": "Omar"})
         assert resp.status_code == 200
         assert resp.json()["assigned_to"] == "Omar"
 

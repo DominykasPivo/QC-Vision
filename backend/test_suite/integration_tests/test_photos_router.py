@@ -12,9 +12,8 @@ from io import BytesIO
 
 from PIL import Image
 
-from app.modules.tests.models import Tests
 from app.modules.photos.models import Photo
-
+from app.modules.tests.models import Tests
 
 # ---------------------------------------------------------------------------
 # Seed helpers
@@ -95,10 +94,12 @@ class TestUploadPhotoRoute:
 class TestListPhotosRoute:
     def test_returns_photos_for_test(self, client, db_session):
         test_id = _seed_test(db_session)
-        db_session.add_all([
-            Photo(test_id=test_id, file_path="/uploads/p1.jpg"),
-            Photo(test_id=test_id, file_path="/uploads/p2.jpg"),
-        ])
+        db_session.add_all(
+            [
+                Photo(test_id=test_id, file_path="/uploads/p1.jpg"),
+                Photo(test_id=test_id, file_path="/uploads/p2.jpg"),
+            ]
+        )
         db_session.commit()
 
         resp = client.get(f"/api/v1/photos/test/{test_id}")

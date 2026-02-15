@@ -59,15 +59,16 @@ import os as _os  # noqa: E402
 
 _os.environ.setdefault("DATABASE_URL", "sqlite://")
 
+from unittest.mock import patch  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # 3.  App imports – now safe
 # ---------------------------------------------------------------------------
 import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine, event  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
-from unittest.mock import patch  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
 
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402

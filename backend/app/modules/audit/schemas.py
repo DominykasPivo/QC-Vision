@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Any, Dict, Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AuditLogOut(BaseModel):
@@ -13,7 +14,6 @@ class AuditLogOut(BaseModel):
     username: str
 
     model_config = ConfigDict(from_attributes=True)
-       
 
 
 class AuditLogListOut(BaseModel):

@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from .schemas import AuditLogOut, AuditLogListOut
+
+from .schemas import AuditLogListOut, AuditLogOut
 from .service import get_log_by_id, list_logs
 
 router = APIRouter()
@@ -21,7 +22,7 @@ def get_audit_logs(
     created_to: Optional[datetime] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
- db: Session = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     items, total = list_logs(
         db,

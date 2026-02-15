@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime  
-from typing import Any, Dict, Optional, Tuple, List
+import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
-import logging  
-from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from sqlalchemy.orm import Session
 
 from .models import AuditLog
 
-logger = logging.getLogger("backend_audit_service")  
+logger = logging.getLogger("backend_audit_service")
 
 
 def log_action(
@@ -36,10 +36,10 @@ def log_action(
         )
         db.add(entry)
         db.commit()
-        db.refresh(entry)  
+        db.refresh(entry)
     except Exception:
         db.rollback()
-        logger.exception("Failed to write audit log entry")  
+        logger.exception("Failed to write audit log entry")
 
 
 def get_log_by_id(db: Session, log_id: int) -> Optional[AuditLog]:
@@ -53,8 +53,8 @@ def list_logs(
     entity_type: Optional[str] = None,
     entity_id: Optional[int] = None,
     username: Optional[str] = None,
-    created_from: Optional[datetime] = None,  
-    created_to: Optional[datetime] = None,    
+    created_from: Optional[datetime] = None,
+    created_to: Optional[datetime] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> Tuple[List[AuditLog], int]:
@@ -78,11 +78,6 @@ def list_logs(
 
     total = q.count()
 
-    items = (
-        q.order_by(desc(AuditLog.created_at))
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    items = q.order_by(desc(AuditLog.created_at)).offset(offset).limit(limit).all()
 
     return items, total

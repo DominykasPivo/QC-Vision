@@ -1,5 +1,5 @@
-import pytest
 import httpx
+import pytest
 
 from app.main import app
 
@@ -30,7 +30,8 @@ async def test_create_test_writes_audit_log():
 
         match = next(
             (
-                x for x in items
+                x
+                for x in items
                 if x["action"] == "CREATE"
                 and x["entity_type"] == "Test"
                 and x["entity_id"] == created_id

@@ -2,20 +2,20 @@
 QC Vision - Main FastAPI Application
 Visual Quality Tests Tracking for Modern Manufacturing
 """
-import logging 
-import sys
+
+import logging
 import os
+import sys
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+
+from app.database import create_tables
+from app.modules.audit.router import router as audit_router
+from app.modules.defects.router import router as defects_router
 from app.modules.photos.router import router as photos_router
 from app.modules.tests.router import router as tests_router
-from app.modules.audit.router import router as audit_router
-from app.database import create_tables
-from app.modules.defects.router import router as defects_router
-
-
 
 # Application metadata
 APP_NAME = "QC Vision API"
@@ -108,7 +108,6 @@ async def api_status():
             "ai_recognition": "coming_soon",
         },
     }
-
 
 
 app.include_router(tests_router, prefix="/api/v1/tests", tags=["Tests"])

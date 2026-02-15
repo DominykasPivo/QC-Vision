@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Awaitable
+from typing import Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -67,7 +67,9 @@ def extract_actor_user_id(request: Request) -> int | None:
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         path = request.url.path
         method = request.method
 
@@ -101,7 +103,11 @@ class AuditMiddleware(BaseHTTPMiddleware):
             entity_id = None
             after_data = None
 
-            if success and response.media_type and "application/json" in response.media_type:
+            if (
+                success
+                and response.media_type
+                and "application/json" in response.media_type
+            ):
                 entity_id = try_extract_entity_id(body_bytes)
 
             if should_audit:
@@ -143,7 +149,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                             method=method,
                             path=path,
                             ip_address=request.client.host if request.client else None,
-                            user_agent=request.headers.get("user-agent"), 
+                            user_agent=request.headers.get("user-agent"),
                             message="unhandled exception",
                             error_data={"error": str(e), "type": e.__class__.__name__},
                         ),

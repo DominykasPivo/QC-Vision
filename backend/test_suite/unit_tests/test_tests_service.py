@@ -6,15 +6,15 @@ Every test asserts on *what the service tells the session to do* (add, delete,
 commit, attribute mutations, storage calls) rather than on DB state.
 """
 
-import pytest
-from unittest.mock import MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock
 
+import pytest
+
+from app.modules.photos.models import Photo
 from app.modules.tests.models import Tests
 from app.modules.tests.schemas import TestCreate
 from app.modules.tests.service import tests_service
-from app.modules.photos.models import Photo
-
 
 # ---------------------------------------------------------------------------
 # create_test
@@ -83,10 +83,7 @@ class TestGetAllTests:
     async def test_pagination(self, mock_db):
         tests = [MagicMock(), MagicMock()]
         (
-            mock_db.query.return_value
-            .offset.return_value
-            .limit.return_value
-            .all.return_value
+            mock_db.query.return_value.offset.return_value.limit.return_value.all.return_value
         ) = tests
 
         result = await tests_service.get_all_tests(mock_db, skip=2, limit=3)
@@ -98,10 +95,7 @@ class TestGetAllTests:
 
     async def test_empty_database_returns_empty_list(self, mock_db):
         (
-            mock_db.query.return_value
-            .offset.return_value
-            .limit.return_value
-            .all.return_value
+            mock_db.query.return_value.offset.return_value.limit.return_value.all.return_value
         ) = []
 
         assert await tests_service.get_all_tests(mock_db) == []

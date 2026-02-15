@@ -11,9 +11,8 @@ aliases, so their JSON keys match the Python field names exactly.
 import pytest
 
 from app.modules.defects.models import DefectCategory
-from app.modules.tests.models import Tests
 from app.modules.photos.models import Photo
-
+from app.modules.tests.models import Tests
 
 # ---------------------------------------------------------------------------
 # Seed helper
@@ -55,7 +54,13 @@ class TestCategoriesRoute:
         resp = client.get("/api/v1/defects/categories")
         assert resp.status_code == 200
         names = {c["name"] for c in resp.json()}
-        assert names == {"Incorrect Colors", "Damage", "Print Errors", "Embroidery Issues", "Other"}
+        assert names == {
+            "Incorrect Colors",
+            "Damage",
+            "Print Errors",
+            "Embroidery Issues",
+            "Other",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +80,12 @@ class TestCreateDefectRoute:
                 "annotations": [
                     {
                         "category_id": cat_id,
-                        "geometry": {"type": "circle", "cx": 0.42, "cy": 0.55, "r": 0.08},
+                        "geometry": {
+                            "type": "circle",
+                            "cx": 0.42,
+                            "cy": 0.55,
+                            "r": 0.08,
+                        },
                     }
                 ],
             },
@@ -173,13 +183,19 @@ class TestAddAnnotationRoute:
         )
         assert resp.status_code == 201
         assert resp.json()["defect_id"] == defect_id
-        
+
         # 404 when parent defect missing
         resp = client.post(
             "/api/v1/defects/9999/annotations",
             json={
                 "category_id": cat_id,
-                "geometry": {"type": "rectangle", "x": 0.60, "y": 0.20, "w": 0.18, "h": 0.15},
+                "geometry": {
+                    "type": "rectangle",
+                    "x": 0.60,
+                    "y": 0.20,
+                    "w": 0.18,
+                    "h": 0.15,
+                },
             },
         )
         assert resp.status_code == 404
@@ -202,7 +218,7 @@ class TestUpdateDefectRoute:
         resp = client.put(f"/api/v1/defects/{defect_id}", json={"severity": "critical"})
         assert resp.status_code == 200
         assert resp.json()["severity"] == "critical"
-        
+
         # 404 for nonexistent
         resp = client.put("/api/v1/defects/9999", json={"severity": "low"})
         assert resp.status_code == 404
@@ -224,6 +240,6 @@ class TestDeleteDefectRoute:
         # Successful deletion
         assert client.delete(f"/api/v1/defects/{defect_id}").status_code == 204
         assert client.get(f"/api/v1/defects/{defect_id}").status_code == 404
-        
+
         # 404 for nonexistent
         assert client.delete("/api/v1/defects/9999").status_code == 404
