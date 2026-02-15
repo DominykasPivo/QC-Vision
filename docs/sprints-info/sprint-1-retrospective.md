@@ -30,9 +30,9 @@
 **Owner:** Dominykas – **Deadline:** End of Week 17
 **Success:** Project is accessible on the web, defect annotation functionalities working, website refreshes every few seconds.
 
-### **Action:** Implement audit view and gallery review UI
+### Action: Refine Tests page (main focus) – UX/UI + core frontend functionality polish
 **Owner:** Ziad – **Deadline:** End of Week 17
-**Success:** Supervisors can review finalized tests, photos, and defects in a read-only audit view.
+**Success:** Tests page is clean, consistent, and “POC-ready” on mobile and desktop, with a smooth end-to-end workflow and no confusing labels or messy flows. Gallery remains unchanged unless there is extra time.
 
 ### **Action:** Audit logging & Audit search filters & log testing.
 **Owner:** Sherifa – **Deadline:** End of Week 17

@@ -25,6 +25,12 @@ MVP Hardening & Visual Audit Trail Completion:
 
 - Search & filtering for tests (status, date, product, defect type) (8–12 hours)
 
+- Tests page UX/UI refinement and flow consistency (8–12 hours)
+
+- Align Test Details fields with Update modal labels/fields (4–6 hours)
+
+- Mobile-first accessibility improvements (40+ users: readability, button sizing, spacing) (4–6 hours)
+
 ### Medium Priority
 
 - Gallery filtering by severity & defect category (5–8 hours)
@@ -35,12 +41,16 @@ MVP Hardening & Visual Audit Trail Completion:
 
 - Demo dataset (tests, photos, defects) (3–5 hours)
 
+- Improve empty/no-results states across Tests pages (2–4 hours)
+
+- UI consistency pass (spacing, typography, component alignment) (3–5 hours)
 ### Low Priority
 
 - Basic export (ZIP or mock PDF) for audit bundle (optional) (4–6 hours)
 
 - Minor UI polish & layout cleanup (3–5 hours)
 
+- Login screen polish (1–2 hours)
 ##  Team Roles and Responsibilities
 
 ### Dominykas
@@ -50,9 +60,9 @@ Deadline: End of Week 17
 Success: Defects can be created, linked to photos, and stored with severity. Photos
 ### Ziad
 
-Action: Mobile-first UX improvements + demo readiness.
+Action: Tests page refinement (main focus) – UX/UI polish + flow consistency (mobile-first)
 Deadline: End of Week 17
-Success: QC personnel can complete a full test flow comfortably on a phone.
+Success: Tests page is POC-ready on mobile and desktop, with clean UI, consistent labels, and a smooth flow (list → details → update/delete → photos). Gallery left as-is unless extra time.
 
 ### Sherifa
 
