@@ -68,7 +68,7 @@ Success: Tests page is POC-ready on mobile and desktop, with clean UI, consisten
 
 Action: Audit logging & audit search filters & audit log testing.
 Deadline: End of Week 17
-Success: Supervisor can review a finalized test without editing anything, every state change and defect action is logged and visible in audit view.
+Success: Audit logs are automatically recorded at both the HTTP layer (middleware) and business layer (via AOP-style decorators), searchable, filterable, tested, and demo-ready with no breaking issues.
 
 ### Anastasios
 

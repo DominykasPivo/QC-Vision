@@ -36,7 +36,7 @@
 
 ### **Action:** Audit logging & Audit search filters & log testing.
 **Owner:** Sherifa – **Deadline:** End of Week 17
-**Success:** Supervisor can review a finalized test without editing anything, every state change and defect action is logged and visible in audit view.
+**Success:** Audit logging is fully integrated and automatically records all relevant system actions (create, update, delete, upload, etc.) without manual triggering.
 
 ### **Action:**  Review functionality, Github workflow implementation
 **Owner:** Anastasios – **Deadline:** End of Week 17
