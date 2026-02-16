@@ -344,7 +344,12 @@ black backend
 isort --check-only backend
 black --check backend
 ```
+### Unit Tests & Integration tests
 
+```bash
+cd backend
+pytest -q
+```
 ## Team
 
 Production Intelligence Team - Spreadgroup

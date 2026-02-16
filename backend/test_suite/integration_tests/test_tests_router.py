@@ -127,19 +127,24 @@ class TestListTestsRoute:
     def test_listing_and_pagination(self, client):
         self._create_n(client, 5)
 
-        # Returns all tests
         resp = client.get("/api/v1/tests/")
         assert resp.status_code == 200
-        assert len(resp.json()) == 5
+
+        data = resp.json()
+        assert data["total"] == 5
+        assert len(data["items"]) == 5
 
         # Limit restricts count
-        assert len(client.get("/api/v1/tests/?limit=2").json()) == 2
+        data = client.get("/api/v1/tests/?limit=2").json()
+        assert len(data["items"]) == 2
 
         # Skip offsets results (skip 4 of 5 → 1 remaining)
-        assert len(client.get("/api/v1/tests/?skip=4").json()) == 1
+        data = client.get("/api/v1/tests/?offset=4").json()
+        assert len(data["items"]) == 1
 
         # Skip beyond total returns empty
-        assert client.get("/api/v1/tests/?skip=100").json() == []
+        data = client.get("/api/v1/tests/?offset=100").json()
+        assert data["items"] == []
 
 
 # ---------------------------------------------------------------------------

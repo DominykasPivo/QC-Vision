@@ -75,75 +75,44 @@ class DefectsService:
         db.refresh(row)
         return row
 
-    async def update_defect(
-        self, db: Session, defect_id: int, payload: DefectUpdate
-    ) -> Optional[Defect]:
-        """
-        Update a defect's properties.
-
-        Supports partial updates. Only updates fields that are explicitly provided.
-        Can update defect description, severity, and category (via first annotation).
-        """
-        defect = db.query(Defect).filter(Defect.id == defect_id).first()
-        if not defect:
+    async def update_defect(self, db, defect_id: int, payload: DefectUpdate):
+        defect = (
+            db.query(Defect)
+            .options()  # keep your existing options(...) args if you have them
+            .filter(Defect.id == defect_id)
+            .first()
+        )
+        if defect is None:
             return None
 
         update_data = payload.model_dump(exclude_unset=True)
 
-        if "description" in update_data:
-            defect.description = payload.description
-        if "severity" in update_data:
-            defect.severity = payload.severity
+        # handle category_id side-effect separately if needed
+        category_id = update_data.pop("category_id", None)
 
-        if "category_id" in update_data and payload.category_id is not None:
-            first_annotation = (
+        # apply normal fields like severity/description/etc.
+        for field, value in update_data.items():
+            setattr(defect, field, value)
+
+        if category_id is not None:
+            annotation = (
                 db.query(DefectAnnotation)
                 .filter(DefectAnnotation.defect_id == defect_id)
                 .first()
             )
-
-            if first_annotation:
-                first_annotation.category_id = payload.category_id
+            if annotation is not None:
+                annotation.category_id = category_id
             else:
                 db.add(
                     DefectAnnotation(
                         defect_id=defect_id,
-                        category_id=payload.category_id,
+                        category_id=category_id,
                         geometry={},
                     )
                 )
 
-        if "color" in update_data and payload.color is not None:
-            annotations = (
-                db.query(DefectAnnotation)
-                .filter(DefectAnnotation.defect_id == defect_id)
-                .all()
-            )
-            for ann in annotations:
-                ann.color = payload.color
-
-        # Add new annotations if provided
-        if "annotations" in update_data and payload.annotations:
-            for ann in payload.annotations:
-                db.add(
-                    DefectAnnotation(
-                        defect_id=defect_id,
-                        category_id=ann.category_id,
-                        geometry=ann.geometry,
-                        color=ann.color,
-                    )
-                )
-
         db.commit()
-        db.refresh(defect)
-
-        # Reload with annotations to return complete data
-        return (
-            db.query(Defect)
-            .options(joinedload(Defect.annotations))
-            .filter(Defect.id == defect_id)
-            .first()
-        )
+        return defect
 
     async def delete_defect(self, db: Session, defect_id: int) -> bool:
         """Delete a defect and all its annotations. Returns True if deleted, False if not found."""

@@ -32,3 +32,57 @@ jobs:
 
       - name: Lint (flake8)
         run: flake8 backend
+
+  unit-tests:
+    name: Unit tests (pytest)
+    runs-on: ubuntu-22.04
+    needs: [format-check]
+
+    services:
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9000:9000
+          - 9001:9001
+        options: >-
+          --health-cmd="curl -f http://localhost:9000/minio/health/ready || exit 1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+        command: server /data --console-address ":9001"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install backend deps + pytest
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run pytest
+        working-directory: backend
+        env:
+          # DB for tests (lightweight)
+          DATABASE_URL: "sqlite:///./test.db"
+
+          # MinIO for imports/tests that touch storage
+          MINIO_ENDPOINT: "localhost:9000"
+          MINIO_ROOT_USER: "minioadmin"
+          MINIO_ROOT_PASSWORD: "minioadmin123"
+          MINIO_ACCESS_KEY: "minioadmin"
+          MINIO_SECRET_KEY: "minioadmin123"
+          MINIO_BUCKET: "qc-vision-photos"
+        run: |
+          pytest -q --cov=. --cov-report=term-missing

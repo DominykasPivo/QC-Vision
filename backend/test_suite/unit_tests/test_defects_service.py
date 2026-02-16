@@ -16,6 +16,7 @@ from app.modules.defects.models import Defect, DefectAnnotation
 from app.modules.defects.schemas import AnnotationCreate, DefectCreate, DefectUpdate
 from app.modules.defects.service import defects_service
 
+
 # ---------------------------------------------------------------------------
 # create_defect_for_photo
 # ---------------------------------------------------------------------------
@@ -172,8 +173,8 @@ class TestAddAnnotation:
 
 class TestUpdateDefect:
     async def test_update_severity_only(self, mock_db):
-        defect = MagicMock()
-        mock_db.query.return_value.filter.return_value.first.return_value = defect
+        defect = MagicMock(severity="low")
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = defect
 
         updated = await defects_service.update_defect(
             mock_db, 1, DefectUpdate(severity="critical")
@@ -184,7 +185,7 @@ class TestUpdateDefect:
         assert updated is defect
 
     async def test_returns_none_for_missing_defect(self, mock_db):
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         result = await defects_service.update_defect(
             mock_db, 9999, DefectUpdate(severity="low")
