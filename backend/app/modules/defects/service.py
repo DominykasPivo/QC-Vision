@@ -1,6 +1,5 @@
 from typing import List, Optional
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from .models import Defect, DefectAnnotation, DefectCategory

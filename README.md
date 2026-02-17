@@ -327,28 +327,22 @@ cat ./database/tests.sql | docker compose exec -T postgres psql -U qc_user -d qc
 ```
 
 
-## CI (GitHub Actions)
+## Tests & CI
 
-We use a simple CI pipeline to modify the format of Python code.
+This project uses a GitHub Actions CI pipeline to enforce code quality and run automated tests on every push and pull request.
 
-### What CI checks
-- **black** formatting
-- **isort** import order
+### Local checks (same as CI)
 
-### Run the checks
-
+### From the project root:
 ```bash
-pip install black==25.1.0 isort==5.13.2
-isort backend
-black backend
-isort --check-only backend
-black --check backend
-```
-### Unit Tests & Integration tests
+# Format / lint (backend)
+black  backend
+isort  backend
+flake8 backend
 
-```bash
+# Tests + coverage (backend)
 cd backend
-pytest -q
+pytest -q --cov=. --cov-report=term-missing
 ```
 ## Team
 

@@ -12,8 +12,6 @@ Response keys use the *alias* names defined in TestResponse
 because FastAPI's jsonable_encoder defaults to ``by_alias=True``.
 """
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Helper – build multipart form-field tuples
 # ---------------------------------------------------------------------------

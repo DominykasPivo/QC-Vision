@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import List, Optional, Tuple
 
 from sqlalchemy import String as SAString

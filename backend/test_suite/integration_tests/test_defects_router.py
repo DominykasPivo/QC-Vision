@@ -8,8 +8,6 @@ DefectResponse / AnnotationResponse / CategoryResponse have no Field
 aliases, so their JSON keys match the Python field names exactly.
 """
 
-import pytest
-
 from app.modules.defects.models import DefectCategory
 from app.modules.photos.models import Photo
 from app.modules.tests.models import Tests

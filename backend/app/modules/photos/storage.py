@@ -1,10 +1,7 @@
 import json
 import logging
 import os
-import sys
-from datetime import timedelta
 from io import BytesIO
-from typing import BinaryIO
 
 from minio import Minio
 from minio.error import S3Error
