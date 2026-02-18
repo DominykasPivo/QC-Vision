@@ -1,7 +1,7 @@
 """Photo request/response schemas."""
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -44,3 +44,28 @@ class PhotoUploadResponse(BaseModel):
 
     photo: PhotoResponse
     url: str
+
+
+class GalleryPhotoResponse(BaseModel):
+    """Schema for a single gallery photo with aggregated defect info."""
+
+    id: int
+    test_id: int
+    file_path: str
+    time_stamp: datetime
+    test_type: str
+    test_status: str
+    defect_count: int
+    highest_severity: Optional[str] = None
+    category_ids: List[int] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GalleryResponse(BaseModel):
+    """Paginated gallery response."""
+
+    items: List[GalleryPhotoResponse]
+    total: int
+    page: int
+    page_size: int

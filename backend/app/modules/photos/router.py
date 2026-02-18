@@ -1,8 +1,8 @@
 import io
 import logging
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,7 @@ from app.database import get_db
 from app.modules.audit.service import log_action
 
 from .models import Photo
-from .schemas import PhotoResponse, PhotoUrlResponse
+from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUrlResponse
 from .service import photo_service
 from .storage import photo_storage
 
@@ -24,6 +24,36 @@ async def get_photos_for_test(test_id: int, db: Session = Depends(get_db)):
     """Get all photos for a specific test."""
     photos = db.query(Photo).filter(Photo.test_id == test_id).all()
     return photos
+
+
+@router.get("/gallery", response_model=GalleryResponse)
+async def get_gallery(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    severity: Optional[str] = Query(default=None),
+    category_id: Optional[int] = Query(default=None),
+    test_type: Optional[str] = Query(default=None),
+    test_status: Optional[str] = Query(default=None),
+    has_defects: Optional[bool] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Get paginated gallery photos with aggregated defect summaries."""
+    items, total = photo_service.get_gallery_photos(
+        db,
+        page=page,
+        page_size=page_size,
+        severity=severity,
+        category_id=category_id,
+        test_type=test_type,
+        test_status=test_status,
+        has_defects=has_defects,
+    )
+    return GalleryResponse(
+        items=[GalleryPhotoResponse(**item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/{photo_id}/url", response_model=PhotoUrlResponse)
