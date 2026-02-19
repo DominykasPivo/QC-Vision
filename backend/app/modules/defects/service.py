@@ -95,6 +95,11 @@ class DefectsService:
         for field, value in update_data.items():
             setattr(defect, field, value)
 
+        # Update color on ALL existing annotations
+        if color is not None:
+            for ann in defect.annotations:
+                ann.color = color
+
         # Append new annotations to existing ones
         if new_annotations is not None:
             for ann_data in new_annotations:
