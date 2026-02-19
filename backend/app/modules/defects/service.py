@@ -77,7 +77,7 @@ class DefectsService:
     async def update_defect(self, db, defect_id: int, payload: DefectUpdate):
         defect = (
             db.query(Defect)
-            .options()  # keep your existing options(...) args if you have them
+            .options(joinedload(Defect.annotations))
             .filter(Defect.id == defect_id)
             .first()
         )
@@ -86,14 +86,28 @@ class DefectsService:
 
         update_data = payload.model_dump(exclude_unset=True)
 
-        # handle category_id side-effect separately if needed
+        # Pop fields that are not direct Defect columns
         category_id = update_data.pop("category_id", None)
+        color = update_data.pop("color", None)
+        new_annotations = update_data.pop("annotations", None)
 
-        # apply normal fields like severity/description/etc.
+        # Apply scalar fields (severity, description)
         for field, value in update_data.items():
             setattr(defect, field, value)
 
-        if category_id is not None:
+        # Append new annotations to existing ones
+        if new_annotations is not None:
+            for ann_data in new_annotations:
+                db.add(
+                    DefectAnnotation(
+                        defect_id=defect_id,
+                        category_id=ann_data["category_id"],
+                        geometry=ann_data["geometry"],
+                        color=ann_data.get("color") or color,
+                    )
+                )
+        elif category_id is not None:
+            # Update category on first annotation if only category_id was sent
             annotation = (
                 db.query(DefectAnnotation)
                 .filter(DefectAnnotation.defect_id == defect_id)
@@ -101,16 +115,20 @@ class DefectsService:
             )
             if annotation is not None:
                 annotation.category_id = category_id
+                if color is not None:
+                    annotation.color = color
             else:
                 db.add(
                     DefectAnnotation(
                         defect_id=defect_id,
                         category_id=category_id,
                         geometry={},
+                        color=color,
                     )
                 )
 
         db.commit()
+        db.refresh(defect)
         return defect
 
     async def delete_defect(self, db: Session, defect_id: int) -> bool:
