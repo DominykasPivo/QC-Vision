@@ -530,8 +530,7 @@ export function ImageAnnotator({
           {onAnnotationDelete && (
             <button
               onClick={() => onAnnotationDelete(selectedAnnotationId)}
-              className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors"
-              style={{ minWidth: '70px' }}
+              className="min-w-16 rounded bg-red-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-red-700"
             >
               Delete
             </button>

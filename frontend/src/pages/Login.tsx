@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { isLoggedIn, loginUser } from '@/lib/auth';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export function Login() {
     const navigate = useNavigate();
@@ -34,13 +36,14 @@ export function Login() {
                         Track quality tests, review photos, and document defects in one simple workflow.
                     </p>
                     <form onSubmit={handleSubmit} className="login-form" noValidate>
-                        <label className="form-label" htmlFor="login-name">
+                        <label className="text-sm font-semibold text-white/95" htmlFor="login-name">
                             Username
                         </label>
-                        <input
+                        <Input
                             id="login-name"
                             name="name"
-                            className="form-input login-input"
+                            density="spacious"
+                            className="login-input"
                             type="text"
                             autoComplete="username"
                             value={name}
@@ -54,9 +57,9 @@ export function Login() {
                             {touched && !isValid ? 'Please enter your username to continue.' : ' '}
                         </div>
 
-                        <button className="btn btn-primary btn-block login-button" type="submit" disabled={!isValid}>
+                        <Button className="login-button w-full" density="spacious" type="submit" disabled={!isValid}>
                             Login
-                        </button>
+                        </Button>
                     </form>
                 </section>
             </div>

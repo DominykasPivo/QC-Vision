@@ -5,7 +5,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ring-offset-[var(--bg)]',
+  'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ring-offset-[var(--bg)]',
   {
     variants: {
       variant: {
@@ -15,15 +15,21 @@ const buttonVariants = cva(
         ghost: 'text-[var(--text)] hover:bg-[var(--bg-secondary)]',
         link: 'text-[var(--primary)] underline-offset-4 hover:underline',
       },
+      density: {
+        compact: 'h-9 px-3 text-sm',
+        comfortable: 'h-11 px-4 text-sm',
+        spacious: 'h-12 px-6 text-base',
+      },
       size: {
-        default: 'h-11 px-4',
-        sm: 'h-9 px-3',
-        lg: 'h-12 px-6',
-        icon: 'h-10 w-10',
+        default: '',
+        sm: 'text-xs',
+        lg: 'text-base',
+        icon: 'h-10 w-10 p-0',
       },
     },
     defaultVariants: {
       variant: 'default',
+      density: 'comfortable',
       size: 'default',
     },
   },

@@ -1,4 +1,5 @@
-import type { DefectCategory, DefectSeverity } from '@/lib/db-constants';
+import type { DefectSeverity } from '@/lib/db-constants';
+import type { Annotation, AnnotationGeometry } from '@/lib/annotation-types';
 import { request } from './http';
 
 const API_BASE = '/api/v1';
@@ -17,14 +18,14 @@ export type DefectPayload = {
   color?: string | null;
   annotations?: Array<{
     category_id: number;
-    geometry: Record<string, any>;
+    geometry: AnnotationGeometry;
     color?: string | null;
   }>;
 };
 
 export type AnnotationPayload = {
   category_id?: number;
-  geometry?: Record<string, any>;
+  geometry?: AnnotationGeometry;
   color?: string | null;
 };
 
@@ -35,14 +36,7 @@ export type DefectRecord = {
   description?: string | null;
   created_at?: string | null;
   createdAt?: string | null;
-  annotations?: Array<{
-    id: number;
-    defect_id: number;
-    category_id: number;
-    geometry: Record<string, any>;
-    color?: string | null;
-    created_at: string;
-  }>;
+  annotations?: Annotation[];
 };
 
 export type PhotoRecord = {
@@ -81,7 +75,7 @@ export async function deleteDefect(defectId: string | number) {
 }
 
 export async function updateAnnotation(annotationId: string | number, payload: AnnotationPayload) {
-  return request<DefectRecord['annotations'][0]>(DEFECT_ENDPOINTS.annotation(annotationId), {
+  return request<NonNullable<DefectRecord['annotations']>[number]>(DEFECT_ENDPOINTS.annotation(annotationId), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

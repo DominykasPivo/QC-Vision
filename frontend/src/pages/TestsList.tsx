@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 import { formatEnumLabel, TEST_STATUSES, TEST_TYPES, type TestStatus } from '@/lib/db-constants';
+import { spacing } from '@/lib/ui/spacing';
+import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 20;
 
@@ -99,7 +101,7 @@ export function TestsList() {
             }
         };
 
-        let filtered = tests.filter((test) => {
+        const filtered = tests.filter((test) => {
             // Status filter
             if (statusFilter && test.status !== statusFilter) {
                 return false;
@@ -195,7 +197,7 @@ export function TestsList() {
     const showNoMatches = testsLoaded && tests.length > 0 && filteredTests.length === 0;
 
     return (
-        <div className="mx-auto w-full max-w-7xl space-y-6 px-4 pb-6 pt-3 sm:space-y-7 sm:px-3">
+        <div className={cn(spacing.pageContainer, spacing.pageStack)}>
             <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:hidden">Tests</h1>
                 <div className="hidden md:block">
@@ -205,7 +207,7 @@ export function TestsList() {
             </div>
 
             <form
-                className="mb-4 rounded-none border-0 bg-transparent p-0 shadow-none sm:mb-5 sm:rounded-2xl sm:border sm:border-slate-200 sm:bg-white sm:p-5 sm:shadow-sm md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:border-0 md:bg-transparent md:p-0 md:shadow-none"
                 onSubmit={handleSearchSubmit}
             >
                 <div className="space-y-4 md:hidden">
@@ -213,8 +215,8 @@ export function TestsList() {
                         <div className="flex-1">
                             <Input
                                 type="text"
-                                className="h-14 rounded-full border border-slate-200 bg-white !pl-8 !pr-4 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                                style={{ paddingLeft: '1.75rem', paddingRight: '1rem' }}
+                                density="spacious"
+                                className="rounded-full border border-slate-200 bg-white pl-7 pr-4 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                                 placeholder="Search by ID or Product..."
                                 value={searchInput}
                                 onChange={(event) => {
@@ -252,8 +254,8 @@ export function TestsList() {
                             onValueChange={(value) => { setStatusFilter(value === 'all' ? '' : value); setCurrentPage(1); }}
                         >
                             <SelectTrigger
-                                className="h-12 rounded-full border border-slate-200 bg-white !pl-8 !pr-7 text-base font-medium text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:mr-0.5 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-slate-500 [&>svg]:opacity-100"
-                                style={{ paddingLeft: '1.75rem', paddingRight: '2rem' }}
+                                density="spacious"
+                                className="rounded-full border border-slate-200 bg-white pl-7 pr-8 text-base font-medium text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:mr-0.5 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-slate-500 [&>svg]:opacity-100"
                             >
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
@@ -271,11 +273,12 @@ export function TestsList() {
                 </div>
 
                 <div className="hidden md:block">
-                    <div className="flex items-center gap-3" style={{ marginBottom: '32px' }}>
+                    <div className="mb-8 flex items-center gap-3">
                         <div className="relative flex-1">
                             <Input
                                 type="text"
-                                className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-[15px] leading-5 text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                density="spacious"
+                                className="rounded-full border border-slate-200 bg-white pl-6 pr-5 text-[15px] leading-5 text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                                 placeholder="Search by ID or Product..."
                                 value={searchInput}
                                 onChange={(event) => {
@@ -298,7 +301,7 @@ export function TestsList() {
                             value={statusFilter || 'all'}
                             onValueChange={(value) => { setStatusFilter(value === 'all' ? '' : value); setCurrentPage(1); }}
                         >
-                            <SelectTrigger className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
+                            <SelectTrigger density="spacious" className="rounded-full border border-slate-200 bg-white pl-6 pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -315,7 +318,7 @@ export function TestsList() {
                             value={testTypeFilter || 'all'}
                             onValueChange={(value) => { setTestTypeFilter(value === 'all' ? '' : value); setCurrentPage(1); }}
                         >
-                            <SelectTrigger className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
+                            <SelectTrigger density="spacious" className="rounded-full border border-slate-200 bg-white pl-6 pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
                                 <SelectValue placeholder="Test Type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -330,7 +333,8 @@ export function TestsList() {
 
                         <Input
                             type="text"
-                            className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            density="spacious"
+                            className="rounded-full border border-slate-200 bg-white pl-6 pr-5 text-base text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                             placeholder="Assigned to..."
                             value={assignedToFilter}
                             onChange={(event) => {
@@ -343,7 +347,7 @@ export function TestsList() {
                             value={dateRangeFilter || 'all'}
                             onValueChange={(value) => { setDateRangeFilter(value === 'all' ? '' : value); setCurrentPage(1); }}
                         >
-                            <SelectTrigger className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
+                            <SelectTrigger density="spacious" className="rounded-full border border-slate-200 bg-white pl-6 pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
                                 <SelectValue placeholder="Deadline" />
                             </SelectTrigger>
                             <SelectContent>
@@ -360,7 +364,7 @@ export function TestsList() {
                             value={sortBy}
                             onValueChange={(value) => { setSortBy(value); setCurrentPage(1); }}
                         >
-                            <SelectTrigger className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
+                            <SelectTrigger density="spacious" className="rounded-full border border-slate-200 bg-white pl-6 pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100">
                                 <SelectValue placeholder="Sort by" />
                             </SelectTrigger>
                             <SelectContent>
@@ -578,12 +582,12 @@ export function TestsList() {
                                     return (
                                         <article
                                             key={test.id}
-                                            className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md shadow-slate-200/60"
+                                            className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                                         >
                                             <div className={`absolute inset-y-0 left-0 w-1.5 ${styles.accent}`} />
-                                            <div className="space-y-4 pr-5 pl-9 py-5" style={{ paddingLeft: '2.25rem' }}>
-                                                <div className="relative min-h-14 pr-36">
-                                                    <div className="min-w-0 flex-1 space-y-1.5">
+                                            <div className="space-y-4 py-5 pl-9 pr-5 md:space-y-5 md:py-6 md:pl-10 md:pr-6">
+                                                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                                    <div className="min-w-0 space-y-1.5">
                                                         <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
                                                             External Order ID
                                                         </p>
@@ -594,7 +598,7 @@ export function TestsList() {
                                                             <p className="text-xs font-medium text-slate-500">Test ID: {test.id}</p>
                                                         )}
                                                     </div>
-                                                    <span className={`absolute right-5 top-2 inline-flex min-h-9 w-auto items-center gap-1.5 rounded-full border pl-3.5 pr-4 py-2 text-xs font-semibold leading-none whitespace-nowrap ${styles.badge}`}>
+                                                    <span className={`inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold leading-none ${styles.badge}`}>
                                                         <StatusIcon className="h-3.5 w-3.5" />
                                                         {statusLabel(test.status)}
                                                     </span>

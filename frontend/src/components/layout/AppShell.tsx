@@ -210,9 +210,17 @@ export function AppShell() {
     const loadAuditLogs = async () => {
         try {
             const data = await fetchAuditLogs();
+            type AuditApiItem = {
+                id: string | number;
+                created_at: string;
+                action: string;
+                entity_type: string;
+                entity_id?: string | number | null;
+                username?: string | null;
+            };
 
-            const mapped = data.items.map((log: any) => ({
-                id: log.id,
+            const mapped = (data.items as AuditApiItem[]).map((log) => ({
+                id: String(log.id),
                 timestamp: log.created_at,
                 event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`,
             }));
