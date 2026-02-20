@@ -66,10 +66,8 @@
   --sidebar-width: 260px;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 body {
@@ -498,7 +496,7 @@ body {
 
   .app-content {
     padding-bottom: var(--space-8);
-    max-width: 1120px;
+    max-width: none;
     margin: 0 auto;
     width: 100%;
     padding-left: var(--page-gutter-x-desktop);

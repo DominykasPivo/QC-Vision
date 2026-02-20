@@ -1,8 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
-import { TestsList } from './pages/TestsList';
 import { TestDetails } from './pages/TestDetails';
 import { CreateTest } from './pages/CreateTest';
+import { CreateTestsScreen } from './pages/createtests';
 import { Gallery } from './pages/Gallery';
 import { AuditLog } from './pages/AuditLog';
 import { PhotoDefects } from './pages/PhotoDefects';
@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
             },
             {
                 path: 'tests',
-                element: <TestsList />,
+                element: <CreateTestsScreen />,
             },
             {
                 path: 'tests/:id',
