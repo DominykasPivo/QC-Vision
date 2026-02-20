@@ -6,8 +6,9 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.database import SessionLocal
-from app.modules.audit.schemas import AuditLogCreate
-from app.modules.audit.service import log_audit_event
+from app.modules.audit.service import log_action
+
+EXCLUDED_PATH_PREFIXES = ("/docs", "/redoc", "/openapi.json", "/health")
 
 
 def infer_entity_type(path: str) -> str:
@@ -26,55 +27,76 @@ def infer_entity_type(path: str) -> str:
 
 def infer_action(method: str, path: str) -> str:
     m = method.upper()
-    # Special case for your upload endpoint
+
+    # Special case: upload endpoint
     if path.endswith("/upload") and m == "POST":
         return "UPLOAD"
+
     if m == "POST":
         return "CREATE"
     if m in ("PUT", "PATCH"):
         return "UPDATE"
     if m == "DELETE":
         return "DELETE"
+
     return "READ"
 
 
-def try_extract_entity_id(body_bytes: bytes) -> int | None:
-    # Your PhotoResponse includes: id, test_id, file_path, time_stamp, analysis_results
+def try_extract_ids(body_bytes: bytes) -> tuple[int | None, int | None]:
+    """
+    Extracts:
+    - entity_id (id)
+    - test_id (if present in response)
+    """
     try:
         data = json.loads(body_bytes.decode("utf-8"))
-        if isinstance(data, dict) and isinstance(data.get("id"), int):
-            return data["id"]
+        if isinstance(data, dict):
+            entity_id = data.get("id") if isinstance(data.get("id"), int) else None
+            test_id = data.get("test_id") if isinstance(data.get("test_id"), int) else None
+            return entity_id, test_id
     except Exception:
         pass
-    return None
+
+    return None, None
 
 
-def extract_actor_user_id(request: Request) -> int | None:
+def extract_username(request: Request) -> str:
     """
-    Your current upload endpoint has no authentication dependency,
-    so this will usually be None (until auth is added).
-    If later you store user on request.state, this starts working automatically.
+    Extract username safely.
+    Falls back to 'system' if no auth is configured.
     """
     user = getattr(request.state, "user", None)
-    if user is not None and hasattr(user, "id"):
-        return user.id
 
-    uid = getattr(request.state, "user_id", None)
-    if isinstance(uid, int):
-        return uid
+    if user:
+        if hasattr(user, "username") and user.username:
+            return str(user.username)
+        if hasattr(user, "email") and user.email:
+            return str(user.email)
 
-    return None
+    return "system"
+
+
+# =========================================================
+# Middleware
+# =========================================================
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
     async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+        self,
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
+
         path = request.url.path
         method = request.method
 
-        # Only audit the endpoints you care about (you can widen this later)
-        should_audit = path.startswith("/api/v1/")
+        # Only audit API routes
+        should_audit = (
+            path.startswith("/api/v1/")
+            and not path.startswith(EXCLUDED_PATH_PREFIXES)
+            and method.upper() != "GET"  # Remove READ noise
+        )
 
         db = None
         response = None
@@ -83,6 +105,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
 
+            # Capture response body (needed to extract IDs)
             if should_audit:
                 async for chunk in response.body_iterator:
                     body_bytes += chunk
@@ -97,38 +120,42 @@ class AuditMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
             success = status_code < 400
 
-            entity_type = infer_entity_type(path)
-            action = infer_action(method, path)
-
-            entity_id = None
-            after_data = None
-
-            if (
-                success
-                and response.media_type
-                and "application/json" in response.media_type
-            ):
-                entity_id = try_extract_entity_id(body_bytes)
-
             if should_audit:
                 db = SessionLocal()
-                log_audit_event(
+
+                action = infer_action(method, path)
+                entity_type = infer_entity_type(path)
+
+                entity_id = None
+                test_id = None
+
+                if (
+                    success
+                    and response.media_type
+                    and "application/json" in response.media_type
+                ):
+                    entity_id, test_id = try_extract_ids(body_bytes)
+
+                # Build structured meta
+                meta = {
+                    "method": method,
+                    "path": path,
+                    "status_code": status_code,
+                    "success": success,
+                    "ip_address": request.client.host if request.client else None,
+                    "user_agent": request.headers.get("user-agent"),
+                }
+
+                if test_id is not None:
+                    meta["test_id"] = test_id
+
+                log_action(
                     db,
-                    AuditLogCreate(
-                        actor_user_id=extract_actor_user_id(request),
-                        action=action,
-                        entity_type=entity_type,
-                        entity_id=entity_id,
-                        success=success,
-                        status_code=status_code,
-                        method=method,
-                        path=path,
-                        ip_address=request.client.host if request.client else None,
-                        user_agent=request.headers.get("user-agent"),
-                        message="request audit",
-                        after_data=after_data,
-                        error_data=None,
-                    ),
+                    action=action,
+                    entity_type=entity_type,
+                    entity_id=entity_id or 0,  # fallback if id missing
+                    username=extract_username(request),
+                    meta=meta,
                 )
 
             return response
@@ -137,27 +164,28 @@ class AuditMiddleware(BaseHTTPMiddleware):
             if should_audit:
                 try:
                     db = SessionLocal()
-                    log_audit_event(
+
+                    log_action(
                         db,
-                        AuditLogCreate(
-                            actor_user_id=extract_actor_user_id(request),
-                            action=infer_action(method, path),
-                            entity_type=infer_entity_type(path),
-                            entity_id=None,
-                            success=False,
-                            status_code=500,
-                            method=method,
-                            path=path,
-                            ip_address=request.client.host if request.client else None,
-                            user_agent=request.headers.get("user-agent"),
-                            message="unhandled exception",
-                            error_data={"error": str(e), "type": e.__class__.__name__},
-                        ),
+                        action=infer_action(method, path),
+                        entity_type=infer_entity_type(path),
+                        entity_id=0,
+                        username=extract_username(request),
+                        meta={
+                            "method": method,
+                            "path": path,
+                            "status_code": 500,
+                            "success": False,
+                            "error": str(e),
+                            "error_type": e.__class__.__name__,
+                        },
                     )
                 finally:
-                    if db is not None:
+                    if db:
                         db.close()
+
             raise
+
         finally:
-            if db is not None:
+            if db:
                 db.close()

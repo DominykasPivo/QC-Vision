@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-
+from .service import list_test_activity_history
 from app.database import get_db
 
 from .schemas import AuditLogListOut, AuditLogOut
@@ -44,3 +44,20 @@ def get_audit_log(log_id: int, db: Session = Depends(get_db)):
     if not log:
         raise HTTPException(status_code=404, detail="Audit log not found")
     return log
+
+@router.get("/tests/{test_id}/activity", response_model=AuditLogListOut)
+def get_test_activity(
+    test_id: int,
+    user_actions_only: bool = Query(default=True),
+    limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    items, total = list_test_activity_history(
+        db,
+        test_id=test_id,
+        user_actions_only=user_actions_only,
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": items, "total": total, "limit": limit, "offset": offset}

@@ -3,13 +3,30 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from .models import AuditLog
 
 logger = logging.getLogger("backend_audit_service")
+
+USER_ACTION_WHITELIST = {
+    "CREATE",
+    "UPDATE",
+    "DELETE",
+    "UPLOAD",
+    "STATUS_CHANGE",
+    "ASSIGN",
+    "UNASSIGN",
+    "ADD_PHOTO",
+    "REMOVE_PHOTO",
+    "ADD_DEFECT",
+    "REMOVE_DEFECT",
+}
+
+# Actions to exclude as "system noise"
+# In your middleware, GETs map to READ; keeping this here makes it consistent everywhere.
+EXCLUDED_ACTIONS = {"READ"}
 
 
 def log_action(
@@ -77,7 +94,41 @@ def list_logs(
         q = q.filter(AuditLog.created_at <= created_to)
 
     total = q.count()
-
     items = q.order_by(desc(AuditLog.created_at)).offset(offset).limit(limit).all()
+    return items, total
 
+
+def list_test_activity_history(
+    db: Session,
+    *,
+    test_id: int,
+    user_actions_only: bool = True,
+    limit: int = 200,
+    offset: int = 0,
+) -> Tuple[List[AuditLog], int]:
+    """
+    Returns (items, total_count) for a specific Test's activity history.
+
+    Includes:
+      - Logs directly on the Test (entity_type="Test", entity_id=test_id)
+      - Logs on related entities (e.g., Photo/Defect) that stored test_id in meta["test_id"]
+
+    NOTE: The meta["test_id"] JSON query works best on PostgreSQL.
+    """
+    q = db.query(AuditLog)
+
+    # Direct logs on the Test entity
+    direct = (AuditLog.entity_type == "Test") & (AuditLog.entity_id == test_id)
+
+    # Related logs where test_id is stored in JSON meta (e.g., uploads/photos/defects tied to a test)
+    related = AuditLog.meta["test_id"].as_integer() == test_id
+
+    q = q.filter(or_(direct, related))
+
+    if user_actions_only:
+        q = q.filter(AuditLog.action.in_(USER_ACTION_WHITELIST))
+        q = q.filter(~AuditLog.action.in_(EXCLUDED_ACTIONS))
+
+    total = q.count()
+    items = q.order_by(desc(AuditLog.created_at)).offset(offset).limit(limit).all()
     return items, total
