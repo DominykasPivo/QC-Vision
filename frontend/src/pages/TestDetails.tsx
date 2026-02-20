@@ -923,17 +923,11 @@ export function TestDetails() {
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                    <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-2.5 py-2">
-                                                                        <span className="truncate text-xs text-gray-600">
-                                                                            {photo.file_path.includes('/')
-                                                                                ? photo.file_path
-                                                                                    .split('/')
-                                                                                    .pop()
-                                                                                : `Photo ${photo.id}`}
-                                                                        </span>
+                                                                    <div className="flex justify-end border-t border-gray-100 px-2.5 py-2">
                                                                         <button
                                                                             type="button"
                                                                             className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                            aria-label={`Delete image ${photo.id}`}
                                                                             onClick={() =>
                                                                                 setPhotosToDelete((prev) => [
                                                                                     ...prev,
@@ -941,7 +935,7 @@ export function TestDetails() {
                                                                                 ])
                                                                             }
                                                                         >
-                                                                            Remove
+                                                                            Delete image
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -968,16 +962,14 @@ export function TestDetails() {
                                                                         className="h-full w-full object-cover"
                                                                     />
                                                                 </div>
-                                                                <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-2.5 py-2">
-                                                                    <span className="truncate text-xs text-gray-600">
-                                                                        {preview.file.name}
-                                                                    </span>
+                                                                <div className="flex justify-end border-t border-gray-100 px-2.5 py-2">
                                                                     <button
                                                                         type="button"
                                                                         className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                        aria-label={`Delete image ${preview.file.name}`}
                                                                         onClick={() => handleRemoveNewPhoto(index)}
                                                                     >
-                                                                        Remove
+                                                                        Delete image
                                                                     </button>
                                                                 </div>
                                                             </div>
