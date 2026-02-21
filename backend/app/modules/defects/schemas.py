@@ -71,7 +71,9 @@ class DefectResponse(BaseModel):
     severity: str
     created_at: datetime
     annotations: List[AnnotationResponse] = []
-    review_status: str
+
+    # ✅ FIX: these must not be required if your Defect model doesn't always have them
+    review_status: str = "pending"
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None
     review_comment: Optional[str] = None

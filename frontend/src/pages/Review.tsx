@@ -13,6 +13,9 @@ type TestResponse = {
   review_status: string; // "pending" | "approved" | "rejected"
 };
 
+const getErrorMessage = (e: unknown) =>
+  e instanceof Error ? e.message : typeof e === 'string' ? e : 'Something went wrong';
+
 export function Review() {
   const [tests, setTests] = useState<TestResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,8 +43,8 @@ export function Review() {
       // Only show pending reviews here
       const pending = (res.items ?? []).filter((t) => t.review_status === 'pending');
       setTests(pending);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to load review items');
+    } catch (e: unknown) {
+      setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -62,8 +65,8 @@ export function Review() {
 
       // Remove from review list (because it's no longer pending)
       setTests((prev) => prev.filter((t) => t.id !== id));
-    } catch (e: any) {
-      alert(e?.message ?? 'Approve failed');
+    } catch (e: unknown) {
+      alert(getErrorMessage(e) || 'Approve failed');
     }
   };
 
@@ -76,11 +79,10 @@ export function Review() {
       });
 
       setTests((prev) => prev.filter((t) => t.id !== id));
-    } catch (e: any) {
-      alert(e?.message ?? 'Reject failed');
+    } catch (e: unknown) {
+      alert(getErrorMessage(e) || 'Reject failed');
     }
   };
-
 
   if (loading) return <div style={{ padding: 24 }}>Loading review queue…</div>;
   if (error) return <div style={{ padding: 24 }}>Error: {error}</div>;

@@ -48,6 +48,15 @@ type ApiTest = {
   productType?: string;
 };
 
+type ApiAuditLog = {
+  id: string | number;
+  created_at: string;
+  action: string;
+  entity_type: string;
+  entity_id?: string | number | null;
+  username?: string | null;
+};
+
 const normalizeStatus = (value: unknown): TestStatus => {
   if (typeof value !== 'string') return 'pending';
   return TEST_STATUSES.includes(value as TestStatus) ? (value as TestStatus) : 'pending';
@@ -150,6 +159,11 @@ export function AppShell() {
     localStorage.setItem(STORAGE_KEYS.deletedTests, JSON.stringify(deletedTestIds));
   }, [deletedTestIds, storageHydrated]);
 
+  useEffect(() => {
+    if (!storageHydrated) return;
+    localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify(auditEvents));
+  }, [auditEvents, storageHydrated]);
+
   const refreshTests = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/tests/?limit=100');
@@ -179,37 +193,45 @@ export function AppShell() {
     }
   }, [deletedTestIds]);
 
+  // ✅ FIXED: audit logs hook (no nested useEffect, no type inside hook)
   useEffect(() => {
     const loadAuditLogs = async () => {
-        try {
-            const data = await fetchAuditLogs();
+      try {
+        const data = await fetchAuditLogs();
 
-            const mapped = data.items.map((log: any) => ({
-                id: log.id,
-                timestamp: log.created_at,
-                event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`,
-            }));
+        const mapped: AuditEvent[] = data.items.map((log: ApiAuditLog) => ({
+          id: String(log.id),
+          timestamp: log.created_at,
+          event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${
+            log.username ?? 'system'
+          }`,
+        }));
 
-            setAuditEvents(mapped);
-        } catch (error) {
-            console.error('[Audit] Failed to load audit logs:', error);
-        }
+        setAuditEvents(mapped);
+      } catch (error) {
+        console.error('[Audit] Failed to load audit logs:', error);
+      }
     };
+
     loadAuditLogs();
   }, []);
 
   useEffect(() => {
     let isActive = true;
+
     if (!storageHydrated) {
       return () => {
         isActive = false;
       };
     }
+
     const load = async () => {
       await refreshTests();
       if (!isActive) return;
     };
+
     load();
+
     return () => {
       isActive = false;
     };
@@ -261,7 +283,11 @@ export function AppShell() {
         label: 'Tests',
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"
+            />
           </svg>
         ),
       },
@@ -279,7 +305,11 @@ export function AppShell() {
         label: 'Gallery',
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+            />
           </svg>
         ),
       },
@@ -353,11 +383,7 @@ export function AppShell() {
 
       <nav className="bottom-nav">
         {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-          >
+          <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             {item.icon}
             <span>{item.label}</span>
           </NavLink>

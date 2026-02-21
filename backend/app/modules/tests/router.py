@@ -26,6 +26,9 @@ from .service import tests_service
 
 logger = logging.getLogger("backend_tests_router")
 
+# ✅ IMPORTANT:
+# main.py already includes this router with prefix="/api/v1/tests"
+# so this router MUST have prefix=""
 router = APIRouter(prefix="", tags=["tests"])
 
 
@@ -37,7 +40,7 @@ async def create_test(
     assignedTo: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     status_field: str = Form("pending", alias="status"),
-    deadlineAt: str = Form(None),
+    deadlineAt: Optional[str] = Form(None),
     photos: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
 ):
@@ -100,8 +103,8 @@ async def create_test(
             },
         )
 
-        uploaded_photos = []
-        failed_photos = []
+        uploaded_photos: List[PhotoResponse] = []
+        failed_photos: List[dict] = []
 
         if photos:
             for photo_file in photos:
@@ -111,12 +114,8 @@ async def create_test(
                         or not photo_file.content_type.startswith("image/")
                     ):
                         failed_photos.append(
-                            {
-                                "filename": photo_file.filename,
-                                "error": "Not an image file",
-                            }
+                            {"filename": photo_file.filename, "error": "Not an image file"}
                         )
-
                         log_action(
                             db,
                             action="UPLOAD_FAILED",
@@ -138,10 +137,9 @@ async def create_test(
                         filename=photo_file.filename,
                         test_id=test.id,
                     )
+
                     uploaded_photos.append(PhotoResponse.model_validate(photo))
-                    logger.info(
-                        f"Uploaded photo {photo_file.filename} for test {test.id}"
-                    )
+                    logger.info(f"Uploaded photo {photo_file.filename} for test {test.id}")
 
                     log_action(
                         db,
@@ -165,7 +163,6 @@ async def create_test(
                     failed_photos.append(
                         {"filename": photo_file.filename, "error": str(photo_error)}
                     )
-
                     log_action(
                         db,
                         action="UPLOAD_FAILED",
@@ -192,10 +189,8 @@ async def create_test(
 
     except HTTPException:
         raise
-
     except Exception as e:
         logger.error(f"Error creating test: {str(e)}", exc_info=True)
-
         log_action(
             db,
             action="CREATE_FAILED",
@@ -210,7 +205,6 @@ async def create_test(
                 "requester": requester,
             },
         )
-
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -239,12 +233,10 @@ async def review_test(
             meta={"decision": payload.decision, "comment": payload.comment},
         )
 
-        # result can be Tests OR {"detail": "..."} depending on decision
-        # If it's a Tests ORM instance, serialize it:
         if isinstance(result, Tests):
             return TestResponse.model_validate(result)
 
-        return result  # dict message for reject
+        return result
 
     except HTTPException:
         raise
@@ -257,8 +249,6 @@ async def review_test(
 
 @router.get("/{test_id}", response_model=TestResponse)
 async def get_test(test_id: int, db: Session = Depends(get_db)):
-    """Retrieve a specific quality test by ID."""
-
     test = await tests_service.get_test(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
@@ -273,7 +263,6 @@ async def list_tests(
     search: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    """List quality tests with pagination, optional status filter and search."""
     items, total = await tests_service.get_tests_paginated(
         db, offset=offset, limit=limit, status=status_filter, search=search
     )
@@ -282,9 +271,7 @@ async def list_tests(
 
 @router.patch("/{test_id}", response_model=TestResponse)
 async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_db)):
-    """Update an existing quality test (partial update)."""
     username = "system"
-
     try:
         updated = await tests_service.update_test(db, test_id, test_data)
 
@@ -299,9 +286,8 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
 
         return updated
 
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Test not found")
     except Exception as e:
         log_action(
             db,
@@ -309,19 +295,14 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
             entity_type="Test",
             entity_id=test_id,
             username=username,
-            meta={
-                "reason": "server_error",
-                "error": str(e),
-            },
+            meta={"reason": "server_error", "error": str(e)},
         )
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/{test_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_test(test_id: int, db: Session = Depends(get_db)):
-    """Delete a quality test and all associated photos."""
     username = "system"
-
     try:
         await tests_service.delete_test(db, test_id)
 
@@ -333,10 +314,10 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
             username=username,
             meta={},
         )
+        return
 
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Test not found")
     except Exception as e:
         log_action(
             db,
@@ -344,9 +325,6 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
             entity_type="Test",
             entity_id=test_id,
             username=username,
-            meta={
-                "reason": "server_error",
-                "error": str(e),
-            },
+            meta={"reason": "server_error", "error": str(e)},
         )
         raise HTTPException(status_code=500, detail=str(e))
