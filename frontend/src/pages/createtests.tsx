@@ -1,6 +1,6 @@
 import { type FormEvent, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Filter, Search, X } from 'lucide-react';
 import type { AppDataContext } from '../components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,7 @@ export function CreateTestsScreen() {
     const [dateRangeFilter, setDateRangeFilter] = useState('');
     const [sortBy, setSortBy] = useState('created_desc');
     const [currentPage, setCurrentPage] = useState(1);
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
     const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -170,6 +171,7 @@ export function CreateTestsScreen() {
 
     const showEmptyState = testsLoaded && tests.length === 0;
     const showNoMatches = testsLoaded && tests.length > 0 && filteredTests.length === 0;
+    const hasAdvancedFilters = Boolean(testTypeFilter || assignedToFilter || dateRangeFilter || sortBy !== 'created_desc');
 
     return (
         <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] bg-gradient-to-b from-[#EEF4FF] to-[#F8FBFF] px-3 py-4 pb-24 md:px-4 md:py-5 md:pb-8">
@@ -179,17 +181,17 @@ export function CreateTestsScreen() {
                     {/* ── Top row: title + new-test button ── */}
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                         <div className="space-y-2">
-                            <h1 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-[#0F172A] md:text-4xl xl:text-[56px]">
+                            <h1 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-[#0F172A] md:text-4xl xl:text-[42px]">
                                 Tests
                             </h1>
-                            <p className="text-base font-medium text-[#64748B] md:text-lg xl:text-[28px]">
+                            <p className="text-base font-medium text-[#64748B] md:text-base xl:text-[20px]">
                                 View and manage quality control tests
                             </p>
                         </div>
 
                         <Button
                             asChild
-                            className="h-14 w-full rounded-full bg-[#2563EB] px-6 text-lg font-semibold text-white hover:bg-[#1D4ED8] lg:h-16 lg:w-[230px] lg:text-[22px]"
+                            className="h-14 w-full rounded-full bg-[#2563EB] px-6 text-base font-semibold text-white hover:bg-[#1D4ED8] lg:h-14 lg:w-[230px] lg:text-[18px]"
                         >
                             <Link to="/create">New Test</Link>
                         </Button>
@@ -201,7 +203,7 @@ export function CreateTestsScreen() {
                         onSubmit={handleSearchSubmit}
                     >
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-5">
-                            <div className="flex h-[52px] items-center gap-3 rounded-[14px] border border-[#DBE4EF] bg-white px-4 lg:h-[76px] lg:px-5 lg:flex-1">
+                            <div className="flex h-[52px] items-center gap-3 rounded-[14px] border border-[#DBE4EF] bg-white px-4 lg:h-[68px] lg:px-5 lg:flex-1">
                                 <Search className="h-5 w-5 shrink-0 text-[#94A3B8] lg:h-6 lg:w-6" />
                                 <Input
                                     type="text"
@@ -215,13 +217,13 @@ export function CreateTestsScreen() {
                                         }
                                     }}
                                     placeholder="Search for ID, Product..."
-                                    className="h-full border-0 bg-transparent px-0 text-base font-medium text-slate-700 placeholder:text-[#94A3B8] focus-visible:ring-0 lg:text-lg"
+                                    className="h-full border-0 bg-transparent px-0 text-base font-medium text-slate-700 placeholder:text-[#94A3B8] focus-visible:ring-0 lg:text-[16px]"
                                 />
                             </div>
 
                             <Button
                                 type="submit"
-                                className="h-[52px] w-full rounded-[14px] bg-[#2563EB] text-base font-semibold text-white hover:bg-[#1D4ED8] lg:h-[76px] lg:w-[210px] lg:text-[22px]"
+                                className="h-[52px] w-full rounded-[14px] bg-[#2563EB] text-base font-semibold text-white hover:bg-[#1D4ED8] lg:h-[68px] lg:w-[210px] lg:text-[18px]"
                             >
                                 Search
                             </Button>
@@ -229,104 +231,270 @@ export function CreateTestsScreen() {
                     </form>
 
                     {/* ── Filter chips ── */}
-                    <div className="flex flex-wrap gap-3 xl:gap-[14px]">
-                        <Select
-                            value={statusFilter || 'all'}
-                            onValueChange={(value) => {
-                                setStatusFilter(value === 'all' ? '' : value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8] sm:w-auto lg:h-[58px] lg:px-6 lg:text-[20px]">
-                                <SelectValue placeholder="All Statuses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                {TEST_STATUSES.map((status) => (
-                                    <SelectItem key={status} value={status}>
-                                        {statusLabel[status]}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 lg:hidden">
+                            <div className="min-w-0 flex-1">
+                                <Select
+                                    value={statusFilter || 'all'}
+                                    onValueChange={(value) => {
+                                        setStatusFilter(value === 'all' ? '' : value);
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]">
+                                        <SelectValue placeholder="All Statuses" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Statuses</SelectItem>
+                                        {TEST_STATUSES.map((status) => (
+                                            <SelectItem key={status} value={status}>
+                                                {statusLabel[status]}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className={cn(
+                                    'h-11 w-11 shrink-0 rounded-full border bg-white p-0 shadow-sm',
+                                    hasAdvancedFilters
+                                        ? 'border-[#BFD2F8] bg-[#EAF1FF] text-[#1D4ED8]'
+                                        : 'border-[#CFD8E3] text-[#64748B]',
+                                )}
+                                aria-label="Open advanced filters"
+                                onClick={() => setMobileFiltersOpen(true)}
+                            >
+                                <Filter className="h-4 w-4" />
+                            </Button>
+                        </div>
 
-                        <Select
-                            value={testTypeFilter || 'all'}
-                            onValueChange={(value) => {
-                                setTestTypeFilter(value === 'all' ? '' : value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <SelectTrigger className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] sm:w-auto lg:h-[58px] lg:px-6 lg:text-[20px]">
-                                <SelectValue placeholder="All Types" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
-                                {TEST_TYPES.map((type) => (
-                                    <SelectItem key={type} value={type}>
-                                        {formatEnumLabel(type)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="hidden flex-wrap gap-3 xl:gap-[14px] lg:flex">
+                            <Select
+                                value={statusFilter || 'all'}
+                                onValueChange={(value) => {
+                                    setStatusFilter(value === 'all' ? '' : value);
+                                    setCurrentPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8] sm:w-auto lg:h-[52px] lg:px-6 lg:text-[16px]">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    {TEST_STATUSES.map((status) => (
+                                        <SelectItem key={status} value={status}>
+                                            {statusLabel[status]}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        <Input
-                            type="text"
-                            value={assignedToFilter}
-                            onChange={(event) => {
-                                setAssignedToFilter(event.target.value);
-                                setCurrentPage(1);
-                            }}
-                            placeholder="Assigned To..."
-                            className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#334155] sm:w-auto lg:h-[58px] lg:px-6 lg:text-[20px]"
-                        />
+                            <Select
+                                value={testTypeFilter || 'all'}
+                                onValueChange={(value) => {
+                                    setTestTypeFilter(value === 'all' ? '' : value);
+                                    setCurrentPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] sm:w-auto lg:h-[52px] lg:px-6 lg:text-[16px]">
+                                    <SelectValue placeholder="All Types" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    {TEST_TYPES.map((type) => (
+                                        <SelectItem key={type} value={type}>
+                                            {formatEnumLabel(type)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        <Select
-                            value={dateRangeFilter || 'all'}
-                            onValueChange={(value) => {
-                                setDateRangeFilter(value === 'all' ? '' : value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <SelectTrigger className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] sm:w-auto lg:h-[58px] lg:px-6 lg:text-[20px]">
-                                <SelectValue placeholder="All Deadlines" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Deadlines</SelectItem>
-                                <SelectItem value="overdue">Overdue</SelectItem>
-                                <SelectItem value="today">Due Today</SelectItem>
-                                <SelectItem value="this_week">Due This Week</SelectItem>
-                                <SelectItem value="this_month">Due This Month</SelectItem>
-                                <SelectItem value="next_month">Due Next Month</SelectItem>
-                            </SelectContent>
-                        </Select>
+                            <Input
+                                type="text"
+                                value={assignedToFilter}
+                                onChange={(event) => {
+                                    setAssignedToFilter(event.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                placeholder="Assigned To..."
+                                className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#334155] sm:w-auto lg:h-[52px] lg:px-6 lg:text-[16px]"
+                            />
 
-                        <Select
-                            value={sortBy}
-                            onValueChange={(value) => {
-                                setSortBy(value);
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <SelectTrigger className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] sm:w-auto lg:h-[58px] lg:px-6 lg:text-[20px]">
-                                <SelectValue placeholder="Newest First" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="created_desc">Newest First</SelectItem>
-                                <SelectItem value="created_asc">Oldest First</SelectItem>
-                                <SelectItem value="deadline_asc">Deadline: Soonest</SelectItem>
-                                <SelectItem value="deadline_desc">Deadline: Latest</SelectItem>
-                                <SelectItem value="status">Status</SelectItem>
-                                <SelectItem value="id_asc">ID: A-Z</SelectItem>
-                                <SelectItem value="id_desc">ID: Z-A</SelectItem>
-                            </SelectContent>
-                        </Select>
+                            <Select
+                                value={dateRangeFilter || 'all'}
+                                onValueChange={(value) => {
+                                    setDateRangeFilter(value === 'all' ? '' : value);
+                                    setCurrentPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] sm:w-auto lg:h-[52px] lg:px-6 lg:text-[16px]">
+                                    <SelectValue placeholder="All Deadlines" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Deadlines</SelectItem>
+                                    <SelectItem value="overdue">Overdue</SelectItem>
+                                    <SelectItem value="today">Due Today</SelectItem>
+                                    <SelectItem value="this_week">Due This Week</SelectItem>
+                                    <SelectItem value="this_month">Due This Month</SelectItem>
+                                    <SelectItem value="next_month">Due Next Month</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={sortBy}
+                                onValueChange={(value) => {
+                                    setSortBy(value);
+                                    setCurrentPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] sm:w-auto lg:h-[52px] lg:px-6 lg:text-[16px]">
+                                    <SelectValue placeholder="Newest First" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="created_desc">Newest First</SelectItem>
+                                    <SelectItem value="created_asc">Oldest First</SelectItem>
+                                    <SelectItem value="deadline_asc">Deadline: Soonest</SelectItem>
+                                    <SelectItem value="deadline_desc">Deadline: Latest</SelectItem>
+                                    <SelectItem value="status">Status</SelectItem>
+                                    <SelectItem value="id_asc">ID: A-Z</SelectItem>
+                                    <SelectItem value="id_desc">ID: Z-A</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
+
+                    {mobileFiltersOpen && (
+                        <div className="fixed inset-0 z-50 lg:hidden">
+                            <button
+                                type="button"
+                                className="absolute inset-0 bg-slate-900/45"
+                                aria-label="Close advanced filters"
+                                onClick={() => setMobileFiltersOpen(false)}
+                            />
+                            <div className="relative flex min-h-full items-center justify-center p-4">
+                                <div className="flex max-h-[84vh] w-full max-w-[420px] flex-col overflow-hidden rounded-[24px] border border-[#D5DFEC] bg-white shadow-2xl">
+                                    <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-[#0F172A]">Advanced Filters</h3>
+                                            <p className="text-sm text-[#64748B]">Adjust your test list filters</p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-9 w-9 rounded-full border-[#CFD8E3] p-0 text-[#64748B]"
+                                            aria-label="Close advanced filters"
+                                            onClick={() => setMobileFiltersOpen(false)}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+
+                                    <div className="flex-1 space-y-4 overflow-y-auto bg-[#F8FAFF] px-5 py-5">
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">All Types</p>
+                                            <Select
+                                                value={testTypeFilter || 'all'}
+                                                onValueChange={(value) => {
+                                                    setTestTypeFilter(value === 'all' ? '' : value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]">
+                                                    <SelectValue placeholder="All Types" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Types</SelectItem>
+                                                    {TEST_TYPES.map((type) => (
+                                                        <SelectItem key={type} value={type}>
+                                                            {formatEnumLabel(type)}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Assigned To</p>
+                                            <Input
+                                                type="text"
+                                                value={assignedToFilter}
+                                                onChange={(event) => {
+                                                    setAssignedToFilter(event.target.value);
+                                                    setCurrentPage(1);
+                                                }}
+                                                placeholder="Assigned To..."
+                                                className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">All Deadlines</p>
+                                            <Select
+                                                value={dateRangeFilter || 'all'}
+                                                onValueChange={(value) => {
+                                                    setDateRangeFilter(value === 'all' ? '' : value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]">
+                                                    <SelectValue placeholder="All Deadlines" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Deadlines</SelectItem>
+                                                    <SelectItem value="overdue">Overdue</SelectItem>
+                                                    <SelectItem value="today">Due Today</SelectItem>
+                                                    <SelectItem value="this_week">Due This Week</SelectItem>
+                                                    <SelectItem value="this_month">Due This Month</SelectItem>
+                                                    <SelectItem value="next_month">Due Next Month</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Newest First</p>
+                                            <Select
+                                                value={sortBy}
+                                                onValueChange={(value) => {
+                                                    setSortBy(value);
+                                                    setCurrentPage(1);
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]">
+                                                    <SelectValue placeholder="Newest First" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="created_desc">Newest First</SelectItem>
+                                                    <SelectItem value="created_asc">Oldest First</SelectItem>
+                                                    <SelectItem value="deadline_asc">Deadline: Soonest</SelectItem>
+                                                    <SelectItem value="deadline_desc">Deadline: Latest</SelectItem>
+                                                    <SelectItem value="status">Status</SelectItem>
+                                                    <SelectItem value="id_asc">ID: A-Z</SelectItem>
+                                                    <SelectItem value="id_desc">ID: Z-A</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-[#E2E8F0] bg-white px-5 py-4">
+                                        <Button
+                                            type="button"
+                                            className="h-11 w-full rounded-[12px] bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8]"
+                                            onClick={() => setMobileFiltersOpen(false)}
+                                        >
+                                            Apply Filters
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* ── Recent Tests header ── */}
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                        <h2 className="text-2xl font-bold text-[#0F172A] md:text-3xl xl:text-[36px]">Recent Tests</h2>
-                        <p className="text-base font-medium text-[#64748B] md:text-lg xl:text-[20px]">
+                        <h2 className="text-2xl font-bold text-[#0F172A] md:text-[32px] xl:text-[28px]">Recent Tests</h2>
+                        <p className="text-base font-medium text-[#64748B] md:text-base xl:text-[16px]">
                             {filteredTests.length} total tests
                         </p>
                     </div>
@@ -359,19 +527,19 @@ export function CreateTestsScreen() {
                                             className="flex flex-col justify-between rounded-[18px] border border-[#D5DFEC] bg-white p-5 md:p-[22px]"
                                         >
                                             <div className="flex flex-col gap-[14px]">
-                                                <p className="text-3xl font-bold leading-none text-[#0F172A] md:text-4xl xl:text-[42px]">{primaryId}</p>
-                                                <p className="text-xl font-semibold leading-tight text-[#1E293B] md:text-2xl xl:text-[28px]">{productLabel}</p>
-                                                <p className={cn('text-base font-semibold md:text-lg xl:text-[20px]', statusTextColor[test.status])}>
+                                                <p className="text-3xl font-bold leading-none text-[#0F172A] md:text-3xl xl:text-[32px]">{primaryId}</p>
+                                                <p className="text-xl font-semibold leading-tight text-[#1E293B] md:text-xl xl:text-[22px]">{productLabel}</p>
+                                                <p className={cn('text-base font-semibold md:text-base xl:text-[16px]', statusTextColor[test.status])}>
                                                     {statusLabel[test.status]}
                                                 </p>
-                                                <p className="text-sm font-medium text-[#64748B] md:text-base xl:text-[18px]">
+                                                <p className="text-sm font-medium text-[#64748B] md:text-sm xl:text-[15px]">
                                                     Requester: {requesterLabel}
                                                 </p>
                                             </div>
 
                                             <Button
                                                 asChild
-                                                className="mt-6 h-[52px] w-full rounded-[12px] bg-[#2563EB] text-base font-semibold text-white hover:bg-[#1D4ED8] md:text-lg"
+                                                className="mt-6 h-[48px] w-full rounded-[12px] bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8] md:text-[15px]"
                                             >
                                                 <Link to={`/tests/${test.id}`}>View Details</Link>
                                             </Button>

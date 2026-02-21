@@ -403,9 +403,6 @@ export function TestDetails() {
                         <MaterialIcon name="arrow_back" className="text-xl" />
                         <span>Back to Tests</span>
                     </Link>
-                    <span className="hidden text-slate-500 md:block">
-                        Test Management System v2.4
-                    </span>
                 </div>
             </div>
 
@@ -415,7 +412,6 @@ export function TestDetails() {
                     <h1 className="text-5xl font-black text-slate-900">Test #{test.id}</h1>
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-lg text-slate-500">
                         <span className="flex items-center gap-1">
-                            <MaterialIcon name="qr_code" className="text-sm" />
                             Product ID: {productIdLabel}
                         </span>
                         <span>•</span>
@@ -922,7 +918,7 @@ export function TestDetails() {
                                                                     <div className="flex justify-end border-t border-gray-100 px-2.5 py-2">
                                                                         <button
                                                                             type="button"
-                                                                            className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                            className="text-xs font-semibold text-red-600 hover:text-red-700"
                                                                             aria-label={`Delete image ${photo.id}`}
                                                                             onClick={() =>
                                                                                 setPhotosToDelete((prev) => [
@@ -961,7 +957,7 @@ export function TestDetails() {
                                                                 <div className="flex justify-end border-t border-gray-100 px-2.5 py-2">
                                                                     <button
                                                                         type="button"
-                                                                        className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                        className="text-xs font-semibold text-red-600 hover:text-red-700"
                                                                         aria-label={`Delete image ${preview.file.name}`}
                                                                         onClick={() => handleRemoveNewPhoto(index)}
                                                                     >
