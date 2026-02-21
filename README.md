@@ -339,10 +339,6 @@ This project uses a GitHub Actions CI pipeline to enforce code quality and run a
 black  backend
 isort  backend
 flake8 backend
-
-# Tests + coverage (backend)
-cd backend
-pytest -q --cov=. --cov-report=term-missing
 ```
 ## Team
 

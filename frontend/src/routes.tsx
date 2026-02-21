@@ -8,6 +8,7 @@ import { AuditLog } from './pages/AuditLog';
 import { PhotoDefects } from './pages/PhotoDefects';
 import { Login } from './pages/Login';
 import { isLoggedIn } from './lib/auth';
+import { Review } from './pages/Review';
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
     if (!isLoggedIn()) {
@@ -60,6 +61,10 @@ export const router = createBrowserRouter([
             {
                 path: 'photos/:photoId',
                 element: <PhotoDefects />,
+            },
+            {
+                path: 'review',
+                element: <Review />,
             },
         ],
     },

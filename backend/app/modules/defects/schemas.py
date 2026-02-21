@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -71,5 +71,14 @@ class DefectResponse(BaseModel):
     severity: str
     created_at: datetime
     annotations: List[AnnotationResponse] = []
+    review_status: str
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    review_comment: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DefectReviewRequest(BaseModel):
+    decision: Literal["approved", "rejected"]
+    comment: Optional[str] = None

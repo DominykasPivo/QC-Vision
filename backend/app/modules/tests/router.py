@@ -18,8 +18,10 @@ from app.database import get_db
 from app.modules.audit.service import log_action
 from app.modules.photos.schemas import PhotoResponse
 from app.modules.photos.service import photo_service
+from app.security import require_reviewer
 
-from .schemas import TestCreate, TestListResponse, TestResponse
+from .models import Tests
+from .schemas import TestCreate, TestListResponse, TestResponse, TestReviewRequest
 from .service import tests_service
 
 logger = logging.getLogger("backend_tests_router")
@@ -209,6 +211,47 @@ async def create_test(
             },
         )
 
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{test_id}/review")
+async def review_test(
+    test_id: int,
+    payload: TestReviewRequest,
+    db: Session = Depends(get_db),
+    actor=Depends(require_reviewer),
+):
+    try:
+        result = await tests_service.review_test(
+            db=db,
+            test_id=test_id,
+            decision=payload.decision,
+            reviewer=actor["username"],
+            comment=payload.comment,
+        )
+
+        log_action(
+            db,
+            action="REVIEW",
+            entity_type="Test",
+            entity_id=test_id,
+            username=actor["username"],
+            meta={"decision": payload.decision, "comment": payload.comment},
+        )
+
+        # result can be Tests OR {"detail": "..."} depending on decision
+        # If it's a Tests ORM instance, serialize it:
+        if isinstance(result, Tests):
+            return TestResponse.model_validate(result)
+
+        return result  # dict message for reject
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Review failed")
         raise HTTPException(status_code=500, detail=str(e))
 
 

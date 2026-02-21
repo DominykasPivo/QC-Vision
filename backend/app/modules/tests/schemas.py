@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +29,10 @@ class TestResponse(BaseModel):
     deadline_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    review_status: str
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    review_comment: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,3 +44,8 @@ class TestListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class TestReviewRequest(BaseModel):
+    decision: Literal["approved", "rejected"]
+    comment: Optional[str] = None

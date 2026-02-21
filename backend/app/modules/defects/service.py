@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session, joinedload
@@ -161,6 +162,30 @@ class DefectsService:
         db.delete(annotation)
         db.commit()
         return True
+
+    async def review_defect(
+        self,
+        db: Session,
+        defect_id: int,
+        decision: str,
+        reviewer: str,
+        comment: Optional[str] = None,
+    ):
+        defect = db.query(Defect).filter(Defect.id == defect_id).first()
+        if not defect:
+            raise ValueError("Defect not found")
+
+        if defect.review_status in ("approved", "rejected"):
+            raise ValueError("Defect already reviewed")
+
+        defect.review_status = decision
+        defect.reviewed_by = reviewer
+        defect.reviewed_at = datetime.utcnow()
+        defect.review_comment = comment
+
+        db.commit()
+        db.refresh(defect)
+        return defect
 
 
 defects_service = DefectsService()

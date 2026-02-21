@@ -16,6 +16,7 @@ from app.modules.audit.router import router as audit_router
 from app.modules.defects.router import router as defects_router
 from app.modules.photos.router import router as photos_router
 from app.modules.tests.router import router as tests_router
+from app.routers import users  # adjust if your structure differs
 
 # Application metadata
 APP_NAME = "QC Vision API"
@@ -114,3 +115,4 @@ app.include_router(tests_router, prefix="/api/v1/tests", tags=["Tests"])
 app.include_router(photos_router, prefix="/api/v1/photos", tags=["Photos"])
 app.include_router(audit_router, prefix="/api/v1/audit", tags=["Audit"])
 app.include_router(defects_router, prefix="/api/v1/defects", tags=["Defects"])
+app.include_router(users.router)
