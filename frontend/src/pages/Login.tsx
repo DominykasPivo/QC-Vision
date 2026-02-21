@@ -1,12 +1,12 @@
-import { useMemo, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useMemo, useState, type FormEvent } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-import { isLoggedIn, loginUser, setStoredRole } from '@/lib/auth';
-import { spacing } from '@/lib/ui/spacing';
-import { cn } from '@/lib/utils';
+import { isLoggedIn, loginUser, setStoredRole } from "@/lib/auth";
+import { spacing } from "@/lib/ui/spacing";
+import { cn } from "@/lib/utils";
 
 // If your project uses request/ApiError elsewhere, use it.
 // Otherwise we use fetch here to match CreateTest's pattern.
@@ -19,7 +19,7 @@ type MeResponse = {
 export function Login() {
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState("");
   const [touched, setTouched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +36,7 @@ export function Login() {
   }
 
   const controlClass =
-    'rounded-2xl border-2 border-slate-300 bg-white font-medium text-slate-900 shadow-none transition-all focus-visible:border-[#2563eb] focus-visible:ring-4 focus-visible:ring-[#2563eb]/20';
+    "rounded-2xl border-2 border-slate-300 bg-white font-medium text-slate-900 shadow-none transition-all focus-visible:border-[#2563eb] focus-visible:ring-4 focus-visible:ring-[#2563eb]/20";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,20 +48,24 @@ export function Login() {
     setIsLoading(true);
     try {
       // Match CreateTest style: raw fetch + parse text
-      const res = await fetch('/api/v1/users/me', {
-        method: 'GET',
+      const res = await fetch("/api/v1/users/me", {
+        method: "GET",
         headers: {
-          'X-User': trimmed,
+          "X-User": trimmed,
         },
       });
 
       const text = await res.text();
-      const parsed = text ? (JSON.parse(text) as MeResponse | { detail?: string; message?: string }) : null;
+      const parsed = text
+        ? (JSON.parse(text) as
+            | MeResponse
+            | { detail?: string; message?: string })
+        : null;
 
       if (!res.ok) {
         const message =
-          (parsed && ('detail' in parsed ? parsed.detail : undefined)) ||
-          (parsed && ('message' in parsed ? parsed.message : undefined)) ||
+          (parsed && ("detail" in parsed ? parsed.detail : undefined)) ||
+          (parsed && ("message" in parsed ? parsed.message : undefined)) ||
           text ||
           `Login failed (${res.status})`;
         throw new Error(message);
@@ -73,22 +77,24 @@ export function Login() {
       loginUser(me.username);
       setStoredRole(me.role);
 
-      navigate('/tests', { replace: true });
+      navigate("/tests", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   const clientError =
-    touched && !isValid ? `Username must be ${MIN_LEN}–${MAX_LEN} characters.` : null;
+    touched && !isValid
+      ? `Username must be ${MIN_LEN}–${MAX_LEN} characters.`
+      : null;
 
   return (
     <div
       className={cn(
         spacing.pageContainer,
-        'min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] bg-slate-50 pb-24 md:pb-8',
+        "min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] bg-slate-50 pb-24 md:pb-8",
       )}
     >
       <div className="mx-auto w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
@@ -108,9 +114,16 @@ export function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className={cn(spacing.fieldStack)} noValidate>
+          <form
+            onSubmit={handleSubmit}
+            className={cn(spacing.fieldStack)}
+            noValidate
+          >
             <div className={spacing.fieldGroup}>
-              <label className="text-base font-semibold text-slate-900 md:text-lg" htmlFor="username">
+              <label
+                className="text-base font-semibold text-slate-900 md:text-lg"
+                htmlFor="username"
+              >
                 Username
               </label>
               <Input
@@ -135,12 +148,13 @@ export function Login() {
                 className="h-16 w-full rounded-3xl bg-[#2563eb] text-lg font-bold text-white shadow-[0_14px_28px_rgba(37,99,235,0.35)] hover:bg-[#1d4ed8] focus-visible:ring-4 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-0"
                 disabled={!isValid || isLoading}
               >
-                {isLoading ? 'Logging in...' : 'Login'}
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
             </div>
 
             <p className="text-center text-sm font-medium text-slate-500">
-              Your role will be applied automatically (review access included if allowed).
+              Your role will be applied automatically (review access included if
+              allowed).
             </p>
           </form>
         </div>

@@ -1,92 +1,102 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from './button';
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "./button";
 
 interface PaginationProps {
-    currentPage: number;
-    totalPages: number;
-    onPageChange: (page: number) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-function getPageNumbers(current: number, total: number): (number | '...')[] {
-    if (total <= 7) {
-        return Array.from({ length: total }, (_, i) => i + 1);
-    }
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
 
-    const pages: (number | '...')[] = [1];
+  const pages: (number | "...")[] = [1];
 
-    if (current > 3) {
-        pages.push('...');
-    }
+  if (current > 3) {
+    pages.push("...");
+  }
 
-    const start = Math.max(2, current - 1);
-    const end = Math.min(total - 1, current + 1);
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
 
-    for (let i = start; i <= end; i++) {
-        pages.push(i);
-    }
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
 
-    if (current < total - 2) {
-        pages.push('...');
-    }
+  if (current < total - 2) {
+    pages.push("...");
+  }
 
-    pages.push(total);
+  pages.push(total);
 
-    return pages;
+  return pages;
 }
 
-export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
-    if (totalPages <= 1) {
-        return null;
-    }
+export function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: PaginationProps) {
+  if (totalPages <= 1) {
+    return null;
+  }
 
-    const pages = getPageNumbers(currentPage, totalPages);
+  const pages = getPageNumbers(currentPage, totalPages);
 
-    return (
-        <nav className="mt-6 flex items-center justify-center gap-1 md:mt-8" aria-label="Pagination">
-            <Button
-                variant="outline"
-                size="sm"
-                density="compact"
-                className="min-w-9 rounded-md"
-                disabled={currentPage <= 1}
-                onClick={() => onPageChange(currentPage - 1)}
-                aria-label="Previous page"
-            >
-                <ChevronLeft className="h-4 w-4" />
-            </Button>
+  return (
+    <nav
+      className="mt-6 flex items-center justify-center gap-1 md:mt-8"
+      aria-label="Pagination"
+    >
+      <Button
+        variant="outline"
+        size="sm"
+        density="compact"
+        className="min-w-9 rounded-md"
+        disabled={currentPage <= 1}
+        onClick={() => onPageChange(currentPage - 1)}
+        aria-label="Previous page"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
 
-            {pages.map((page, index) =>
-                page === '...' ? (
-                    <span key={`ellipsis-${index}`} className="inline-flex min-w-9 items-center justify-center text-sm text-slate-500">
-                        ...
-                    </span>
-                ) : (
-                    <Button
-                        key={page}
-                        variant={page === currentPage ? 'default' : 'outline'}
-                        size="sm"
-                        density="compact"
-                        className={`min-w-9 rounded-md ${page === currentPage ? 'pointer-events-none' : ''}`}
-                        onClick={() => onPageChange(page)}
-                        aria-label={`Page ${page}`}
-                        aria-current={page === currentPage ? 'page' : undefined}
-                    >
-                        {page}
-                    </Button>
-                ),
-            )}
+      {pages.map((page, index) =>
+        page === "..." ? (
+          <span
+            key={`ellipsis-${index}`}
+            className="inline-flex min-w-9 items-center justify-center text-sm text-slate-500"
+          >
+            ...
+          </span>
+        ) : (
+          <Button
+            key={page}
+            variant={page === currentPage ? "default" : "outline"}
+            size="sm"
+            density="compact"
+            className={`min-w-9 rounded-md ${page === currentPage ? "pointer-events-none" : ""}`}
+            onClick={() => onPageChange(page)}
+            aria-label={`Page ${page}`}
+            aria-current={page === currentPage ? "page" : undefined}
+          >
+            {page}
+          </Button>
+        ),
+      )}
 
-            <Button
-                variant="outline"
-                size="sm"
-                density="compact"
-                className="min-w-9 rounded-md"
-                disabled={currentPage >= totalPages}
-                onClick={() => onPageChange(currentPage + 1)}
-                aria-label="Next page"
-            >
-                <ChevronRight className="h-4 w-4" />
-            </Button>
-        </nav>
-    );
+      <Button
+        variant="outline"
+        size="sm"
+        density="compact"
+        className="min-w-9 rounded-md"
+        disabled={currentPage >= totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+        aria-label="Next page"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </nav>
+  );
 }

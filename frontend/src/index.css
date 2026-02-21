@@ -50,7 +50,9 @@
   --cta-gap: var(--space-4);
   --cta-gap-desktop: var(--space-5);
 
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
   --font-size-lg: 1.125rem;
@@ -66,7 +68,9 @@
   --sidebar-width: 260px;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -81,7 +85,11 @@ body {
 }
 
 .material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 40;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 40;
   vertical-align: middle;
   line-height: 1;
 }
@@ -156,7 +164,8 @@ body {
 
 .app-content {
   flex: 1;
-  padding: var(--page-top-pad) var(--page-gutter-x) calc(var(--nav-height) + var(--space-4));
+  padding: var(--page-top-pad) var(--page-gutter-x)
+    calc(var(--nav-height) + var(--space-4));
   padding-top: calc(var(--header-height) + var(--page-top-pad));
   overflow-y: auto;
 }
@@ -224,15 +233,23 @@ body {
   justify-content: center;
   padding: clamp(20px, 4vw, 40px);
   background:
-    radial-gradient(circle at 12% 18%, rgba(37, 99, 235, 0.15), transparent 38%),
-    radial-gradient(circle at 92% 82%, rgba(59, 130, 246, 0.12), transparent 34%),
+    radial-gradient(
+      circle at 12% 18%,
+      rgba(37, 99, 235, 0.15),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 92% 82%,
+      rgba(59, 130, 246, 0.12),
+      transparent 34%
+    ),
     linear-gradient(165deg, #f8fafc 0%, #eef2ff 48%, #f1f5f9 100%);
   overflow: hidden;
 }
 
 .login-page::before,
 .login-page::after {
-  content: '';
+  content: "";
   position: absolute;
   pointer-events: none;
   border-radius: 999px;
@@ -274,7 +291,7 @@ body {
 }
 
 .login-brand-panel::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 220px;
   height: 220px;
@@ -321,7 +338,9 @@ body {
   background: rgba(255, 255, 255, 0.97);
   color: #0f172a;
   font-size: 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .login-input::placeholder {
@@ -333,7 +352,7 @@ body {
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.26);
 }
 
-.login-input[aria-invalid='true'] {
+.login-input[aria-invalid="true"] {
   border-color: #fecaca;
   box-shadow: none;
 }
@@ -348,7 +367,10 @@ body {
   color: #1d4ed8;
   background: #ffffff;
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.2);
-  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
 
 .login-button:not(:disabled):hover {
@@ -459,7 +481,9 @@ body {
     font-size: var(--font-size-base);
     font-weight: 500;
     border-radius: var(--radius-md);
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
 
   .sidebar-nav-item:hover {

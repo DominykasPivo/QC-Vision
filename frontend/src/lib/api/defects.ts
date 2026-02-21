@@ -1,14 +1,16 @@
-import type { DefectSeverity } from '@/lib/db-constants';
-import type { Annotation, AnnotationGeometry } from '@/lib/annotation-types';
-import { request } from './http';
+import type { DefectSeverity } from "@/lib/db-constants";
+import type { Annotation, AnnotationGeometry } from "@/lib/annotation-types";
+import { request } from "./http";
 
-const API_BASE = '/api/v1';
+const API_BASE = "/api/v1";
 
 export const DEFECT_ENDPOINTS = {
   photo: (photoId: string | number) => `${API_BASE}/photos/${photoId}`,
-  photoDefects: (photoId: string | number) => `${API_BASE}/defects/photo/${photoId}`,
+  photoDefects: (photoId: string | number) =>
+    `${API_BASE}/defects/photo/${photoId}`,
   defect: (defectId: string | number) => `${API_BASE}/defects/${defectId}`,
-  annotation: (annotationId: string | number) => `${API_BASE}/defects/annotations/${annotationId}`,
+  annotation: (annotationId: string | number) =>
+    `${API_BASE}/defects/annotations/${annotationId}`,
 };
 
 export type DefectPayload = {
@@ -54,34 +56,50 @@ export async function getDefectsByPhoto(photoId: string | number) {
   return request<DefectRecord[]>(DEFECT_ENDPOINTS.photoDefects(photoId));
 }
 
-export async function createDefect(photoId: string | number, payload: DefectPayload) {
+export async function createDefect(
+  photoId: string | number,
+  payload: DefectPayload,
+) {
   return request<DefectRecord>(DEFECT_ENDPOINTS.photoDefects(photoId), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 }
 
-export async function updateDefect(defectId: string | number, payload: DefectPayload) {
+export async function updateDefect(
+  defectId: string | number,
+  payload: DefectPayload,
+) {
   return request<DefectRecord>(DEFECT_ENDPOINTS.defect(defectId), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 }
 
 export async function deleteDefect(defectId: string | number) {
-  return request<unknown>(DEFECT_ENDPOINTS.defect(defectId), { method: 'DELETE' });
-}
-
-export async function updateAnnotation(annotationId: string | number, payload: AnnotationPayload) {
-  return request<NonNullable<DefectRecord['annotations']>[number]>(DEFECT_ENDPOINTS.annotation(annotationId), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+  return request<unknown>(DEFECT_ENDPOINTS.defect(defectId), {
+    method: "DELETE",
   });
 }
 
+export async function updateAnnotation(
+  annotationId: string | number,
+  payload: AnnotationPayload,
+) {
+  return request<NonNullable<DefectRecord["annotations"]>[number]>(
+    DEFECT_ENDPOINTS.annotation(annotationId),
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function deleteAnnotation(annotationId: string | number) {
-  return request<unknown>(DEFECT_ENDPOINTS.annotation(annotationId), { method: 'DELETE' });
+  return request<unknown>(DEFECT_ENDPOINTS.annotation(annotationId), {
+    method: "DELETE",
+  });
 }

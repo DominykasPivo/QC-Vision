@@ -1,17 +1,19 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
 const ROOT = process.cwd();
-const SRC_ROOT = path.join(ROOT, 'src');
+const SRC_ROOT = path.join(ROOT, "src");
 
-const TARGET_EXTENSIONS = new Set(['.ts', '.tsx']);
+const TARGET_EXTENSIONS = new Set([".ts", ".tsx"]);
 
-const spacingStylePattern = /style\s*=\s*\{\{[\s\S]*?\b(?:margin|padding|gap)(?:Top|Right|Bottom|Left|Inline|Block|X|Y)?\s*:/g;
+const spacingStylePattern =
+  /style\s*=\s*\{\{[\s\S]*?\b(?:margin|padding|gap)(?:Top|Right|Bottom|Left|Inline|Block|X|Y)?\s*:/g;
 const classNameLiteralPattern =
   /className\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|\{\s*`([^`]*)`\s*\}|\{\s*\"([^\"]*)\"\s*\}|\{\s*'([^']*)'\s*\})/g;
 const legacyClassTokenPattern =
   /^(?:btn(?:-[\w-]+)?|form-(?:input|select|group|label)|page|page-title|page-description|back-link|details-(?:section|section-title|placeholder)|defect-[\w-]+|audit-[\w-]+|gallery-[\w-]+)$/;
-const arbitrarySpacingPattern = /(?:^|[\s'"`])(?:-?m(?:t|r|b|l|x|y)?|p(?:t|r|b|l|x|y)?|gap(?:-x|-y)?|space-(?:x|y))-\[[^\]]+\]/g;
+const arbitrarySpacingPattern =
+  /(?:^|[\s'"`])(?:-?m(?:t|r|b|l|x|y)?|p(?:t|r|b|l|x|y)?|gap(?:-x|-y)?|space-(?:x|y))-\[[^\]]+\]/g;
 
 async function collectFiles(dir) {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -33,7 +35,7 @@ async function collectFiles(dir) {
 }
 
 function lineAt(source, index) {
-  return source.slice(0, index).split('\n').length;
+  return source.slice(0, index).split("\n").length;
 }
 
 function reportMatch(filePath, source, match, label, findings) {
@@ -41,7 +43,7 @@ function reportMatch(filePath, source, match, label, findings) {
     filePath,
     line: lineAt(source, match.index ?? 0),
     label,
-    snippet: match[0].replace(/\s+/g, ' ').trim().slice(0, 180),
+    snippet: match[0].replace(/\s+/g, " ").trim().slice(0, 180),
   });
 }
 
@@ -51,7 +53,7 @@ function firstDefined(values) {
       return value;
     }
   }
-  return '';
+  return "";
 }
 
 async function main() {
@@ -59,16 +61,21 @@ async function main() {
   const findings = [];
 
   for (const filePath of files) {
-    const source = await fs.readFile(filePath, 'utf8');
+    const source = await fs.readFile(filePath, "utf8");
 
     for (const match of source.matchAll(spacingStylePattern)) {
-      reportMatch(filePath, source, match, 'inline spacing style', findings);
+      reportMatch(filePath, source, match, "inline spacing style", findings);
     }
 
     for (const match of source.matchAll(classNameLiteralPattern)) {
-      const classLiteral = firstDefined(match.slice(1)).replace(/\$\{[^}]+\}/g, ' ');
+      const classLiteral = firstDefined(match.slice(1)).replace(
+        /\$\{[^}]+\}/g,
+        " ",
+      );
       const tokens = classLiteral.split(/\s+/).filter(Boolean);
-      const legacyToken = tokens.find((token) => legacyClassTokenPattern.test(token));
+      const legacyToken = tokens.find((token) =>
+        legacyClassTokenPattern.test(token),
+      );
 
       if (!legacyToken) {
         continue;
@@ -77,13 +84,19 @@ async function main() {
       findings.push({
         filePath,
         line: lineAt(source, match.index ?? 0),
-        label: 'legacy class usage',
+        label: "legacy class usage",
         snippet: `className token "${legacyToken}"`,
       });
     }
 
     for (const match of source.matchAll(arbitrarySpacingPattern)) {
-      reportMatch(filePath, source, match, 'arbitrary spacing utility', findings);
+      reportMatch(
+        filePath,
+        source,
+        match,
+        "arbitrary spacing utility",
+        findings,
+      );
     }
   }
 
@@ -97,7 +110,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('Spacing lint passed.');
+  console.log("Spacing lint passed.");
 }
 
 main().catch((error) => {

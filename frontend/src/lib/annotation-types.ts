@@ -11,14 +11,14 @@ export type Point = {
 
 /** Circle annotation */
 export type CircleGeometry = {
-  type: 'circle';
+  type: "circle";
   center: Point;
   radius: number; // normalized relative to image width
 };
 
 /** Rectangle annotation */
 export type RectGeometry = {
-  type: 'rect';
+  type: "rect";
   x: number; // top-left x (normalized)
   y: number; // top-left y (normalized)
   width: number; // normalized
@@ -27,20 +27,20 @@ export type RectGeometry = {
 
 /** Polygon annotation (closed shape) */
 export type PolygonGeometry = {
-  type: 'polygon';
+  type: "polygon";
   points: Point[];
 };
 
 /** Arrow annotation */
 export type ArrowGeometry = {
-  type: 'arrow';
+  type: "arrow";
   from: Point;
   to: Point;
 };
 
 /** Freehand drawing annotation */
 export type FreehandGeometry = {
-  type: 'freehand';
+  type: "freehand";
   points: Point[];
 };
 
@@ -53,7 +53,13 @@ export type AnnotationGeometry =
   | FreehandGeometry;
 
 /** Tool types for drawing */
-export type DrawingTool = 'circle' | 'rect' | 'polygon' | 'arrow' | 'freehand' | 'select';
+export type DrawingTool =
+  | "circle"
+  | "rect"
+  | "polygon"
+  | "arrow"
+  | "freehand"
+  | "select";
 
 /** Annotation from API (matches backend schema) */
 export type Annotation = {
@@ -76,7 +82,7 @@ export type AnnotationCreate = {
  */
 export function normalizedToPixel(
   normalized: number,
-  dimension: number
+  dimension: number,
 ): number {
   return normalized * dimension;
 }
@@ -84,10 +90,7 @@ export function normalizedToPixel(
 /**
  * Convert pixel coordinates to normalized coordinates
  */
-export function pixelToNormalized(
-  pixel: number,
-  dimension: number
-): number {
+export function pixelToNormalized(pixel: number, dimension: number): number {
   return pixel / dimension;
 }
 
@@ -97,7 +100,7 @@ export function pixelToNormalized(
 export function pointToPixel(
   point: Point,
   imageWidth: number,
-  imageHeight: number
+  imageHeight: number,
 ): { x: number; y: number } {
   return {
     x: normalizedToPixel(point.x, imageWidth),
@@ -112,7 +115,7 @@ export function pointToNormalized(
   x: number,
   y: number,
   imageWidth: number,
-  imageHeight: number
+  imageHeight: number,
 ): Point {
   return {
     x: pixelToNormalized(x, imageWidth),

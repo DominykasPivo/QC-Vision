@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { Stage, Layer, Image as KonvaImage, Circle, Rect, Line, Arrow } from 'react-konva';
-import type Konva from 'konva';
+import { useEffect, useRef, useState } from "react";
+import {
+  Stage,
+  Layer,
+  Image as KonvaImage,
+  Circle,
+  Rect,
+  Line,
+  Arrow,
+} from "react-konva";
+import type Konva from "konva";
 import type {
   Annotation,
   AnnotationGeometry,
@@ -11,7 +19,7 @@ import type {
   PolygonGeometry,
   ArrowGeometry,
   FreehandGeometry,
-} from '@/lib/annotation-types';
+} from "@/lib/annotation-types";
 
 type ImageAnnotatorProps = {
   imageUrl: string;
@@ -19,7 +27,10 @@ type ImageAnnotatorProps = {
   currentTool: DrawingTool;
   onAnnotationCreate?: (geometry: AnnotationGeometry) => void;
   onAnnotationSelect?: (annotation: Annotation | null) => void;
-  onAnnotationUpdate?: (annotationId: number, geometry: AnnotationGeometry) => void;
+  onAnnotationUpdate?: (
+    annotationId: number,
+    geometry: AnnotationGeometry,
+  ) => void;
   onAnnotationDelete?: (annotationId: number) => void;
   selectedAnnotationId?: number | null;
   readonly?: boolean;
@@ -49,7 +60,7 @@ export function ImageAnnotator({
   // Load image
   useEffect(() => {
     const img = new window.Image();
-    img.crossOrigin = 'anonymous';
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       setImage(img);
       // Calculate dimensions to fit container
@@ -67,18 +78,22 @@ export function ImageAnnotator({
   // Keyboard handler for deleting annotations
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAnnotationId && onAnnotationDelete) {
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedAnnotationId &&
+        onAnnotationDelete
+      ) {
         e.preventDefault();
         onAnnotationDelete(selectedAnnotationId);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedAnnotationId, onAnnotationDelete]);
 
   const handleStart = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
-    if (readonly || currentTool === 'select') return;
+    if (readonly || currentTool === "select") return;
 
     const stage = e.target.getStage();
     if (!stage) return;
@@ -110,7 +125,7 @@ export function ImageAnnotator({
       y: pos.y / dimensions.height,
     };
 
-    if (currentTool === 'freehand') {
+    if (currentTool === "freehand") {
       setTempPoints([...tempPoints, normalized]);
     } else {
       setTempPoints([drawingStart!, normalized]);
@@ -120,7 +135,7 @@ export function ImageAnnotator({
   const handleEnd = () => {
     if (!isDrawing || !drawingStart || readonly) return;
 
-    if (tempPoints.length < 2 && currentTool !== 'circle') {
+    if (tempPoints.length < 2 && currentTool !== "circle") {
       setIsDrawing(false);
       setDrawingStart(null);
       setTempPoints([]);
@@ -131,24 +146,24 @@ export function ImageAnnotator({
     let geometry: AnnotationGeometry | null = null;
 
     switch (currentTool) {
-      case 'circle': {
+      case "circle": {
         const dx = endPoint.x - drawingStart.x;
         const dy = endPoint.y - drawingStart.y;
         const radius = Math.sqrt(dx * dx + dy * dy);
         geometry = {
-          type: 'circle',
+          type: "circle",
           center: drawingStart,
           radius,
         } as CircleGeometry;
         break;
       }
-      case 'rect': {
+      case "rect": {
         const x = Math.min(drawingStart.x, endPoint.x);
         const y = Math.min(drawingStart.y, endPoint.y);
         const width = Math.abs(endPoint.x - drawingStart.x);
         const height = Math.abs(endPoint.y - drawingStart.y);
         geometry = {
-          type: 'rect',
+          type: "rect",
           x,
           y,
           width,
@@ -156,28 +171,28 @@ export function ImageAnnotator({
         } as RectGeometry;
         break;
       }
-      case 'arrow': {
+      case "arrow": {
         geometry = {
-          type: 'arrow',
+          type: "arrow",
           from: drawingStart,
           to: endPoint,
         } as ArrowGeometry;
         break;
       }
-      case 'freehand': {
+      case "freehand": {
         if (tempPoints.length > 2) {
           geometry = {
-            type: 'freehand',
+            type: "freehand",
             points: tempPoints,
           } as FreehandGeometry;
         }
         break;
       }
-      case 'polygon': {
+      case "polygon": {
         // For now, treat polygon like freehand - could enhance with click-to-add-point
         if (tempPoints.length > 2) {
           geometry = {
-            type: 'polygon',
+            type: "polygon",
             points: tempPoints,
           } as PolygonGeometry;
         }
@@ -194,7 +209,10 @@ export function ImageAnnotator({
     setTempPoints([]);
   };
 
-  const handleAnnotationDragEnd = (annotation: Annotation, e: Konva.KonvaEventObject<DragEvent>) => {
+  const handleAnnotationDragEnd = (
+    annotation: Annotation,
+    e: Konva.KonvaEventObject<DragEvent>,
+  ) => {
     if (readonly || !onAnnotationUpdate) return;
 
     const node = e.target;
@@ -207,9 +225,9 @@ export function ImageAnnotator({
     const normalizedY = pos.y / dimensions.height;
 
     switch (geometry.type) {
-      case 'circle': {
+      case "circle": {
         const g = geometry as CircleGeometry;
-        
+
         updatedGeometry = {
           ...g,
           center: {
@@ -219,9 +237,9 @@ export function ImageAnnotator({
         };
         break;
       }
-      case 'rect': {
+      case "rect": {
         const g = geometry as RectGeometry;
-        
+
         updatedGeometry = {
           ...g,
           x: normalizedX,
@@ -229,12 +247,12 @@ export function ImageAnnotator({
         };
         break;
       }
-      case 'arrow': {
+      case "arrow": {
         const g = geometry as ArrowGeometry;
         // For shapes with points, pos gives us the drag offset from (0,0)
         const dragDeltaX = pos.x / dimensions.width;
         const dragDeltaY = pos.y / dimensions.height;
-        
+
         updatedGeometry = {
           ...g,
           from: {
@@ -246,26 +264,26 @@ export function ImageAnnotator({
             y: g.to.y + dragDeltaY,
           },
         };
-        
+
         // Reset node position after capturing offset
         node.position({ x: 0, y: 0 });
         break;
       }
-      case 'freehand':
-      case 'polygon': {
+      case "freehand":
+      case "polygon": {
         const g = geometry as FreehandGeometry | PolygonGeometry;
         // For shapes with points, pos gives us the drag offset from (0,0)
         const dragDeltaX = pos.x / dimensions.width;
         const dragDeltaY = pos.y / dimensions.height;
-        
+
         updatedGeometry = {
           ...g,
-          points: g.points.map(p => ({
+          points: g.points.map((p) => ({
             x: p.x + dragDeltaX,
             y: p.y + dragDeltaY,
           })),
         };
-        
+
         // Reset node position after capturing offset
         node.position({ x: 0, y: 0 });
         break;
@@ -280,17 +298,19 @@ export function ImageAnnotator({
   const renderAnnotation = (annotation: Annotation) => {
     const { geometry } = annotation;
     const isSelected = annotation.id === selectedAnnotationId;
-    const strokeColor = isSelected ? '#3b82f6' : (annotation.color ?? '#ef4444');
+    const strokeColor = isSelected
+      ? "#3b82f6"
+      : (annotation.color ?? "#ef4444");
     const strokeWidth = isSelected ? 3 : 2;
     const isDraggable = !readonly && enableMove;
-    
+
     // Larger hit area for touch devices
     const hitStrokeWidth = Math.max(strokeWidth, 20);
-    
+
     const handleSelect = () => onAnnotationSelect?.(annotation);
 
     switch (geometry.type) {
-      case 'circle': {
+      case "circle": {
         const g = geometry as CircleGeometry;
         return (
           <Circle
@@ -308,17 +328,19 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
               const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+              if (container)
+                container.style.cursor =
+                  currentTool === "select" ? "default" : "crosshair";
             }}
           />
         );
       }
-      case 'rect': {
+      case "rect": {
         const g = geometry as RectGeometry;
         return (
           <Rect
@@ -337,17 +359,19 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
               const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+              if (container)
+                container.style.cursor =
+                  currentTool === "select" ? "default" : "crosshair";
             }}
           />
         );
       }
-      case 'arrow': {
+      case "arrow": {
         const g = geometry as ArrowGeometry;
         return (
           <Arrow
@@ -370,20 +394,22 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
               const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+              if (container)
+                container.style.cursor =
+                  currentTool === "select" ? "default" : "crosshair";
             }}
           />
         );
       }
-      case 'freehand':
-      case 'polygon': {
+      case "freehand":
+      case "polygon": {
         const g = geometry as FreehandGeometry | PolygonGeometry;
-        const points = g.points.flatMap(p => [
+        const points = g.points.flatMap((p) => [
           p.x * dimensions.width,
           p.y * dimensions.height,
         ]);
@@ -394,7 +420,7 @@ export function ImageAnnotator({
             stroke={strokeColor}
             strokeWidth={strokeWidth}
             hitStrokeWidth={hitStrokeWidth}
-            closed={geometry.type === 'polygon'}
+            closed={geometry.type === "polygon"}
             draggable={isDraggable}
             onClick={handleSelect}
             onTap={handleSelect}
@@ -402,12 +428,14 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
               const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = currentTool === 'select' ? 'default' : 'crosshair';
+              if (container)
+                container.style.cursor =
+                  currentTool === "select" ? "default" : "crosshair";
             }}
           />
         );
@@ -421,11 +449,11 @@ export function ImageAnnotator({
     if (!isDrawing || tempPoints.length < 1 || !drawingStart) return null;
 
     const endPoint = tempPoints[tempPoints.length - 1];
-    const strokeColor = '#3b82f6';
+    const strokeColor = "#3b82f6";
     const strokeWidth = 2;
 
     switch (currentTool) {
-      case 'circle': {
+      case "circle": {
         const dx = endPoint.x - drawingStart.x;
         const dy = endPoint.y - drawingStart.y;
         const radius = Math.sqrt(dx * dx + dy * dy);
@@ -440,7 +468,7 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'rect': {
+      case "rect": {
         const x = Math.min(drawingStart.x, endPoint.x);
         const y = Math.min(drawingStart.y, endPoint.y);
         const width = Math.abs(endPoint.x - drawingStart.x);
@@ -457,7 +485,7 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'arrow': {
+      case "arrow": {
         return (
           <Arrow
             points={[
@@ -474,9 +502,9 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'freehand':
-      case 'polygon': {
-        const points = tempPoints.flatMap(p => [
+      case "freehand":
+      case "polygon": {
+        const points = tempPoints.flatMap((p) => [
           p.x * dimensions.width,
           p.y * dimensions.height,
         ]);
@@ -506,12 +534,18 @@ export function ImageAnnotator({
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}
         className="border border-gray-300 rounded-lg"
-        style={{ 
-          cursor: currentTool === 'select' ? 'default' : 'crosshair',
+        style={{
+          cursor: currentTool === "select" ? "default" : "crosshair",
         }}
       >
         <Layer>
-          {image && <KonvaImage image={image} width={dimensions.width} height={dimensions.height} />}
+          {image && (
+            <KonvaImage
+              image={image}
+              width={dimensions.width}
+              height={dimensions.height}
+            />
+          )}
           {annotations.map(renderAnnotation)}
           {renderTempShape()}
         </Layer>
@@ -524,7 +558,9 @@ export function ImageAnnotator({
             </div>
           ) : (
             <div className="text-sm text-gray-700 font-medium">
-              Selected annotation - {annotations.find(a => a.id === selectedAnnotationId)?.geometry.type || 'Unknown'}
+              Selected annotation -{" "}
+              {annotations.find((a) => a.id === selectedAnnotationId)?.geometry
+                .type || "Unknown"}
             </div>
           )}
           {onAnnotationDelete && (
