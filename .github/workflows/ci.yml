@@ -3,6 +3,11 @@ name: CI Pipeline
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  
+on:
+  push:
+  pull_request:
 
 jobs:
   lint-format:
@@ -33,6 +38,7 @@ jobs:
       - name: Lint (flake8)
         run: flake8 backend
 
+
   frontend-quality:
     name: Frontend lint + build + spacing lint
     runs-on: ubuntu-22.04
@@ -46,11 +52,20 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-        
+          # IMPORTANT: cache needs a lockfile path that exists
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
+      # If package-lock.json exists, npm ci; otherwise fallback to npm install
+      - name: Install frontend dependencies (ci if lockfile exists)
         working-directory: frontend
-        run: npm ci
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "package-lock.json not found. Falling back to npm install."
+            npm install
+          fi
 
       - name: Run frontend lint
         working-directory: frontend
@@ -83,7 +98,6 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=30
-          server /data --console-address ":9001"
 
     steps:
       - name: Checkout repository
