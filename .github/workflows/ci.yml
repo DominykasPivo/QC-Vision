@@ -5,7 +5,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-
 jobs:
   lint-format:
     name: Format + Lint (backend)
@@ -48,11 +47,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          # IMPORTANT: cache needs a lockfile path that exists
-          cache-dependency-path: frontend/package-lock.json
 
-      # If package-lock.json exists, npm ci; otherwise fallback to npm install
       - name: Install frontend dependencies (ci if lockfile exists)
         working-directory: frontend
         shell: bash
@@ -82,20 +77,6 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [lint-format]
 
-    services:
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd="curl -f http://localhost:9000/minio/health/ready || exit 1"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=30
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -105,6 +86,29 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio server /data
+
+      - name: Wait for MinIO to be ready
+        shell: bash
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:9000/minio/health/ready > /dev/null; then
+              echo "MinIO is ready ✅"
+              exit 0
+            fi
+            echo "Waiting for MinIO... ($i/30)"
+            sleep 2
+          done
+          echo "MinIO failed to become ready ❌"
+          docker logs minio
+          exit 1
 
       - name: Install backend deps + pytest
         working-directory: backend
@@ -131,6 +135,11 @@ jobs:
         with:
           name: coverage-xml
           path: backend/coverage.xml
+
+      - name: Stop MinIO
+        if: always()
+        run: |
+          docker rm -f minio || true
 
 
   smoke:
