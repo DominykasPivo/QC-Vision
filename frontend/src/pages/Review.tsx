@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { request } from "@/lib/api/http";
-import { getStoredUsername, getStoredRole } from "@/lib/auth";
+import { useEffect, useMemo, useState } from 'react';
+import { request } from '@/lib/api/http';
+import { getStoredRole, getStoredUsername } from '@/lib/auth';
 
 type TestResponse = {
   id: number;
@@ -10,22 +10,11 @@ type TestResponse = {
   assigned_to: string | null;
   description: string | null;
   status: string;
-  review_status: "pending" | "approved" | "rejected" | string;
-};
-
-type TestsListResponse = {
-  items: TestResponse[];
-  total?: number;
-  limit?: number;
-  offset?: number;
+  review_status: string; // "pending" | "approved" | "rejected"
 };
 
 const getErrorMessage = (e: unknown) =>
-  e instanceof Error
-    ? e.message
-    : typeof e === "string"
-      ? e
-      : "Something went wrong";
+  e instanceof Error ? e.message : typeof e === 'string' ? e : 'Something went wrong';
 
 export function Review() {
   const [tests, setTests] = useState<TestResponse[]>([]);
@@ -33,156 +22,113 @@ export function Review() {
   const [error, setError] = useState<string | null>(null);
 
   const username = useMemo(() => getStoredUsername(), []);
-  const role = useMemo(() => getStoredRole?.() ?? "user", []);
+  const role = useMemo(() => getStoredRole?.() ?? 'user', []);
 
   const headers = useMemo(
     () => ({
-      "Content-Type": "application/json",
-      "X-User": username || "system",
-      "X-Role": role || "user",
+      'Content-Type': 'application/json',
+      'X-User': username || 'system',
+      'X-Role': role || 'user',
     }),
     [username, role],
   );
 
-  const loadPending = useCallback(async () => {
+  async function loadPending() {
     setLoading(true);
     setError(null);
-
     try {
-      const res = await request<TestsListResponse>("/api/v1/tests/?limit=100");
-
-      const items = Array.isArray(res?.items) ? res.items : [];
-      const pending = items.filter((t) => t.review_status === "pending");
-
+      const res = await request<{ items: TestResponse[] }>('/api/v1/tests/?limit=100');
+      const pending = (res.items ?? []).filter((t) => t.review_status === 'pending');
       setTests(pending);
     } catch (e: unknown) {
       setError(getErrorMessage(e));
-      setTests([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }
 
   useEffect(() => {
     void loadPending();
-  }, [loadPending]);
+  }, []);
 
-  const approveTest = useCallback(
-    async (id: number) => {
-      try {
-        await request(`/api/v1/tests/${id}/review`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ decision: "approved" }),
-        });
+  const approveTest = async (id: number) => {
+    try {
+      await request<TestResponse>(`/api/v1/tests/${id}/review`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ decision: 'approved' }),
+      });
 
-        // keep UI consistent with backend
-        await loadPending();
-      } catch (e: unknown) {
-        alert(getErrorMessage(e) || "Approve failed");
-      }
-    },
-    [headers, loadPending],
-  );
+      setTests((prev) => prev.filter((t) => t.id !== id));
+    } catch (e: unknown) {
+      alert(getErrorMessage(e) || 'Approve failed');
+    }
+  };
 
-  const rejectTest = useCallback(
-    async (id: number) => {
-      try {
-        await request(`/api/v1/tests/${id}/review`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ decision: "rejected" }),
-        });
+  const rejectTest = async (id: number) => {
+    try {
+      await request(`/api/v1/tests/${id}/review`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ decision: 'rejected' }),
+      });
 
-        await loadPending();
-      } catch (e: unknown) {
-        alert(getErrorMessage(e) || "Reject failed");
-      }
-    },
-    [headers, loadPending],
-  );
+      setTests((prev) => prev.filter((t) => t.id !== id));
+    } catch (e: unknown) {
+      alert(getErrorMessage(e) || 'Reject failed');
+    }
+  };
 
-  if (loading) return <div style={{ padding: 24 }}>Loading review queue…</div>;
-  if (error) return <div style={{ padding: 24 }}>Error: {error}</div>;
+  if (loading) return <div className="p-6">Loading review queue…</div>;
+  if (error) return <div className="p-6">Error: {error}</div>;
 
   return (
-    <div style={{ padding: 24, maxWidth: 980 }}>
-      <h2 style={{ marginBottom: 6 }}>Review</h2>
-      <p style={{ marginTop: 0, color: "#666" }}>
-        Pending Tests will be shown here.
-      </p>
+    <div className="p-6 max-w-5xl">
+      <h2 className="mb-1 text-xl font-semibold">Review</h2>
+      <p className="mt-0 text-sm text-muted-foreground">Pending Tests will be shown here.</p>
 
       {tests.length === 0 ? (
-        <div style={{ marginTop: 18 }}>No pending tests.</div>
+        <div className="mt-5">No pending tests.</div>
       ) : (
-        <div style={{ display: "grid", gap: 16, marginTop: 18 }}>
+        <div className="grid gap-4 mt-5">
           {tests.map((t) => (
             <div
               key={t.id}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 14,
-                padding: 18,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 16,
-              }}
+              className="border border-border rounded-xl p-5 flex items-center justify-between"
             >
               <div>
-                <div style={{ color: "#666", fontSize: 14 }}>Test #{t.id}</div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 700,
-                    margin: "6px 0 10px",
-                  }}
-                >
-                  Product {t.product_id}
-                </div>
+                <div className="text-sm text-muted-foreground">Test #{t.id}</div>
 
-                <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+                <div className="text-2xl font-bold mt-1 mb-3">Product {t.product_id}</div>
+
+                <div className="flex flex-wrap gap-4">
                   <div>
-                    <b>Type:</b> {t.test_type}
+                    <span className="font-semibold">Type:</span> {t.test_type}
                   </div>
                   <div>
-                    <b>Status:</b> {t.status}
+                    <span className="font-semibold">Status:</span> {t.status}
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 18,
-                    flexWrap: "wrap",
-                    marginTop: 8,
-                  }}
-                >
+                <div className="flex flex-wrap gap-4 mt-2">
                   <div>
-                    <b>Requester:</b> {t.requester}
+                    <span className="font-semibold">Requester:</span> {t.requester}
                   </div>
                   <div>
-                    <b>Assigned:</b> {t.assigned_to ?? "—"}
+                    <span className="font-semibold">Assigned:</span> {t.assigned_to ?? '—'}
                   </div>
                 </div>
 
-                <div style={{ marginTop: 8 }}>
-                  <b>Description:</b> {t.description ?? "—"}
+                <div className="mt-2">
+                  <span className="font-semibold">Description:</span> {t.description ?? '—'}
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 10, minWidth: 140 }}>
+              <div className="grid gap-2">
                 <button
                   type="button"
                   onClick={() => approveTest(t.id)}
-                  style={{
-                    padding: "10px 18px",
-                    borderRadius: 12,
-                    border: "1px solid #16a34a",
-                    background: "white",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+                  className="px-4 py-2 rounded-lg border border-green-600 bg-white font-semibold hover:bg-green-50"
                 >
                   Approve
                 </button>
@@ -190,14 +136,7 @@ export function Review() {
                 <button
                   type="button"
                   onClick={() => rejectTest(t.id)}
-                  style={{
-                    padding: "10px 18px",
-                    borderRadius: 12,
-                    border: "1px solid #ef4444",
-                    background: "white",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+                  className="px-4 py-2 rounded-lg border border-red-500 bg-white font-semibold hover:bg-red-50"
                 >
                   Reject
                 </button>

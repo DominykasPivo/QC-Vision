@@ -222,7 +222,7 @@ export function CreateTestsScreen() {
     <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] bg-gradient-to-b from-[#EEF4FF] to-[#F8FBFF] px-3 py-4 pb-24 md:px-4 md:py-5 md:pb-8">
       {/* White shell card */}
       <section className="w-full rounded-[28px] border-2 border-[#D9E2EF] bg-white px-5 py-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] md:px-8 md:py-8 xl:px-[52px] xl:py-[48px]">
-        <div className="flex flex-col gap-5 xl:gap-[34px]">
+        <div className="flex flex-col gap-5 xl:gap-8">
           {/* ── Top row: title + new-test button ── */}
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
@@ -315,7 +315,7 @@ export function CreateTestsScreen() {
               </Button>
             </div>
 
-            <div className="hidden flex-wrap gap-3 xl:gap-[14px] lg:flex">
+            <div className="hidden flex-wrap gap-3 xl:gap-4 lg:flex">
               <Select
                 value={statusFilter || "all"}
                 onValueChange={(value) => {
@@ -618,7 +618,7 @@ export function CreateTestsScreen() {
                       key={test.id}
                       className="flex flex-col justify-between rounded-[18px] border border-[#D5DFEC] bg-white p-5 md:p-[22px]"
                     >
-                      <div className="flex flex-col gap-[14px]">
+                      <div className="flex flex-col gap-4">
                         <p className="text-3xl font-bold leading-none text-[#0F172A] md:text-3xl xl:text-[32px]">
                           {primaryId}
                         </p>
