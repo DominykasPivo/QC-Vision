@@ -4,10 +4,7 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-  
-on:
-  push:
-  pull_request:
+
 
 jobs:
   lint-format:
