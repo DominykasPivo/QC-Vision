@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { isLoggedIn, loginUser, setStoredRole } from "@/lib/auth";
-import { spacing } from "@/lib/ui/spacing";
-import { cn } from "@/lib/utils";
 
 // If your project uses request/ApiError elsewhere, use it.
 // Otherwise we use fetch here to match CreateTest's pattern.
@@ -34,9 +32,6 @@ export function Login() {
   if (isLoggedIn()) {
     return <Navigate to="/tests" replace />;
   }
-
-  const controlClass =
-    "rounded-2xl border-2 border-slate-300 bg-white font-medium text-slate-900 shadow-none transition-all focus-visible:border-[#2563eb] focus-visible:ring-4 focus-visible:ring-[#2563eb]/20";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -89,76 +84,55 @@ export function Login() {
     touched && !isValid
       ? `Username must be ${MIN_LEN}–${MAX_LEN} characters.`
       : null;
+  const formError = clientError ?? error;
 
   return (
-    <div
-      className={cn(
-        spacing.pageContainer,
-        "min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] bg-slate-50 pb-24 md:pb-8",
-      )}
-    >
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 md:p-6">
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-[30px] font-bold leading-tight tracking-[-0.02em] text-slate-900">
-              QC Vision
-            </h2>
-            <p className="mt-1 text-[18px] font-medium text-slate-500">
-              Enter your username to continue
-            </p>
-          </div>
+    <main className="login-page">
+      <div className="login-shell">
+        <section className="login-brand-panel">
+          <p className="login-brand-kicker">QC Vision</p>
+          <h2 className="login-brand-title">
+            Quality control, one focused workspace.
+          </h2>
+          <p className="login-brand-copy">
+            Review tests, manage photos, and track issues with the same clean
+            workflow your team already uses.
+          </p>
 
-          {(error || clientError) && (
-            <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              {clientError ?? error}
-            </div>
-          )}
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
+            <label className="text-sm font-semibold text-white/95" htmlFor="username">
+              Username
+            </label>
+            <Input
+              id="username"
+              name="username"
+              density="spacious"
+              className="login-input"
+              placeholder="Your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onBlur={() => setTouched(true)}
+              autoComplete="username"
+              disabled={isLoading}
+              aria-invalid={Boolean(formError)}
+              aria-describedby={formError ? "login-error" : undefined}
+            />
 
-          <form
-            onSubmit={handleSubmit}
-            className={cn(spacing.fieldStack)}
-            noValidate
-          >
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="username"
-              >
-                Username
-              </label>
-              <Input
-                id="username"
-                name="username"
-                density="spacious"
-                className={controlClass}
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onBlur={() => setTouched(true)}
-                autoComplete="username"
-                disabled={isLoading}
-                aria-invalid={Boolean(clientError)}
-              />
+            <div className="login-error" aria-live="polite" id="login-error">
+              {formError ?? " "}
             </div>
 
-            <div className={spacing.actionRow}>
-              <Button
-                type="submit"
-                density="spacious"
-                className="h-16 w-full rounded-3xl bg-[#2563eb] text-lg font-bold text-white shadow-[0_14px_28px_rgba(37,99,235,0.35)] hover:bg-[#1d4ed8] focus-visible:ring-4 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-0"
-                disabled={!isValid || isLoading}
-              >
-                {isLoading ? "Logging in..." : "Login"}
-              </Button>
-            </div>
-
-            <p className="text-center text-sm font-medium text-slate-500">
-              Your role will be applied automatically (review access included if
-              allowed).
-            </p>
+            <Button
+              type="submit"
+              density="spacious"
+              className="login-button w-full"
+              disabled={!isValid || isLoading}
+            >
+              {isLoading ? "Logging in..." : "Login"}
+            </Button>
           </form>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

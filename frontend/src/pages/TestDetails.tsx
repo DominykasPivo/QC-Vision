@@ -744,7 +744,7 @@ export function TestDetails() {
             className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#2563eb] px-10 py-5 text-xl font-bold text-white shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-700 active:scale-95"
           >
             <MaterialIcon name="edit" />
-            UPDATE STATUS
+            UPDATE TEST
           </button>
           <button
             type="button"
@@ -778,7 +778,7 @@ export function TestDetails() {
               className="flex flex-1 items-center justify-center gap-3 rounded-xl bg-[#2563eb] px-10 py-5 text-xl font-bold text-white shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-700 active:scale-95 sm:flex-none"
             >
               <MaterialIcon name="edit" />
-              UPDATE STATUS
+              UPDATE TEST
             </button>
             <button
               type="button"
