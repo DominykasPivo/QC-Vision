@@ -71,7 +71,9 @@ class TestsService:
             )
 
         total = query.count()
-        items = query.order_by(Tests.created_at.desc()).offset(offset).limit(limit).all()
+        items = (
+            query.order_by(Tests.created_at.desc()).offset(offset).limit(limit).all()
+        )
         return items, total
 
     async def update_test(self, db: Session, test_id: int, test_data: dict) -> Tests:
@@ -109,7 +111,9 @@ class TestsService:
                 if getattr(p, "file_path", None):
                     await photo_storage.delete_photo(p.file_path)
             except Exception as e:
-                logger.warning(f"Failed to delete from storage {getattr(p,'file_path',None)}: {e}")
+                logger.warning(
+                    f"Failed to delete from storage {getattr(p, 'file_path', None)}: {e}"
+                )
 
         # 3) delete photo rows in ONE shot (keeps db.delete call count correct)
         db.query(Photo).filter(Photo.test_id == test_id).delete()

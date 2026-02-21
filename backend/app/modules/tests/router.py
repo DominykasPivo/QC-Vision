@@ -114,7 +114,10 @@ async def create_test(
                         or not photo_file.content_type.startswith("image/")
                     ):
                         failed_photos.append(
-                            {"filename": photo_file.filename, "error": "Not an image file"}
+                            {
+                                "filename": photo_file.filename,
+                                "error": "Not an image file",
+                            }
                         )
                         log_action(
                             db,
@@ -139,7 +142,9 @@ async def create_test(
                     )
 
                     uploaded_photos.append(PhotoResponse.model_validate(photo))
-                    logger.info(f"Uploaded photo {photo_file.filename} for test {test.id}")
+                    logger.info(
+                        f"Uploaded photo {photo_file.filename} for test {test.id}"
+                    )
 
                     log_action(
                         db,

@@ -1,5 +1,5 @@
-import pytest
 import httpx
+import pytest
 
 from app.main import app
 
@@ -12,7 +12,9 @@ async def test_create_test_writes_audit_log():
     try:
         transport = httpx.ASGITransport(app=app)
 
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             form = {
                 "productId": "99999",
                 "testType": "incoming",

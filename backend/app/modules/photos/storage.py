@@ -66,7 +66,9 @@ class PhotoStorage:
         except S3Error as e:
             logger.error(f"Failed to create bucket: {str(e)}")
 
-    async def upload_photo(self, photo_bytes: bytes, photo_path: str, content_type: str):
+    async def upload_photo(
+        self, photo_bytes: bytes, photo_path: str, content_type: str
+    ):
         """Upload a photo to MinIO storage."""
         try:
             file_data = BytesIO(photo_bytes)
@@ -102,7 +104,9 @@ class PhotoStorage:
     async def delete_photo(self, file_path: str) -> bool:
         """Delete photo from MinIO"""
         try:
-            self.client.remove_object(bucket_name=self.bucket_name, object_name=file_path)
+            self.client.remove_object(
+                bucket_name=self.bucket_name, object_name=file_path
+            )
             return True
         except S3Error as e:
             logger.error(f"Failed to delete photo: {str(e)}")
