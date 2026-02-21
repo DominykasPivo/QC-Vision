@@ -42,21 +42,22 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
     const pages = getPageNumbers(currentPage, totalPages);
 
     return (
-        <nav className="pagination" aria-label="Pagination">
+        <nav className="mt-6 flex items-center justify-center gap-1 md:mt-8" aria-label="Pagination">
             <Button
                 variant="outline"
                 size="sm"
-                className="pagination-btn"
+                density="compact"
+                className="min-w-9 rounded-md"
                 disabled={currentPage <= 1}
                 onClick={() => onPageChange(currentPage - 1)}
                 aria-label="Previous page"
             >
-                <ChevronLeft className="pagination-icon" />
+                <ChevronLeft className="h-4 w-4" />
             </Button>
 
             {pages.map((page, index) =>
                 page === '...' ? (
-                    <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                    <span key={`ellipsis-${index}`} className="inline-flex min-w-9 items-center justify-center text-sm text-slate-500">
                         ...
                     </span>
                 ) : (
@@ -64,7 +65,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
                         key={page}
                         variant={page === currentPage ? 'default' : 'outline'}
                         size="sm"
-                        className={`pagination-btn ${page === currentPage ? 'pagination-btn--active' : ''}`}
+                        density="compact"
+                        className={`min-w-9 rounded-md ${page === currentPage ? 'pointer-events-none' : ''}`}
                         onClick={() => onPageChange(page)}
                         aria-label={`Page ${page}`}
                         aria-current={page === currentPage ? 'page' : undefined}
@@ -77,12 +79,13 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
             <Button
                 variant="outline"
                 size="sm"
-                className="pagination-btn"
+                density="compact"
+                className="min-w-9 rounded-md"
                 disabled={currentPage >= totalPages}
                 onClick={() => onPageChange(currentPage + 1)}
                 aria-label="Next page"
             >
-                <ChevronRight className="pagination-icon" />
+                <ChevronRight className="h-4 w-4" />
             </Button>
         </nav>
     );

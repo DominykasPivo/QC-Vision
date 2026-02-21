@@ -1,7 +1,7 @@
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { AppDataContext } from '../components/layout/AppShell';
 import { formatEnumLabel } from '@/lib/db-constants';
-import { type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -392,13 +392,10 @@ export function TestDetails() {
     const hasDescription = Boolean(test.description?.trim());
 
     return (
-        <div
-            className="test-details-page relative min-h-full bg-[#f3f4f6] pb-8 md:pb-36"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-        >
+        <div className="test-details-page relative min-h-full bg-slate-100 pb-8 md:pb-32">
             {/* ── Sticky Top Bar ── */}
             <div className="sticky top-0 z-10 border-b border-slate-200/50 bg-[#f3f4f6]/80 backdrop-blur-md">
-                <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-10">
+                <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
                     <Link
                         to="/tests"
                         className="group inline-flex items-center gap-1 text-lg font-semibold text-[#2563eb] no-underline transition-all hover:underline"
@@ -406,19 +403,15 @@ export function TestDetails() {
                         <MaterialIcon name="arrow_back" className="text-xl" />
                         <span>Back to Tests</span>
                     </Link>
-                    <span className="hidden text-slate-500 md:block">
-                        Test Management System v2.4
-                    </span>
                 </div>
             </div>
 
-            <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10 md:pt-10">
+            <div className="mx-auto max-w-7xl px-4 pt-4 md:px-6 md:pt-6">
                 {/* ── Hero Section ── */}
-                <div className="mb-10">
+                <div className="mb-8 md:mb-10">
                     <h1 className="text-5xl font-black text-slate-900">Test #{test.id}</h1>
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-lg text-slate-500">
                         <span className="flex items-center gap-1">
-                            <MaterialIcon name="qr_code" className="text-sm" />
                             Product ID: {productIdLabel}
                         </span>
                         <span>•</span>
@@ -442,13 +435,13 @@ export function TestDetails() {
                     {/* LEFT COLUMN — Test Information */}
                     <section>
                         <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
-                            <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-8 py-6">
+                            <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-5 py-5 md:px-6 md:py-6">
                                 <CardTitle className="flex items-center gap-2 text-2xl font-bold">
                                     <MaterialIcon name="info" className="text-[#2563eb]" />
                                     Test Information
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-6 px-8 py-8">
+                            <CardContent className="space-y-5 px-5 py-5 md:space-y-6 md:px-6 md:py-6">
                                 <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
                                     <InfoItem label="Test ID" value={String(test.id)} />
                                     <InfoItem label="Product ID" value={productIdLabel} />
@@ -496,7 +489,7 @@ export function TestDetails() {
                     <section className="space-y-8">
                         {/* Photos Card */}
                         <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
-                            <CardHeader className="flex-row items-center justify-between border-b border-slate-100 px-8 py-6">
+                            <CardHeader className="flex-row items-center justify-between border-b border-slate-100 px-5 py-5 md:px-6 md:py-6">
                                 <CardTitle className="flex items-center gap-2 text-2xl font-bold">
                                     <MaterialIcon name="photo_library" className="text-[#2563eb]" />
                                     Photos
@@ -505,7 +498,7 @@ export function TestDetails() {
                                     {apiPhotos.length} Photo{apiPhotos.length !== 1 ? 's' : ''}
                                 </Badge>
                             </CardHeader>
-                            <CardContent className="px-8 py-8">
+                            <CardContent className="px-5 py-5 md:px-6 md:py-6">
                                 {apiPhotos.length === 0 ? (
                                     <div className="flex min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 text-center">
                                         <p className="text-xl font-semibold text-slate-400">No photos uploaded</p>
@@ -544,13 +537,13 @@ export function TestDetails() {
 
                         {/* Defects Card */}
                         <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
-                            <CardHeader className="border-b border-slate-100 px-8 py-6">
+                            <CardHeader className="border-b border-slate-100 px-5 py-5 md:px-6 md:py-6">
                                 <CardTitle className="flex items-center gap-2 text-2xl font-bold">
                                     <MaterialIcon name="report_problem" className="text-red-600" />
                                     Defects
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="px-8 py-8">
+                            <CardContent className="px-5 py-5 md:px-6 md:py-6">
                                 {photosWithDefects.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-8 text-center">
                                         <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
@@ -615,7 +608,7 @@ export function TestDetails() {
             </div>
 
             {/* ── Fixed Bottom Action Bar (desktop only) ── */}
-            <div className="fixed bottom-0 left-0 right-0 z-20 hidden border-t border-slate-200 bg-white/90 p-6 shadow-2xl backdrop-blur-xl md:block md:left-[var(--sidebar-width)]">
+            <div className="fixed bottom-0 left-0 right-0 z-20 hidden border-t border-slate-200 bg-white/90 p-4 shadow-2xl backdrop-blur-xl md:block md:left-[var(--sidebar-width)] md:p-6">
                 <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
                     <div className="hidden items-center gap-4 lg:flex">
                         <div className="flex flex-col">
@@ -659,14 +652,14 @@ export function TestDetails() {
                     onClick={() => setShowDeleteConfirm(false)}
                 >
                     <div
-                        className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.35)]"
+                        className="w-full max-w-md rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.35)] md:p-6"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <h3 className="text-2xl font-bold text-[#111827]">Delete test?</h3>
                         <p className="mt-2 text-sm text-gray-600">
                             This will permanently delete the test and its photos.
                         </p>
-                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                        <div className="mt-6 flex flex-col-reverse gap-3 md:flex-row md:justify-end">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -699,14 +692,14 @@ export function TestDetails() {
                         className="w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_24px_64px_rgba(15,23,42,0.3)]"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="border-b border-gray-100 px-5 py-5 sm:px-7">
+                        <div className="border-b border-gray-100 px-5 py-5 md:px-6 md:py-6">
                             <h3 className="text-2xl font-bold text-[#111827]">Update Test</h3>
                             <p className="mt-1 text-sm text-gray-600">
                                 Edit the fields below and save your changes.
                             </p>
                         </div>
 
-                        <div className="max-h-[72vh] space-y-5 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+                        <div className="max-h-[72vh] space-y-5 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
@@ -802,14 +795,13 @@ export function TestDetails() {
                                         Description
                                     </label>
                                     <textarea
-                                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-[#2563eb]"
+                                        className="w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-[#2563eb]"
                                         placeholder="Enter test description"
                                         value={draft.description}
                                         onChange={(e) =>
                                             setDraft((prev) => ({ ...prev, description: e.target.value }))
                                         }
                                         rows={4}
-                                        style={{ resize: 'vertical' }}
                                     />
                                 </div>
 
@@ -860,7 +852,7 @@ export function TestDetails() {
                                         accept="image/jpeg,image/png,image/webp"
                                         capture="environment"
                                         multiple
-                                        style={{ display: 'none' }}
+                                        className="hidden"
                                         onChange={(e) => {
                                             handlePhotoSelect(e);
                                             setShowPhotoModal(false);
@@ -871,7 +863,7 @@ export function TestDetails() {
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp"
                                         multiple
-                                        style={{ display: 'none' }}
+                                        className="hidden"
                                         onChange={(e) => {
                                             handlePhotoSelect(e);
                                             setShowPhotoModal(false);
@@ -882,7 +874,7 @@ export function TestDetails() {
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp"
                                         multiple
-                                        style={{ display: 'none' }}
+                                        className="hidden"
                                         onChange={handlePhotoSelect}
                                     />
 
@@ -923,17 +915,11 @@ export function TestDetails() {
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                    <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-2.5 py-2">
-                                                                        <span className="truncate text-xs text-gray-600">
-                                                                            {photo.file_path.includes('/')
-                                                                                ? photo.file_path
-                                                                                    .split('/')
-                                                                                    .pop()
-                                                                                : `Photo ${photo.id}`}
-                                                                        </span>
+                                                                    <div className="flex justify-end border-t border-gray-100 px-2.5 py-2">
                                                                         <button
                                                                             type="button"
-                                                                            className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                            className="text-xs font-semibold text-red-600 hover:text-red-700"
+                                                                            aria-label={`Delete image ${photo.id}`}
                                                                             onClick={() =>
                                                                                 setPhotosToDelete((prev) => [
                                                                                     ...prev,
@@ -941,7 +927,7 @@ export function TestDetails() {
                                                                                 ])
                                                                             }
                                                                         >
-                                                                            Remove
+                                                                            Delete image
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -968,16 +954,14 @@ export function TestDetails() {
                                                                         className="h-full w-full object-cover"
                                                                     />
                                                                 </div>
-                                                                <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-2.5 py-2">
-                                                                    <span className="truncate text-xs text-gray-600">
-                                                                        {preview.file.name}
-                                                                    </span>
+                                                                <div className="flex justify-end border-t border-gray-100 px-2.5 py-2">
                                                                     <button
                                                                         type="button"
-                                                                        className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                        className="text-xs font-semibold text-red-600 hover:text-red-700"
+                                                                        aria-label={`Delete image ${preview.file.name}`}
                                                                         onClick={() => handleRemoveNewPhoto(index)}
                                                                     >
-                                                                        Remove
+                                                                        Delete image
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -991,7 +975,7 @@ export function TestDetails() {
                             </div>
                         </div>
 
-                        <div className="flex flex-col-reverse gap-3 border-t border-gray-100 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+                        <div className="flex flex-col-reverse gap-3 border-t border-gray-100 px-5 py-4 md:flex-row md:justify-end md:px-6">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -1019,7 +1003,7 @@ export function TestDetails() {
                     onClick={() => setShowPhotoModal(false)}
                 >
                     <div
-                        className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.3)]"
+                        className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.3)] md:p-6"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h4 className="text-xl font-bold text-[#111827]">Add Photos</h4>

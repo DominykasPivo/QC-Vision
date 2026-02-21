@@ -181,17 +181,19 @@ export function AppShell() {
 
   useEffect(() => {
     const loadAuditLogs = async () => {
-      try {
-        const data = await fetchAuditLogs();
-        const mapped = data.items.map((log: any) => ({
-          id: log.id,
-          timestamp: log.created_at,
-          event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`,
-        }));
-        setAuditEvents(mapped);
-      } catch (error) {
-        console.error('[Audit] Failed to load audit logs:', error);
-      }
+        try {
+            const data = await fetchAuditLogs();
+
+            const mapped = data.items.map((log: any) => ({
+                id: log.id,
+                timestamp: log.created_at,
+                event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`,
+            }));
+
+            setAuditEvents(mapped);
+        } catch (error) {
+            console.error('[Audit] Failed to load audit logs:', error);
+        }
     };
     loadAuditLogs();
   }, []);
