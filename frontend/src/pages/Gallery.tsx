@@ -18,6 +18,14 @@ const SEVERITY_STYLES: Record<string, { border: string; badge: string }> = {
 
 const NO_DEFECT_BORDER = 'border-emerald-400 border';
 
+const VERIFICATION_STATUSES = ['pending', 'approved', 'rejected'] as const;
+
+const VERIFICATION_DOT: Record<string, { bg: string; title: string }> = {
+    approved: { bg: 'bg-emerald-500', title: 'Approved' },
+    rejected: { bg: 'bg-red-500', title: 'Rejected' },
+    pending:  { bg: 'bg-slate-400', title: 'Pending review' },
+};
+
 type CategoryRecord = { id: number; name: string; is_active: boolean };
 
 function GalleryCard({ photo }: { photo: GalleryPhoto }) {
@@ -37,6 +45,13 @@ function GalleryCard({ photo }: { photo: GalleryPhoto }) {
                 className="h-full w-full object-cover"
                 loading="lazy"
             />
+            {/* Verification status dot */}
+            {photo.verification_status && VERIFICATION_DOT[photo.verification_status] && (
+                <span
+                    className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
+                    title={VERIFICATION_DOT[photo.verification_status].title}
+                />
+            )}
             {photo.defect_count > 0 && (
                 <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white">
                     {photo.defect_count}
@@ -63,6 +78,7 @@ export function Gallery() {
     const [testTypeFilter, setTestTypeFilter] = useState('');
     const [testStatusFilter, setTestStatusFilter] = useState('');
     const [hasDefectsFilter, setHasDefectsFilter] = useState('');
+    const [verificationFilter, setVerificationFilter] = useState('');
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
     // Fetch categories on mount
@@ -85,6 +101,7 @@ export function Gallery() {
                 test_type: testTypeFilter || undefined,
                 test_status: testStatusFilter || undefined,
                 has_defects: hasDefectsFilter ? hasDefectsFilter === 'true' : undefined,
+                verification_status: verificationFilter || undefined,
             });
             setGalleryData(data);
         } catch (err) {
@@ -92,7 +109,7 @@ export function Gallery() {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, severityFilter, categoryFilter, testTypeFilter, testStatusFilter, hasDefectsFilter]);
+    }, [currentPage, severityFilter, categoryFilter, testTypeFilter, testStatusFilter, hasDefectsFilter, verificationFilter]);
 
     useEffect(() => {
         loadGallery();
@@ -101,7 +118,7 @@ export function Gallery() {
     const totalPages = galleryData ? Math.max(1, Math.ceil(galleryData.total / PAGE_SIZE)) : 1;
     const photos = galleryData?.items ?? [];
 
-    const hasActiveFilters = severityFilter || categoryFilter || testTypeFilter || testStatusFilter || hasDefectsFilter;
+    const hasActiveFilters = severityFilter || categoryFilter || testTypeFilter || testStatusFilter || hasDefectsFilter || verificationFilter;
 
     const clearAllFilters = () => {
         setSeverityFilter('');
@@ -109,6 +126,7 @@ export function Gallery() {
         setTestTypeFilter('');
         setTestStatusFilter('');
         setHasDefectsFilter('');
+        setVerificationFilter('');
         setCurrentPage(1);
     };
 
@@ -144,7 +162,7 @@ export function Gallery() {
 
             {/* Desktop filters */}
             <div className="mt-4 hidden md:block">
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
                     <Select
                         value={severityFilter || 'all'}
                         onValueChange={(v) => setFilterAndResetPage(setSeverityFilter)(v === 'all' ? '' : v)}
@@ -216,6 +234,21 @@ export function Gallery() {
                             <SelectItem value="all">All Photos</SelectItem>
                             <SelectItem value="true">With Defects</SelectItem>
                             <SelectItem value="false">Without Defects</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={verificationFilter || 'all'}
+                        onValueChange={(v) => setFilterAndResetPage(setVerificationFilter)(v === 'all' ? '' : v)}
+                    >
+                        <SelectTrigger className={triggerCls}>
+                            <SelectValue placeholder="Verification" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Verifications</SelectItem>
+                            {VERIFICATION_STATUSES.map((s) => (
+                                <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -303,6 +336,17 @@ export function Gallery() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+
+                                    <div className="space-y-3">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Verification</p>
+                                        <Select value={verificationFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setVerificationFilter)(v === 'all' ? '' : v)}>
+                                            <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Verification" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Verifications</SelectItem>
+                                                {VERIFICATION_STATUSES.map((s) => <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             </div>
 
@@ -348,6 +392,11 @@ export function Gallery() {
                     {hasDefectsFilter && (
                         <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
                             {hasDefectsFilter === 'true' ? 'With Defects' : 'Without Defects'}
+                        </span>
+                    )}
+                    {verificationFilter && (
+                        <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                            Verification: {formatEnumLabel(verificationFilter)}
                         </span>
                     )}
                     <Button

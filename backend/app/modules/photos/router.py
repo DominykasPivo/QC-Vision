@@ -35,6 +35,7 @@ async def get_gallery(
     test_type: Optional[str] = Query(default=None),
     test_status: Optional[str] = Query(default=None),
     has_defects: Optional[bool] = Query(default=None),
+    verification_status: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
 ):
     """Get paginated gallery photos with aggregated defect summaries."""
@@ -47,6 +48,7 @@ async def get_gallery(
         test_type=test_type,
         test_status=test_status,
         has_defects=has_defects,
+        verification_status=verification_status,
     )
     return GalleryResponse(
         items=[GalleryPhotoResponse(**item) for item in items],
@@ -192,6 +194,41 @@ async def upload_photo(
         )
 
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@router.patch("/{photo_id}/verification", response_model=PhotoResponse)
+async def update_verification_status(
+    photo_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+):
+    """Update the verification status of a photo (pending, approved, rejected)."""
+    verification_status = payload.get("verification_status")
+    if not verification_status:
+        raise HTTPException(
+            status_code=400, detail="verification_status is required"
+        )
+
+    try:
+        photo = photo_service.update_verification_status(
+            db, photo_id, verification_status
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    log_action(
+        db,
+        action="UPDATE",
+        entity_type="Photo",
+        entity_id=photo_id,
+        username="system",
+        meta={"verification_status": verification_status},
+    )
+
+    return photo
 
 
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -13,6 +13,11 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$ BEGIN
+  CREATE TYPE photo_verification_status AS ENUM ('pending','approved','rejected');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 
 CREATE TABLE IF NOT EXISTS quality_tests (
   id            SERIAL PRIMARY KEY,
@@ -60,7 +65,8 @@ CREATE TABLE IF NOT EXISTS photos (
 
   file_path       TEXT NOT NULL,
   time_stamp      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  analysis_results TEXT
+  analysis_results TEXT,
+  verification_status photo_verification_status NOT NULL DEFAULT 'pending'
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_test_id ON photos(test_id);

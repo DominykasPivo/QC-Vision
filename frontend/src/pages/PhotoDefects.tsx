@@ -18,6 +18,7 @@ import {
   updateDefect,
   updateAnnotation,
   deleteAnnotation,
+  updateVerificationStatus,
   type DefectRecord,
   type PhotoRecord,
 } from '@/lib/api/defects';
@@ -94,12 +95,36 @@ export function PhotoDefects() {
     }
   };
 
+  const loadPhoto = async () => {
+    if (!photoId) return;
+    try {
+      const data = await getPhoto(photoId);
+      setPhoto(data);
+    } catch (error) {
+      console.error('Failed to load photo:', error);
+    }
+  };
+
   useEffect(() => {
     if (!photoId) {
       return;
     }
     loadDefects();
+    loadPhoto();
   }, [photoId]);
+
+  const handleVerification = async (status: string) => {
+    if (!photoId || isSaving) return;
+    setIsSaving(true);
+    try {
+      const updated = await updateVerificationStatus(photoId, status);
+      setPhoto(updated);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to update verification.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!photoId) {
     return (
@@ -347,6 +372,55 @@ export function PhotoDefects() {
       </button>
       <h2 className="page-title">Photo</h2>
       <p className="page-description">Defects linked to this photo.</p>
+
+      {/* Verification status bar */}
+      <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Verification:</span>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ${
+              photo?.verification_status === 'approved'
+                ? 'bg-emerald-100 text-emerald-800'
+                : photo?.verification_status === 'rejected'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-slate-100 text-slate-700'
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                photo?.verification_status === 'approved'
+                  ? 'bg-emerald-500'
+                  : photo?.verification_status === 'rejected'
+                    ? 'bg-red-500'
+                    : 'bg-slate-400'
+              }`}
+            />
+            {photo?.verification_status
+              ? photo.verification_status.charAt(0).toUpperCase() + photo.verification_status.slice(1)
+              : 'Pending'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            className={`btn ${photo?.verification_status === 'approved' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '4px 14px', fontSize: '0.85rem' }}
+            onClick={() => handleVerification(photo?.verification_status === 'approved' ? 'pending' : 'approved')}
+            disabled={isSaving}
+          >
+            {photo?.verification_status === 'approved' ? '✓ Approved' : 'Approve'}
+          </Button>
+          <Button
+            type="button"
+            className={`btn ${photo?.verification_status === 'rejected' ? 'btn-danger' : 'btn-secondary'}`}
+            style={{ padding: '4px 14px', fontSize: '0.85rem' }}
+            onClick={() => handleVerification(photo?.verification_status === 'rejected' ? 'pending' : 'rejected')}
+            disabled={isSaving}
+          >
+            {photo?.verification_status === 'rejected' ? '✗ Rejected' : 'Reject'}
+          </Button>
+        </div>
+      </div>
 
       <Card className="details-section">
         <CardHeader className="p-0">

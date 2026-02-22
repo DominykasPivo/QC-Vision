@@ -21,6 +21,7 @@ class PhotoResponse(BaseModel):
     file_path: str
     time_stamp: datetime
     analysis_results: Optional[str] = None
+    verification_status: str = "pending"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,6 +59,7 @@ class GalleryPhotoResponse(BaseModel):
     defect_count: int
     highest_severity: Optional[str] = None
     category_ids: List[int] = []
+    verification_status: str = "pending"
 
     model_config = ConfigDict(from_attributes=True)
 

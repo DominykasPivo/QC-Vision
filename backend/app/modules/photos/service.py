@@ -166,6 +166,7 @@ class PhotoService:
         test_type: Optional[str] = None,
         test_status: Optional[str] = None,
         has_defects: Optional[bool] = None,
+        verification_status: Optional[str] = None,
     ) -> Tuple[List[dict], int]:
         """Get photos with aggregated defect data for the gallery view."""
         severity_order = case(
@@ -197,6 +198,7 @@ class PhotoService:
                 func.array_agg(distinct(DefectAnnotation.category_id)).label(
                     "category_ids"
                 ),
+                Photo.verification_status,
             )
             .join(Tests, Photo.test_id == Tests.id)
             .outerjoin(Defect, Defect.photo_id == Photo.id)
@@ -207,12 +209,15 @@ class PhotoService:
             query = query.filter(Tests.test_type == test_type)
         if test_status:
             query = query.filter(Tests.status == test_status)
+        if verification_status:
+            query = query.filter(Photo.verification_status == verification_status)
 
         query = query.group_by(
             Photo.id,
             Photo.test_id,
             Photo.file_path,
             Photo.time_stamp,
+            Photo.verification_status,
             Tests.test_type,
             Tests.status,
         )
@@ -253,10 +258,30 @@ class PhotoService:
                     "defect_count": row.defect_count,
                     "highest_severity": row.highest_severity,
                     "category_ids": cat_ids,
+                    "verification_status": row.verification_status,
                 }
             )
 
         return items, total
+
+    def update_verification_status(
+        self, db: Session, photo_id: int, verification_status: str
+    ) -> Photo:
+        """Update the verification status of a photo."""
+        allowed = ("pending", "approved", "rejected")
+        if verification_status not in allowed:
+            raise ValueError(
+                f"Invalid verification status: '{verification_status}'. Must be one of {allowed}"
+            )
+
+        photo = db.query(Photo).filter(Photo.id == photo_id).first()
+        if not photo:
+            return None
+
+        photo.verification_status = verification_status
+        db.commit()
+        db.refresh(photo)
+        return photo
 
 
 photo_service = PhotoService()

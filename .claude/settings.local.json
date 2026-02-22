@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(docker compose up:*)",
+      "Bash(where:*)",
+      "Bash(node --version:*)"
+    ]
+  }
+}
