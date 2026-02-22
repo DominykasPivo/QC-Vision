@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { request } from '@/lib/api/http';
-import { getStoredRole, getStoredUsername } from '@/lib/auth';
+import { useEffect, useMemo, useState } from "react";
+import { request } from "@/lib/api/http";
+import { getStoredRole, getStoredUsername } from "@/lib/auth";
 
 type TestResponse = {
   id: number;
@@ -14,7 +14,11 @@ type TestResponse = {
 };
 
 const getErrorMessage = (e: unknown) =>
-  e instanceof Error ? e.message : typeof e === 'string' ? e : 'Something went wrong';
+  e instanceof Error
+    ? e.message
+    : typeof e === "string"
+      ? e
+      : "Something went wrong";
 
 export function Review() {
   const [tests, setTests] = useState<TestResponse[]>([]);
@@ -22,13 +26,13 @@ export function Review() {
   const [error, setError] = useState<string | null>(null);
 
   const username = useMemo(() => getStoredUsername(), []);
-  const role = useMemo(() => getStoredRole?.() ?? 'user', []);
+  const role = useMemo(() => getStoredRole?.() ?? "user", []);
 
   const headers = useMemo(
     () => ({
-      'Content-Type': 'application/json',
-      'X-User': username || 'system',
-      'X-Role': role || 'user',
+      "Content-Type": "application/json",
+      "X-User": username || "system",
+      "X-Role": role || "user",
     }),
     [username, role],
   );
@@ -37,8 +41,12 @@ export function Review() {
     setLoading(true);
     setError(null);
     try {
-      const res = await request<{ items: TestResponse[] }>('/api/v1/tests/?limit=100');
-      const pending = (res.items ?? []).filter((t) => t.review_status === 'pending');
+      const res = await request<{ items: TestResponse[] }>(
+        "/api/v1/tests/?limit=100",
+      );
+      const pending = (res.items ?? []).filter(
+        (t) => t.review_status === "pending",
+      );
       setTests(pending);
     } catch (e: unknown) {
       setError(getErrorMessage(e));
@@ -54,28 +62,28 @@ export function Review() {
   const approveTest = async (id: number) => {
     try {
       await request<TestResponse>(`/api/v1/tests/${id}/review`, {
-        method: 'POST',
+        method: "POST",
         headers,
-        body: JSON.stringify({ decision: 'approved' }),
+        body: JSON.stringify({ decision: "approved" }),
       });
 
       setTests((prev) => prev.filter((t) => t.id !== id));
     } catch (e: unknown) {
-      alert(getErrorMessage(e) || 'Approve failed');
+      alert(getErrorMessage(e) || "Approve failed");
     }
   };
 
   const rejectTest = async (id: number) => {
     try {
       await request(`/api/v1/tests/${id}/review`, {
-        method: 'POST',
+        method: "POST",
         headers,
-        body: JSON.stringify({ decision: 'rejected' }),
+        body: JSON.stringify({ decision: "rejected" }),
       });
 
       setTests((prev) => prev.filter((t) => t.id !== id));
     } catch (e: unknown) {
-      alert(getErrorMessage(e) || 'Reject failed');
+      alert(getErrorMessage(e) || "Reject failed");
     }
   };
 
@@ -85,7 +93,9 @@ export function Review() {
   return (
     <div className="p-6 max-w-5xl">
       <h2 className="mb-1 text-xl font-semibold">Review</h2>
-      <p className="mt-0 text-sm text-muted-foreground">Pending Tests will be shown here.</p>
+      <p className="mt-0 text-sm text-muted-foreground">
+        Pending Tests will be shown here.
+      </p>
 
       {tests.length === 0 ? (
         <div className="mt-5">No pending tests.</div>
@@ -97,9 +107,13 @@ export function Review() {
               className="border border-border rounded-xl p-5 flex items-center justify-between"
             >
               <div>
-                <div className="text-sm text-muted-foreground">Test #{t.id}</div>
+                <div className="text-sm text-muted-foreground">
+                  Test #{t.id}
+                </div>
 
-                <div className="text-2xl font-bold mt-1 mb-3">Product {t.product_id}</div>
+                <div className="text-2xl font-bold mt-1 mb-3">
+                  Product {t.product_id}
+                </div>
 
                 <div className="flex flex-wrap gap-4">
                   <div>
@@ -112,15 +126,18 @@ export function Review() {
 
                 <div className="flex flex-wrap gap-4 mt-2">
                   <div>
-                    <span className="font-semibold">Requester:</span> {t.requester}
+                    <span className="font-semibold">Requester:</span>{" "}
+                    {t.requester}
                   </div>
                   <div>
-                    <span className="font-semibold">Assigned:</span> {t.assigned_to ?? '—'}
+                    <span className="font-semibold">Assigned:</span>{" "}
+                    {t.assigned_to ?? "—"}
                   </div>
                 </div>
 
                 <div className="mt-2">
-                  <span className="font-semibold">Description:</span> {t.description ?? '—'}
+                  <span className="font-semibold">Description:</span>{" "}
+                  {t.description ?? "—"}
                 </div>
               </div>
 

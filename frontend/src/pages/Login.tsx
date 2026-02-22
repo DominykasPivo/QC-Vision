@@ -100,7 +100,10 @@ export function Login() {
           </p>
 
           <form onSubmit={handleSubmit} className="login-form" noValidate>
-            <label className="text-sm font-semibold text-white/95" htmlFor="username">
+            <label
+              className="text-sm font-semibold text-white/95"
+              htmlFor="username"
+            >
               Username
             </label>
             <Input
