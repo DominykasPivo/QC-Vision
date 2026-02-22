@@ -11,11 +11,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
+const VERIFICATION_DOT: Record<string, { bg: string; title: string }> = {
+    approved: { bg: 'bg-emerald-500', title: 'Approved' },
+    rejected: { bg: 'bg-red-500', title: 'Rejected' },
+    pending:  { bg: 'bg-slate-400', title: 'Pending review' },
+};
+
 type ApiPhoto = {
     id: number;
     test_id: number;
     file_path: string;
     url?: string;
+    verification_status?: 'pending' | 'approved' | 'rejected';
 };
 
 export function TestDetails() {
@@ -520,13 +527,22 @@ export function TestDetails() {
                                                 aria-label={`Open photo ${photo.id}`}
                                             >
                                                 {photo.url ? (
-                                                    <img
-                                                        src={photo.url}
-                                                        alt={`Photo ${photo.id}`}
-                                                        className="h-full w-full object-cover"
-                                                        onLoad={() => console.log(`Image loaded: Photo ${photo.id}`, photo.url)}
-                                                        onError={(e) => console.error(`Image failed to load: Photo ${photo.id}`, photo.url, e)}
-                                                    />
+                                                    <>
+                                                        <img
+                                                            src={photo.url}
+                                                            alt={`Photo ${photo.id}`}
+                                                            className="h-full w-full object-cover"
+                                                            onLoad={() => console.log(`Image loaded: Photo ${photo.id}`, photo.url)}
+                                                            onError={(e) => console.error(`Image failed to load: Photo ${photo.id}`, photo.url, e)}
+                                                        />
+                                                        {/* Verification status dot */}
+                                                        {photo.verification_status && VERIFICATION_DOT[photo.verification_status] && (
+                                                            <span
+                                                                className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
+                                                                title={VERIFICATION_DOT[photo.verification_status].title}
+                                                            />
+                                                        )}
+                                                    </>
                                                 ) : (
                                                     <div className="flex h-full items-center justify-center text-xs font-medium text-slate-500">
                                                         Loading...
@@ -574,6 +590,13 @@ export function TestDetails() {
                                                             alt={`Photo ${photo.id}`}
                                                             className="h-full w-full object-cover"
                                                         />
+                                                        {/* Verification status dot */}
+                                                        {photo.verification_status && VERIFICATION_DOT[photo.verification_status] && (
+                                                            <span
+                                                                className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
+                                                                title={VERIFICATION_DOT[photo.verification_status].title}
+                                                            />
+                                                        )}
                                                         <div className="absolute bottom-2 right-2 rounded-md bg-red-500 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-white">
                                                             {photo.defectCount} defect{photo.defectCount !== 1 ? 's' : ''}
                                                         </div>
