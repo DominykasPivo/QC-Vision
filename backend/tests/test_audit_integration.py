@@ -3,7 +3,6 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from unittest.mock import patch
 
 from app.database import Base, get_db
 from app.main import app
@@ -25,7 +24,7 @@ async def test_create_test_writes_audit_log():
 
     # Create all tables
     Base.metadata.create_all(bind=engine)
-    
+
     # Create a session
     session_factory = sessionmaker(bind=engine)
     db_session = session_factory()
@@ -58,7 +57,7 @@ async def test_create_test_writes_audit_log():
     finally:
         # Manually run shutdown events
         await app.router.shutdown()
-        
+
         # Clean up
         app.dependency_overrides.clear()
         db_session.close()

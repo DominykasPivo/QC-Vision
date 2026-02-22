@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_create_test_writes_audit_log(client):
     """Test that creating a test writes an audit log entry."""
     form = {
@@ -18,7 +15,7 @@ def test_create_test_writes_audit_log(client):
     assert "test" in data
     assert "message" in data
     assert data["message"].startswith("Test created successfully")
-    
+
     # Verify the test data
     test_obj = data["test"]
     assert test_obj["requester"] == "sherifa"
