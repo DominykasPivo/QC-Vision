@@ -68,7 +68,10 @@ class PhotoService:
                 raise ValueError(f"Image too small: {width}x{height} (minimum 10x10)")
             max_dimension = 10000
             if width > max_dimension or height > max_dimension:
-                raise logging.error(
+                logger.error(
+                    f"Image too large: {width}x{height} (maximum {max_dimension}x{max_dimension})"
+                )
+                raise ValueError(
                     f"Image too large: {width}x{height} (maximum {max_dimension}x{max_dimension})"
                 )
 
