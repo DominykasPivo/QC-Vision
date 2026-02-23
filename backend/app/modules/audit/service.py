@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+from uuid import uuid4  
+
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
@@ -22,11 +24,33 @@ USER_ACTION_WHITELIST = {
     "REMOVE_PHOTO",
     "ADD_DEFECT",
     "REMOVE_DEFECT",
+    "TEST_TYPE_CHANGE",
 }
 
-# Actions to exclude as "system noise"
-# In your middleware, GETs map to READ; keeping this here makes it consistent everywhere.
 EXCLUDED_ACTIONS = {"READ"}
+
+
+def _normalize_meta(
+    *,
+    action: str,
+    entity_type: str,
+    entity_id: int,
+    meta: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    
+    m: Dict[str, Any] = dict(meta or {})
+
+    if entity_type == "Test" and isinstance(entity_id, int) and entity_id > 0:
+        m.setdefault("test_id", entity_id)
+
+    if action.endswith("_FAILED"):
+        m.setdefault("user_visible", False)
+        m.setdefault("correlation_id", str(uuid4()))
+
+    if action in EXCLUDED_ACTIONS:
+        m.setdefault("user_visible", False)
+
+    return m
 
 
 def log_action(
@@ -44,12 +68,19 @@ def log_action(
     Designed to NEVER break the main request flow if logging fails.
     """
     try:
+        meta = _normalize_meta(  
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            meta=meta,
+        )
+
         entry = AuditLog(
             action=action,
             entity_type=entity_type,
             entity_id=entity_id,
             username=username,
-            meta=meta or {},
+            meta=meta,
         )
         db.add(entry)
         db.commit()
@@ -112,15 +143,10 @@ def list_test_activity_history(
     Includes:
       - Logs directly on the Test (entity_type="Test", entity_id=test_id)
       - Logs on related entities (e.g., Photo/Defect) that stored test_id in meta["test_id"]
-
-    NOTE: The meta["test_id"] JSON query works best on PostgreSQL.
     """
     q = db.query(AuditLog)
 
-    # Direct logs on the Test entity
     direct = (AuditLog.entity_type == "Test") & (AuditLog.entity_id == test_id)
-
-    # Related logs where test_id is stored in JSON meta (e.g., uploads/photos/defects tied to a test)
     related = AuditLog.meta["test_id"].as_integer() == test_id
 
     q = q.filter(or_(direct, related))
@@ -128,6 +154,11 @@ def list_test_activity_history(
     if user_actions_only:
         q = q.filter(AuditLog.action.in_(USER_ACTION_WHITELIST))
         q = q.filter(~AuditLog.action.in_(EXCLUDED_ACTIONS))
+
+        q = q.filter(
+            (AuditLog.meta["user_visible"].as_boolean() != False)  # noqa: E712
+            | (AuditLog.meta["user_visible"].as_boolean().is_(None))
+        )
 
     total = q.count()
     items = q.order_by(desc(AuditLog.created_at)).offset(offset).limit(limit).all()

@@ -28,8 +28,13 @@ export interface Photo {
 
 export interface AuditEvent {
   id: string;
-  event: string;
   timestamp: string;
+  action?: string;
+  entityType?: string;
+  entityId?: number;
+  username?: string;
+  meta?: Record<string, any>;
+  event: string; 
 }
 
 export const tests: Test[] = [];

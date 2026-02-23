@@ -125,7 +125,7 @@ async def create_test(
                                 "reason": "invalid_content_type",
                                 "filename": photo_file.filename,
                                 "content_type": photo_file.content_type,
-                                "test_id": test.id,
+                                "test_id": test.id,  # already correct ✅
                             },
                         )
                         continue
@@ -150,7 +150,7 @@ async def create_test(
                         meta={
                             "filename": photo_file.filename,
                             "content_type": photo_file.content_type,
-                            "test_id": test.id,
+                            "test_id": test.id,  # ✅ CHANGED: keep test_id to group under test
                             "file_path": getattr(photo, "file_path", None),
                             "source": "tests.create_test",
                         },
@@ -173,7 +173,7 @@ async def create_test(
                         meta={
                             "reason": "server_error",
                             "filename": photo_file.filename,
-                            "test_id": test.id,
+                            "test_id": test.id,  # ✅ keep test_id
                             "error": str(photo_error),
                             "source": "tests.create_test",
                         },
@@ -215,7 +215,6 @@ async def create_test(
 @router.get("/{test_id}", response_model=TestResponse)
 async def get_test(test_id: int, db: Session = Depends(get_db)):
     """Retrieve a specific quality test by ID."""
-
     test = await tests_service.get_test(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
@@ -243,8 +242,63 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
     username = "system"
 
     try:
+        # ✅ CHANGED: fetch current state BEFORE update so we can log meaningful transitions
+        current = await tests_service.get_test(db, test_id)  # ✅ CHANGED
+        if not current:
+            raise HTTPException(status_code=404, detail="Test not found")  # ✅ CHANGED
+
+        before_status = getattr(current, "status", None)  # ✅ CHANGED
+        before_assigned_to = getattr(current, "assigned_to", None)  # ✅ CHANGED
+        before_test_type = getattr(current, "test_type", None)  # ✅ CHANGED
+
         updated = await tests_service.update_test(db, test_id, test_data)
 
+        # ✅ CHANGED: log special user-visible actions first (status/assign/type)
+        after_status = getattr(updated, "status", None)  # ✅ CHANGED
+        after_assigned_to = getattr(updated, "assigned_to", None)  # ✅ CHANGED
+        after_test_type = getattr(updated, "test_type", None)  # ✅ CHANGED
+
+        # STATUS_CHANGE
+        if "status" in test_data and before_status != after_status:  # ✅ CHANGED
+            log_action(
+                db,
+                action="STATUS_CHANGE",  # ✅ CHANGED
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_status, "to": after_status},  # ✅ CHANGED
+            )
+
+        # ASSIGN / UNASSIGN
+        if "assigned_to" in test_data and before_assigned_to != after_assigned_to:  # ✅ CHANGED
+            if after_assigned_to and not before_assigned_to:
+                action = "ASSIGN"  # ✅ CHANGED
+            elif not after_assigned_to and before_assigned_to:
+                action = "UNASSIGN"  # ✅ CHANGED
+            else:
+                action = "ASSIGN"  # reassigned still counts as assign (simple) ✅ CHANGED
+
+            log_action(
+                db,
+                action=action,  # ✅ CHANGED
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_assigned_to, "to": after_assigned_to},  # ✅ CHANGED
+            )
+
+        # TEST_TYPE_CHANGE
+        if "test_type" in test_data and before_test_type != after_test_type:  # ✅ CHANGED
+            log_action(
+                db,
+                action="TEST_TYPE_CHANGE",  # ✅ CHANGED
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_test_type, "to": after_test_type},  # ✅ CHANGED
+            )
+
+        # ✅ CHANGED: keep the generic UPDATE log too (covers description/deadline/etc.)
         log_action(
             db,
             action="UPDATE",
@@ -255,6 +309,9 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
         )
 
         return updated
+
+    except HTTPException:
+        raise  # ✅ CHANGED: preserve status code for 404
 
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

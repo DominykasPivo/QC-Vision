@@ -6,7 +6,6 @@ import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib
 import { logoutUser } from '@/lib/auth';
 import { fetchAuditLogs } from '@/api/audit';
 
-
 export type AppDataContext = {
     tests: Test[];
     testsLoaded: boolean;
@@ -151,12 +150,6 @@ export function AppShell() {
         localStorage.setItem(STORAGE_KEYS.photos, JSON.stringify(safePhotos));
     }, [photos, storageHydrated]);
 
-    //useEffect(() => {
-        //if (!storageHydrated) {
-        //    return;
-        //}
-        //localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify(auditEvents));
-    //}, [auditEvents, storageHydrated]);
 
     useEffect(() => {
         if (!storageHydrated) {
@@ -188,13 +181,10 @@ export function AppShell() {
             console.log('[refreshTests] Raw tests count:', rawTests.length);
             const mapped = rawTests.map((test: ApiTest) => toFrontendTest(test));
             console.log('[refreshTests] Mapped tests count:', mapped.length);
-            
-            // Don't filter by deletedTestIds - the API is the source of truth
-            // If a test exists in the API, it should be shown
+
             setTests(mapped);
             setTestsLoaded(true);
-            
-            // Clear deleted IDs since we're syncing with API
+
             if (deletedTestIds.length > 0) {
                 console.log('[refreshTests] Clearing deleted test IDs after refresh');
                 setDeletedTestIds([]);
@@ -207,25 +197,64 @@ export function AppShell() {
     }, [deletedTestIds]);
 
     useEffect(() => {
-    const loadAuditLogs = async () => {
-        try {
-            const data = await fetchAuditLogs();
+        const loadAuditLogs = async () => {
+            try {
+                const data = await fetchAuditLogs();
 
-            const mapped = data.items.map((log: any) => ({
-                id: log.id,
-                timestamp: log.created_at,
-                event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`,
-            }));
+                const formatAuditEventText = (log: any, testId: number) => { 
+                    if (log.action === 'STATUS_CHANGE' && log.meta?.from !== undefined) { 
+                        return `Test ${testId}: Status changed: ${log.meta.from} → ${log.meta.to}`; 
+                    }
+                    if (log.action === 'ASSIGN') { 
+                        return `Test ${testId}: Assigned: ${log.meta?.from ?? 'none'} → ${log.meta?.to ?? 'none'}`; 
+                    }
+                    if (log.action === 'UNASSIGN') { 
+                        return `Test ${testId}: Unassigned: ${log.meta?.from ?? 'none'} → none`; 
+                    }
+                    if (log.action === 'TEST_TYPE_CHANGE' && log.meta?.from !== undefined) { 
+                        return `Test ${testId}: Test type changed: ${log.meta.from} → ${log.meta.to}`; 
+                    }
+                    if (log.action === 'UPLOAD') { 
+                        return `Test ${testId}: Uploaded Photo${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`; // ✅ CHANGED
+                    }
+                    if (log.action === 'UPDATE') { 
+                        const fields = Array.isArray(log.meta?.updated_fields) ? log.meta.updated_fields : null; 
+                        return fields?.length
+                            ? `Test ${testId}: Updated fields: ${fields.join(', ')}` 
+                            : `Test ${testId}: UPDATE ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`; // ✅ CHANGED
+                    }
 
-            setAuditEvents(mapped);
-        } catch (error) {
-            console.error('[Audit] Failed to load audit logs:', error);
-        }
-    };
+                    return `Test ${testId}: ${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''} by ${log.username ?? 'system'}`; 
+                };
 
-    loadAuditLogs();
-}, []);
+                const mapped = data.items
+                    .filter((log: any) => log?.meta?.user_visible !== false) 
+                    .map((log: any) => {
+                        const testId =
+                            log.entity_type === 'Test'
+                                ? log.entity_id
+                                : typeof log?.meta?.test_id === 'number'
+                                    ? log.meta.test_id
+                                    : null; 
 
+                        if (!testId) return null; 
+
+                        return {
+                            id: log.id,
+                            timestamp: log.created_at,
+                            event: formatAuditEventText(log, testId), 
+                        };
+                    })
+                    .filter(Boolean);
+
+                setAuditEvents(mapped as any); 
+            } catch (error) {
+                console.error('[Audit] Failed to load audit logs:', error);
+            }
+        };
+
+        loadAuditLogs();
+    }, []);
 
     useEffect(() => {
         let isActive = true;
@@ -295,7 +324,6 @@ export function AppShell() {
         [tests, testsLoaded, photos, auditEvents, refreshTests],
     );
 
-    // Reusable nav items data
     const navItems = [
         {
             to: '/tests',
