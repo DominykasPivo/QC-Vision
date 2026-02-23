@@ -20,6 +20,10 @@ class Tests(Base):
     created_at = Column(
         "created_at", DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
+    review_status = Column(String(20), nullable=False, default="pending")
+    reviewed_by = Column(String(100), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    review_comment = Column(Text, nullable=True)
     updated_at = Column(
         "updated_at",
         DateTime(timezone=True),

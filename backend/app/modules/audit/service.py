@@ -12,6 +12,35 @@ from .models import AuditLog
 logger = logging.getLogger("backend_audit_service")
 
 
+def log_audit_event(
+    db: Session,
+    audit_log_create: Any,
+) -> None:
+    """
+    Log an audit event from middleware.
+
+    Extracts basic fields from AuditLogCreate and logs them.
+    Designed to never break the request flow if logging fails.
+    """
+    try:
+        log_action(
+            db,
+            action=audit_log_create.action,
+            entity_type=audit_log_create.entity_type,
+            entity_id=audit_log_create.entity_id,
+            username=audit_log_create.actor_user_id or "system",
+            meta={
+                "method": getattr(audit_log_create, "method", None),
+                "path": getattr(audit_log_create, "path", None),
+                "status_code": getattr(audit_log_create, "status_code", None),
+                "ip_address": getattr(audit_log_create, "ip_address", None),
+                "user_agent": getattr(audit_log_create, "user_agent", None),
+            },
+        )
+    except Exception:
+        logger.exception("Failed to log audit event")
+
+
 def log_action(
     db: Session,
     *,

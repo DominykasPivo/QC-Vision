@@ -1,6 +1,6 @@
 // Mock data for QC Vision MVP
 
-import type { TestStatus, TestType } from '../lib/db-constants';
+import type { TestStatus, TestType } from "../lib/db-constants";
 
 export interface Test {
   id: string;

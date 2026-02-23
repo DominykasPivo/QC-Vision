@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.modules.audit.service import log_action
+from app.security import require_reviewer
 
 from .schemas import (
     AnnotationCreate,
@@ -13,6 +15,7 @@ from .schemas import (
     CategoryResponse,
     DefectCreate,
     DefectResponse,
+    DefectReviewRequest,
     DefectUpdate,
 )
 from .service import defects_service
@@ -50,6 +53,38 @@ async def create_defect(
 async def list_defects(photo_id: int, db: Session = Depends(get_db)):
     """Get all defects for a specific photo."""
     return await defects_service.list_defects_for_photo(db, photo_id)
+
+
+@router.post(
+    "/{defect_id}/review", response_model=DefectResponse
+)  # use your actual response model name
+async def review_defect(
+    defect_id: int,
+    payload: DefectReviewRequest,
+    db: Session = Depends(get_db),
+    actor=Depends(require_reviewer),
+):
+    try:
+        updated = await defects_service.review_defect(
+            db=db,
+            defect_id=defect_id,
+            decision=payload.decision,
+            reviewer=actor["username"],
+            comment=payload.comment,
+        )
+
+        log_action(
+            db,
+            action="REVIEW",
+            entity_type="Defect",
+            entity_id=defect_id,
+            username=actor["username"],
+            meta={"decision": payload.decision, "comment": payload.comment},
+        )
+        return updated
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/{defect_id}", response_model=DefectResponse)

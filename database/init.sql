@@ -13,6 +13,15 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$ BEGIN
+  CREATE TYPE review_status AS ENUM ('pending','approved','rejected');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE role AS ENUM ('admin','user','reviewer');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS quality_tests (
   id            SERIAL PRIMARY KEY,
@@ -20,11 +29,17 @@ CREATE TABLE IF NOT EXISTS quality_tests (
 
   test_type     test_type NOT NULL,
   requester     TEXT,
-  assigned_to  TEXT,
-  description  TEXT,
+  assigned_to   TEXT,
+  description   TEXT,
 
   status        test_status NOT NULL DEFAULT 'open',
-  deadline_at TIMESTAMPTZ,
+  deadline_at   TIMESTAMPTZ,
+
+  -- review fields
+  review_status  TEXT NOT NULL DEFAULT 'pending',
+  reviewed_by    TEXT,
+  reviewed_at    TIMESTAMPTZ,
+  review_comment TEXT,
 
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -34,6 +49,9 @@ CREATE TABLE IF NOT EXISTS quality_tests (
 CREATE INDEX IF NOT EXISTS idx_quality_tests_status    ON quality_tests(status);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_deadline  ON quality_tests(deadline_at);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_created   ON quality_tests(created_at);
+CREATE INDEX IF NOT EXISTS idx_quality_tests_review_status ON quality_tests(review_status);
+CREATE INDEX IF NOT EXISTS idx_quality_tests_reviewed_by ON quality_tests(reviewed_by);
+
 
 
 --updates the updated_at field automatically 
@@ -83,20 +101,28 @@ VALUES
 ON CONFLICT (name) DO NOTHING;
 
 
-
 CREATE TABLE IF NOT EXISTS defects (
   id          SERIAL PRIMARY KEY,
 
-  -- one photo can have multiple defects
   photo_id    INT NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
 
   description TEXT,
   severity    defect_severity NOT NULL DEFAULT 'low',
+
+  -- review fields
+  review_status  TEXT NOT NULL DEFAULT 'pending',
+  reviewed_by    TEXT,
+  reviewed_at    TIMESTAMPTZ,
+  review_comment TEXT,
+
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+
 CREATE INDEX IF NOT EXISTS idx_defects_photo_id   ON defects(photo_id);
 CREATE INDEX IF NOT EXISTS idx_defects_severity   ON defects(severity);
+CREATE INDEX IF NOT EXISTS idx_defects_review_status ON defects(review_status);
+CREATE INDEX IF NOT EXISTS idx_defects_reviewed_by ON defects(reviewed_by);
 
 
 CREATE TABLE IF NOT EXISTS defect_annotations (
@@ -135,3 +161,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action     ON audit_logs(action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity     ON audit_logs(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_username   ON audit_logs(username);
+
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  role TEXT NOT NULL DEFAULT 'user'  -- user|reviewer|admin
+);
