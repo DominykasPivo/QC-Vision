@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
+import type { AppDataContext } from "@/components/layout/AppShell";
 import { request } from "@/lib/api/http";
 import { getStoredRole, getStoredUsername } from "@/lib/auth";
+import type { ReviewStatus } from "@/lib/db-constants";
 
 type TestResponse = {
   id: number;
@@ -11,6 +14,9 @@ type TestResponse = {
   description: string | null;
   status: string;
   review_status: string; // "pending" | "approved" | "rejected"
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  review_comment?: string | null;
 };
 
 const getErrorMessage = (e: unknown) =>
@@ -21,6 +27,7 @@ const getErrorMessage = (e: unknown) =>
       : "Something went wrong";
 
 export function Review() {
+  const { updateTest } = useOutletContext<AppDataContext>();
   const [tests, setTests] = useState<TestResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +68,24 @@ export function Review() {
 
   const approveTest = async (id: number) => {
     try {
-      await request<TestResponse>(`/api/v1/tests/${id}/review`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ decision: "approved" }),
+      const response = await request<TestResponse>(
+        `/api/v1/tests/${id}/review`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ decision: "approved" }),
+        },
+      );
+
+      // Update the test in the context with the new review status
+      updateTest(String(id), {
+        review_status: response.review_status as ReviewStatus,
+        reviewed_by: response.reviewed_by,
+        reviewed_at: response.reviewed_at,
+        review_comment: response.review_comment,
       });
 
+      // Remove from pending list
       setTests((prev) => prev.filter((t) => t.id !== id));
     } catch (e: unknown) {
       alert(getErrorMessage(e) || "Approve failed");
@@ -75,12 +94,24 @@ export function Review() {
 
   const rejectTest = async (id: number) => {
     try {
-      await request(`/api/v1/tests/${id}/review`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ decision: "rejected" }),
+      const response = await request<TestResponse>(
+        `/api/v1/tests/${id}/review`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ decision: "rejected" }),
+        },
+      );
+
+      // Update the test in the context with the new review status
+      updateTest(String(id), {
+        review_status: response.review_status as ReviewStatus,
+        reviewed_by: response.reviewed_by,
+        reviewed_at: response.reviewed_at,
+        review_comment: response.review_comment,
       });
 
+      // Remove from pending list
       setTests((prev) => prev.filter((t) => t.id !== id));
     } catch (e: unknown) {
       alert(getErrorMessage(e) || "Reject failed");

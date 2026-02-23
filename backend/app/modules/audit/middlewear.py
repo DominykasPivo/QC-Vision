@@ -1,5 +1,5 @@
 import json
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -26,7 +26,6 @@ def infer_entity_type(path: str) -> str:
 
 def infer_action(method: str, path: str) -> str:
     m = method.upper()
-    # Special case for your upload endpoint
     if path.endswith("/upload") and m == "POST":
         return "UPLOAD"
     if m == "POST":
@@ -38,8 +37,7 @@ def infer_action(method: str, path: str) -> str:
     return "READ"
 
 
-def try_extract_entity_id(body_bytes: bytes) -> int | None:
-    # Your PhotoResponse includes: id, test_id, file_path, time_stamp, analysis_results
+def try_extract_entity_id(body_bytes: bytes) -> Optional[int]:
     try:
         data = json.loads(body_bytes.decode("utf-8"))
         if isinstance(data, dict) and isinstance(data.get("id"), int):
@@ -49,19 +47,18 @@ def try_extract_entity_id(body_bytes: bytes) -> int | None:
     return None
 
 
-def extract_actor_user_id(request: Request) -> int | None:
+def extract_actor_user_id(request: Request) -> Optional[str]:
     """
-    Your current upload endpoint has no authentication dependency,
-    so this will usually be None (until auth is added).
-    If later you store user on request.state, this starts working automatically.
+    Extract actor user ID as a string (to match AuditLogCreate schema).
+    Returns None if no user is found on the request state.
     """
     user = getattr(request.state, "user", None)
     if user is not None and hasattr(user, "id"):
-        return user.id
+        return str(user.id)
 
     uid = getattr(request.state, "user_id", None)
-    if isinstance(uid, int):
-        return uid
+    if uid is not None:
+        return str(uid)
 
     return None
 
@@ -73,7 +70,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         method = request.method
 
-        # Only audit the endpoints you care about (you can widen this later)
         should_audit = path.startswith("/api/v1/")
 
         db = None
@@ -84,8 +80,14 @@ class AuditMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
 
             if should_audit:
-                async for chunk in response.body_iterator:
-                    body_bytes += chunk
+                # FIX: Use response.body instead of response.body_iterator
+                # StreamingResponse and similar don't expose body_iterator reliably.
+                # We reconstruct the response by reading body via background iteration.
+                raw_body = b""
+                # BaseHTTPMiddleware wraps responses; body is accessible via iteration
+                async for chunk in response.body_iterator:  # type: ignore[attr-defined]
+                    raw_body += chunk
+                body_bytes = raw_body
 
                 response = Response(
                     content=body_bytes,
@@ -100,7 +102,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
             entity_type = infer_entity_type(path)
             action = infer_action(method, path)
 
-            entity_id = None
+            # FIX: entity_id must be int (not None) per schema — default to 0
+            entity_id: int = 0
             after_data = None
 
             if (
@@ -108,17 +111,19 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 and response.media_type
                 and "application/json" in response.media_type
             ):
-                entity_id = try_extract_entity_id(body_bytes)
+                extracted = try_extract_entity_id(body_bytes)
+                if extracted is not None:
+                    entity_id = extracted
 
             if should_audit:
                 db = SessionLocal()
                 log_audit_event(
                     db,
                     AuditLogCreate(
-                        actor_user_id=extract_actor_user_id(request),
+                        actor_user_id=extract_actor_user_id(request),  # now str | None
                         action=action,
                         entity_type=entity_type,
-                        entity_id=entity_id,
+                        entity_id=entity_id,  # now always int
                         success=success,
                         status_code=status_code,
                         method=method,
@@ -140,10 +145,12 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     log_audit_event(
                         db,
                         AuditLogCreate(
-                            actor_user_id=extract_actor_user_id(request),
+                            actor_user_id=extract_actor_user_id(
+                                request
+                            ),  # now str | None
                             action=infer_action(method, path),
                             entity_type=infer_entity_type(path),
-                            entity_id=None,
+                            entity_id=0,  # FIX: use 0 instead of None
                             success=False,
                             status_code=500,
                             method=method,

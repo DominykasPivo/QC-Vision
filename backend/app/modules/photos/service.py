@@ -32,8 +32,8 @@ class PhotoService:
     def __init__(self):
         self.storage = PhotoStorage()
 
-    async def validate_photo(self, file, filename) -> tuple:
-        """Validate photo file (size, format, integrity)."""
+    async def validate_photo(self, file: BinaryIO, filename: str) -> Image.Image:
+        """Validate photo file (size, format, integrity). Returns a PIL Image."""
         try:
             # 1. Check file size BEFORE opening
             file.seek(0, 2)  # Seek to end
@@ -83,10 +83,10 @@ class PhotoService:
                 f"Validated photo: {filename} ({img.format}, {width}x{height}, {file_size} bytes)"
             )
 
+            # FIX: Return Image.Image explicitly (was typed as `tuple` by mypy due to missing annotation)
             return img
 
         except ValueError:
-            # Re-raise validation errors
             raise
         except Exception as e:
             logger.error(f"Photo validation failed: {str(e)}")
@@ -98,13 +98,11 @@ class PhotoService:
         """Process image: resize if too large, convert to RGB."""
         width, height = image.size
 
-        # Resize if too large
         if width > max_dimension or height > max_dimension:
             ratio = min(max_dimension / width, max_dimension / height)
             new_size = (int(width * ratio), int(height * ratio))
             image = image.resize(new_size, Image.Resampling.LANCZOS)
 
-        # Convert to RGB for JPEG compatibility
         if image.mode in ("RGBA", "LA", "P"):
             background = Image.new("RGB", image.size, (255, 255, 255))
             if image.mode == "P":
@@ -128,16 +126,18 @@ class PhotoService:
 
     async def upload_photo(
         self, db: Session, file: BinaryIO, filename: str, test_id: int
-    ):
+    ) -> Photo:
         """
         Upload and process a photo for a quality test.
 
         Validates the photo, processes it (resize, format conversion),
         uploads to MinIO storage, and saves metadata to database.
         """
-        img = await self.validate_photo(file, filename)
+        # FIX: validate_photo now correctly typed to return Image.Image
+        img: Image.Image = await self.validate_photo(file, filename)
 
-        processed = await self.process_image(img)
+        # FIX: process_image receives Image.Image (not tuple) — types now match
+        processed: Image.Image = await self.process_image(img)
 
         photo_id = str(uuid4())
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -238,7 +238,10 @@ class PhotoService:
 
         offset = (page - 1) * page_size
         results = (
-            query.order_by(Photo.time_stamp.desc()).offset(offset).limit(page_size).all()
+            query.order_by(Photo.time_stamp.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
         )
 
         items = []

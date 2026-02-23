@@ -381,7 +381,9 @@ npm run lint:spacing      # Custom spacing rules
 npx tsc --noEmit         # TypeScript type checking
 npm run build            # Build for production
 npm audit                # Security vulnerabilities
+#npm audit reports vulnerabilities, could be fixed by --focrce but could lead to more problems so ignored for now
 ```
+
 
 **All frontend checks in one command:**
 ```bash

@@ -1,6 +1,6 @@
 // Mock data for QC Vision MVP
 
-import type { TestStatus, TestType } from "../lib/db-constants";
+import type { TestStatus, TestType, ReviewStatus } from "../lib/db-constants";
 
 export interface Test {
   id: string;
@@ -16,6 +16,10 @@ export interface Test {
   status: TestStatus;
   createdAt?: string | null;
   updatedAt?: string | null;
+  review_status?: ReviewStatus;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  review_comment?: string | null;
 }
 
 export interface Photo {

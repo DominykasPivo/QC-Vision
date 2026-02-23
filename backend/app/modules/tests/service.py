@@ -109,7 +109,7 @@ class TestsService:
         for p in photos:
             try:
                 if getattr(p, "file_path", None):
-                    await photo_storage.delete_photo(p.file_path)
+                    await photo_storage.delete_photo(str(p.file_path))
             except Exception as e:
                 logger.warning(
                     f"Failed to delete from storage {getattr(p, 'file_path', None)}: {e}"
@@ -138,21 +138,31 @@ class TestsService:
 
         if decision_norm in ("approved", "approve"):
             if hasattr(test, "review_status"):
-                test.review_status = "approved"
+                test.review_status = "approved"  # type: ignore
             if hasattr(test, "reviewed_by"):
-                test.reviewed_by = reviewer
+                test.reviewed_by = reviewer  # type: ignore
             if hasattr(test, "reviewed_at"):
-                test.reviewed_at = datetime.utcnow()
+                test.reviewed_at = datetime.utcnow()  # type: ignore
             if hasattr(test, "review_comment"):
-                test.review_comment = comment
+                test.review_comment = comment  # type: ignore
 
             db.commit()
             db.refresh(test)
             return test
 
         if decision_norm in ("rejected", "reject"):
-            await self.delete_test(db, test_id)
-            return {"detail": "Test rejected and removed"}
+            if hasattr(test, "review_status"):
+                test.review_status = "rejected"  # type: ignore
+            if hasattr(test, "reviewed_by"):
+                test.reviewed_by = reviewer  # type: ignore
+            if hasattr(test, "reviewed_at"):
+                test.reviewed_at = datetime.utcnow()  # type: ignore
+            if hasattr(test, "review_comment"):
+                test.review_comment = comment  # type: ignore
+
+            db.commit()
+            db.refresh(test)
+            return test
 
         raise HTTPException(
             status_code=400,

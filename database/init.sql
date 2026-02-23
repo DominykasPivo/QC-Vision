@@ -13,10 +13,6 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$ BEGIN
-  CREATE TYPE review_status AS ENUM ('pending','approved','rejected');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
 
 DO $$ BEGIN
   CREATE TYPE role AS ENUM ('admin','user','reviewer');

@@ -12,10 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
 
-import {
-  DEFECT_SEVERITIES,
-  formatEnumLabel,
-} from "@/lib/db-constants";
+import { DEFECT_SEVERITIES, formatEnumLabel } from "@/lib/db-constants";
 import {
   fetchGallery,
   type GalleryPhoto,
@@ -37,10 +34,7 @@ type CategoryRecord = {
 };
 
 /* ---------- Severity UI styles ---------- */
-const SEVERITY_STYLES: Record<
-  string,
-  { border: string; badge: string }
-> = {
+const SEVERITY_STYLES: Record<string, { border: string; badge: string }> = {
   critical: {
     border: "border-red-600 border-2",
     badge: "bg-red-200 text-red-900",
@@ -64,16 +58,16 @@ const NO_DEFECT_BORDER = "border-emerald-400 border";
 /* ---------- Card Component ---------- */
 function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
   const style = photo.highest_severity
-    ? SEVERITY_STYLES[photo.highest_severity] ?? {
+    ? (SEVERITY_STYLES[photo.highest_severity] ?? {
         border: NO_DEFECT_BORDER,
         badge: "",
-      }
+      })
     : { border: NO_DEFECT_BORDER, badge: "" };
 
   return (
     <Link
       to={`/photos/${photo.id}`}
-      className={`gallery-item relative overflow-hidden rounded-lg ${style.border}`}
+      className={`relative aspect-square overflow-hidden rounded-xl ${style.border}`}
       style={{ backgroundColor: "#1f2937" }}
     >
       <img
@@ -102,8 +96,7 @@ function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
 
 /* ---------- Main Component ---------- */
 export function Gallery() {
-  const [galleryData, setGalleryData] =
-    useState<GalleryResponse | null>(null);
+  const [galleryData, setGalleryData] = useState<GalleryResponse | null>(null);
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -128,9 +121,7 @@ export function Gallery() {
         page: currentPage,
         page_size: PAGE_SIZE,
         severity: severityFilter || undefined,
-        category_id: categoryFilter
-          ? Number(categoryFilter)
-          : undefined,
+        category_id: categoryFilter ? Number(categoryFilter) : undefined,
       });
 
       setGalleryData(data);
@@ -150,8 +141,7 @@ export function Gallery() {
     ? Math.max(1, Math.ceil(galleryData.total / PAGE_SIZE))
     : 1;
 
-  const photos =
-    (galleryData?.items as GalleryPhotoExtended[]) ?? [];
+  const photos = (galleryData?.items as GalleryPhotoExtended[]) ?? [];
 
   const hasActiveFilters = severityFilter || categoryFilter;
 
@@ -202,9 +192,7 @@ export function Gallery() {
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">
-                All Categories
-              </SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={String(c.id)}>
                   {c.name}
@@ -226,7 +214,8 @@ export function Gallery() {
         </p>
       ) : (
         <>
-          <div className="gallery-grid mt-4">
+          {/* FIX: Replaced legacy "gallery-grid" class with Tailwind grid utilities */}
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {photos.map((photo) => (
               <GalleryCard key={photo.id} photo={photo} />
             ))}
