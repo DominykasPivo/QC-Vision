@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Filter } from "lucide-react";
+import { ArrowLeft, Check, Filter } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,8 @@ import { Pagination } from "@/components/ui/pagination";
 
 import {
   DEFECT_SEVERITIES,
+  TEST_STATUSES,
+  TEST_TYPES,
   formatEnumLabel,
 } from "@/lib/db-constants";
 import {
@@ -65,39 +67,17 @@ const SEVERITY_STYLES: Record<
   },
 };
 
-const NO_DEFECT_BORDER = "border-emerald-400 border";
-
 /* ---------- Card Component ---------- */
 function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
-  const style = photo.highest_severity
-    ? SEVERITY_STYLES[photo.highest_severity] ?? {
-        border: NO_DEFECT_BORDER,
-        badge: "",
-      }
-    : { border: NO_DEFECT_BORDER, badge: "" };
+    const style = photo.highest_severity
+        ? SEVERITY_STYLES[photo.highest_severity] ?? { border: NO_DEFECT_BORDER, badge: '' }
+        : { border: NO_DEFECT_BORDER, badge: '' };
 
-  return (
-    <Link
-      to={`/photos/${photo.id}`}
-      className={`gallery-item relative overflow-hidden rounded-lg ${style.border}`}
-      style={{ backgroundColor: "#1f2937" }}
-    >
-      <img
-        src={`/api/v1/photos/${photo.id}/image`}
-        alt={`Photo ${photo.id}`}
-        className="h-full w-full object-cover"
-        loading="lazy"
-      />
-
-      {photo.defect_count && photo.defect_count > 0 && (
-        <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white">
-          {photo.defect_count}
-        </span>
-      )}
-
-      {photo.highest_severity && (
-        <span
-          className={`absolute bottom-1 right-1 rounded-full px-1.5 py-0.5 text-xs font-semibold ${style.badge}`}
+    return (
+        <Link
+            to={`/photos/${photo.id}`}
+            className={`gallery-item relative overflow-hidden rounded-lg ${style.border}`}
+            style={{ backgroundColor: '#1f2937' }}
         >
             <img
                 src={`/api/v1/photos/${photo.id}/image`}
@@ -112,7 +92,7 @@ function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
                     title={VERIFICATION_DOT[photo.verification_status].title}
                 />
             )}
-            {photo.defect_count > 0 && (
+            {photo.defect_count && photo.defect_count > 0 && (
                 <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white">
                     {photo.defect_count}
                 </span>
@@ -495,32 +475,5 @@ export function Gallery() {
                 </>
             )}
         </div>
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <p className="mt-6">Loading photos...</p>
-      ) : photos.length === 0 ? (
-        <p className="mt-6">
-          {hasActiveFilters
-            ? "No photos match the selected filters."
-            : "No photos yet."}
-        </p>
-      ) : (
-        <>
-          <div className="gallery-grid mt-4">
-            {photos.map((photo) => (
-              <GalleryCard key={photo.id} photo={photo} />
-            ))}
-          </div>
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </>
-      )}
-    </div>
-  );
+    );
 }
