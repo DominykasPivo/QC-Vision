@@ -1,11 +1,25 @@
-import { useRef, useState, type FormEvent } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatEnumLabel, TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '@/lib/db-constants';
-import type { AppDataContext } from '../components/layout/AppShell';
-import { getStoredUsername } from '@/lib/auth';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  formatEnumLabel,
+  TEST_STATUSES,
+  TEST_TYPES,
+  type TestStatus,
+  type TestType,
+} from "@/lib/db-constants";
+import type { AppDataContext } from "../components/layout/AppShell";
+import { getStoredUsername } from "@/lib/auth";
+import { spacing } from "@/lib/ui/spacing";
+import { cn } from "@/lib/utils";
 
 export function CreateTest() {
     const navigate = useNavigate();
@@ -359,152 +373,95 @@ console.log('Test created:', result);
                         }
                         disabled={isLoading}
                     >
-                        <SelectTrigger id="status" className="form-select">
-                            <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {TEST_STATUSES.map((status) => (
-                                <SelectItem key={status} value={status}>
-                                    {formatEnumLabel(status)}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="form-group">
-                    <label className="form-label" htmlFor="photo-upload">
-                        Photos (Optional)
-                    </label>
-                    <div className="upload-card">
-                        <div className="upload-card-inner">
-                            <div className="upload-header">
-                                <svg className="upload-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path
-                                        d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                    />
-                                    <circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                                </svg>
-                                <div>
-                                    <div className="upload-title">Upload photos for this test</div>
-                                    <div className="upload-helper" id="photo-upload-help">
-                                        PNG/JPG, up to {MAX_PHOTOS} files
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="upload-actions">
-                                <Button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={handlePhotoButtonClick}
-                                    disabled={isLoading}
-                                >
-                                    {isMobile ? '📷 Add Photos' : 'Choose images'}
-                                </Button>
-                                <span className="upload-helper">
-                                    Selected {selectedPhotos.length} of {MAX_PHOTOS}
-                                </span>
-                            </div>
-                            {/* Hidden inputs */}
-                            <input
-                                ref={cameraInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                capture="environment"
-                                multiple
-                                className="upload-input"
-                                onChange={handlePhotoSelect}
-                                disabled={isLoading}
-                            />
-                            <input
-                                ref={galleryInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                multiple
-                                className="upload-input"
-                                onChange={handlePhotoSelect}
-                                disabled={isLoading}
-                            />
-                            <input
-                                ref={desktopInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                multiple
-                                className="upload-input"
-                                onChange={handlePhotoSelect}
-                                disabled={isLoading}
-                            />
-                            {selectedPhotos.length > 0 && (
-                                <div className="upload-list" aria-live="polite">
-                                    {selectedPhotos.map((file, index) => (
-                                        <div key={`${file.name}-${file.lastModified}-${index}`} className="upload-item">
-                                            <span className="upload-file-name">{file.name}</span>
-                                            <button
-                                                type="button"
-                                                className="upload-remove"
-                                                onClick={() => handleRemovePhoto(index)}
-                                                aria-label={`Remove ${file.name}`}
-                                                disabled={isLoading}
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                      <div className="aspect-square bg-slate-100">
+                        <img
+                          src={preview.url}
+                          alt={preview.file.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="border-t border-slate-100 p-2">
+                        <button
+                          type="button"
+                          className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200"
+                          onClick={() => handleRemovePhoto(index)}
+                          aria-label={`Remove image ${preview.file.name}`}
+                          disabled={isLoading}
+                        >
+                          Remove image
+                        </button>
+                      </div>
                     </div>
+                  ))}
                 </div>
+              )}
+            </div>
 
-                <Button type="submit" className="btn btn-primary btn-block" disabled={isLoading}>
-                    {isLoading ? 'Creating...' : 'Create Test'}
-                </Button>
-            </form>
-
-            {showToast && (
-                <div className="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-6 py-3 rounded shadow-lg">
-                    ✓ Test created successfully! Redirecting...
-                </div>
-            )}
-
-            {showPhotoModal && (
-                <div className="modal-overlay flex items-center justify-center" onClick={() => setShowPhotoModal(false)}>
-                    <div className="modal-content delete-confirm" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '300px' }}>
-                        <div className="delete-confirm__title">Add Photos</div>
-                        <div className="delete-confirm__body">Choose how to add photos:</div>
-                        <div className="flex flex-col gap-2" style={{ marginTop: '16px' }}>
-                            <Button
-                                type="button"
-                                className="btn btn-primary btn-block"
-                                onClick={() => {
-                                    cameraInputRef.current?.click();
-                                }}
-                            >
-                                📷 Take Photo
-                            </Button>
-                            <Button
-                                type="button"
-                                className="btn btn-secondary btn-block"
-                                onClick={() => {
-                                    galleryInputRef.current?.click();
-                                }}
-                            >
-                                🖼️ Choose from Gallery
-                            </Button>
-                            <Button
-                                type="button"
-                                className="btn btn-secondary btn-block"
-                                onClick={() => setShowPhotoModal(false)}
-                            >
-                                Cancel
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <div className={spacing.actionRow}>
+              <Button
+                type="submit"
+                density="spacious"
+                className="h-16 w-full rounded-3xl bg-[#2563eb] text-lg font-bold text-white shadow-[0_14px_28px_rgba(37,99,235,0.35)] hover:bg-[#1d4ed8] focus-visible:ring-4 focus-visible:ring-[#2563eb]/30 focus-visible:ring-offset-0"
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating..." : "Create Test"}
+              </Button>
+            </div>
+          </form>
         </div>
-    );
+      </div>
+
+      {showToast && (
+        <div className="fixed bottom-[calc(var(--nav-height)+1rem)] left-4 right-4 z-[210] rounded-xl border border-green-300 bg-green-100 px-6 py-3 text-center text-sm font-medium text-green-700 shadow-lg sm:left-auto sm:right-6 sm:max-w-sm">
+          Test created successfully! Redirecting...
+        </div>
+      )}
+
+      {showPhotoModal && (
+        <div
+          className="fixed inset-0 z-[220] flex items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
+          onClick={() => setShowPhotoModal(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.3)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-slate-900">Add Photos</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Choose how to add photos:
+            </p>
+            <div className="mt-4 flex flex-col gap-2.5">
+              <Button
+                type="button"
+                className="h-11 rounded-xl bg-[#2563eb] font-semibold text-white hover:bg-[#1d4ed8]"
+                onClick={() => {
+                  cameraInputRef.current?.click();
+                }}
+              >
+                Take Photo
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl border-slate-300 font-semibold text-slate-700 hover:bg-slate-100"
+                onClick={() => {
+                  galleryInputRef.current?.click();
+                }}
+              >
+                Choose from Gallery
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl border-slate-300 font-semibold text-slate-600 hover:bg-slate-100"
+                onClick={() => setShowPhotoModal(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

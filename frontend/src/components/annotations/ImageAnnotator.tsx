@@ -1,7 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Stage, Layer, Image as KonvaImage, Circle, Rect, Line, Arrow } from 'react-konva';
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Stage,
+  Layer,
+  Image as KonvaImage,
+  Circle,
+  Rect,
+  Line,
+  Arrow,
+} from "react-konva";
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
-import type Konva from 'konva';
+import type Konva from "konva";
 import type {
   Annotation,
   AnnotationGeometry,
@@ -12,7 +20,7 @@ import type {
   PolygonGeometry,
   ArrowGeometry,
   FreehandGeometry,
-} from '@/lib/annotation-types';
+} from "@/lib/annotation-types";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
@@ -24,7 +32,10 @@ type ImageAnnotatorProps = {
   currentTool: DrawingTool;
   onAnnotationCreate?: (geometry: AnnotationGeometry) => void;
   onAnnotationSelect?: (annotation: Annotation | null) => void;
-  onAnnotationUpdate?: (annotationId: number, geometry: AnnotationGeometry) => void;
+  onAnnotationUpdate?: (
+    annotationId: number,
+    geometry: AnnotationGeometry,
+  ) => void;
   onAnnotationDelete?: (annotationId: number) => void;
   selectedAnnotationId?: number | null;
   readonly?: boolean;
@@ -87,7 +98,7 @@ export function ImageAnnotator({
   // Load image & reset zoom
   useEffect(() => {
     const img = new window.Image();
-    img.crossOrigin = 'anonymous';
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       setImage(img);
       if (containerRef.current) {
@@ -106,7 +117,11 @@ export function ImageAnnotator({
   // Keyboard handler for deleting annotations
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAnnotationId && onAnnotationDelete) {
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedAnnotationId &&
+        onAnnotationDelete
+      ) {
         e.preventDefault();
         onAnnotationDelete(selectedAnnotationId);
       }
@@ -239,7 +254,7 @@ export function ImageAnnotator({
       y: pos.y / dimensions.height,
     };
 
-    if (currentTool === 'freehand') {
+    if (currentTool === "freehand") {
       setTempPoints([...tempPoints, normalized]);
     } else {
       setTempPoints([drawingStart!, normalized]);
@@ -260,7 +275,7 @@ export function ImageAnnotator({
     // End drawing
     if (!isDrawing || !drawingStart || readonly) return;
 
-    if (tempPoints.length < 2 && currentTool !== 'circle') {
+    if (tempPoints.length < 2 && currentTool !== "circle") {
       setIsDrawing(false);
       setDrawingStart(null);
       setTempPoints([]);
@@ -271,24 +286,24 @@ export function ImageAnnotator({
     let geometry: AnnotationGeometry | null = null;
 
     switch (currentTool) {
-      case 'circle': {
+      case "circle": {
         const dx = endPoint.x - drawingStart.x;
         const dy = endPoint.y - drawingStart.y;
         const radius = Math.sqrt(dx * dx + dy * dy);
         geometry = {
-          type: 'circle',
+          type: "circle",
           center: drawingStart,
           radius,
         } as CircleGeometry;
         break;
       }
-      case 'rect': {
+      case "rect": {
         const x = Math.min(drawingStart.x, endPoint.x);
         const y = Math.min(drawingStart.y, endPoint.y);
         const width = Math.abs(endPoint.x - drawingStart.x);
         const height = Math.abs(endPoint.y - drawingStart.y);
         geometry = {
-          type: 'rect',
+          type: "rect",
           x,
           y,
           width,
@@ -296,18 +311,18 @@ export function ImageAnnotator({
         } as RectGeometry;
         break;
       }
-      case 'arrow': {
+      case "arrow": {
         geometry = {
-          type: 'arrow',
+          type: "arrow",
           from: drawingStart,
           to: endPoint,
         } as ArrowGeometry;
         break;
       }
-      case 'freehand': {
+      case "freehand": {
         if (tempPoints.length > 2) {
           geometry = {
-            type: 'freehand',
+            type: "freehand",
             points: tempPoints,
           } as FreehandGeometry;
         }
@@ -316,7 +331,7 @@ export function ImageAnnotator({
       case 'polygon': {
         if (tempPoints.length > 2) {
           geometry = {
-            type: 'polygon',
+            type: "polygon",
             points: tempPoints,
           } as PolygonGeometry;
         }
@@ -433,7 +448,7 @@ export function ImageAnnotator({
     const nodeY = node.y();
 
     switch (geometry.type) {
-      case 'circle': {
+      case "circle": {
         const g = geometry as CircleGeometry;
         updatedGeometry = {
           ...g,
@@ -444,7 +459,7 @@ export function ImageAnnotator({
         };
         break;
       }
-      case 'rect': {
+      case "rect": {
         const g = geometry as RectGeometry;
         updatedGeometry = {
           ...g,
@@ -453,7 +468,7 @@ export function ImageAnnotator({
         };
         break;
       }
-      case 'arrow': {
+      case "arrow": {
         const g = geometry as ArrowGeometry;
         const dragDeltaX = nodeX / dimensions.width;
         const dragDeltaY = nodeY / dimensions.height;
@@ -471,14 +486,14 @@ export function ImageAnnotator({
         node.position({ x: 0, y: 0 });
         break;
       }
-      case 'freehand':
-      case 'polygon': {
+      case "freehand":
+      case "polygon": {
         const g = geometry as FreehandGeometry | PolygonGeometry;
         const dragDeltaX = nodeX / dimensions.width;
         const dragDeltaY = nodeY / dimensions.height;
         updatedGeometry = {
           ...g,
-          points: g.points.map(p => ({
+          points: g.points.map((p) => ({
             x: p.x + dragDeltaX,
             y: p.y + dragDeltaY,
           })),
@@ -502,7 +517,9 @@ export function ImageAnnotator({
   const renderAnnotation = (annotation: Annotation) => {
     const { geometry } = annotation;
     const isSelected = annotation.id === selectedAnnotationId;
-    const strokeColor = isSelected ? '#3b82f6' : (annotation.color ?? '#ef4444');
+    const strokeColor = isSelected
+      ? "#3b82f6"
+      : (annotation.color ?? "#ef4444");
     const strokeWidth = isSelected ? 3 : 2;
     const isDraggable = !readonly && enableMove;
 
@@ -512,7 +529,7 @@ export function ImageAnnotator({
     const handleSelect = () => onAnnotationSelect?.(annotation);
 
     switch (geometry.type) {
-      case 'circle': {
+      case "circle": {
         const g = geometry as CircleGeometry;
         return (
           <Circle
@@ -530,7 +547,7 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
@@ -540,7 +557,7 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'rect': {
+      case "rect": {
         const g = geometry as RectGeometry;
         return (
           <Rect
@@ -559,7 +576,7 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
@@ -569,7 +586,7 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'arrow': {
+      case "arrow": {
         const g = geometry as ArrowGeometry;
         return (
           <Arrow
@@ -592,7 +609,7 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
@@ -602,10 +619,10 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'freehand':
-      case 'polygon': {
+      case "freehand":
+      case "polygon": {
         const g = geometry as FreehandGeometry | PolygonGeometry;
-        const points = g.points.flatMap(p => [
+        const points = g.points.flatMap((p) => [
           p.x * dimensions.width,
           p.y * dimensions.height,
         ]);
@@ -616,7 +633,7 @@ export function ImageAnnotator({
             stroke={strokeColor}
             strokeWidth={strokeWidth}
             hitStrokeWidth={hitStrokeWidth}
-            closed={geometry.type === 'polygon'}
+            closed={geometry.type === "polygon"}
             draggable={isDraggable}
             onClick={handleSelect}
             onTap={handleSelect}
@@ -624,7 +641,7 @@ export function ImageAnnotator({
             onMouseEnter={(e) => {
               if (isDraggable) {
                 const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = 'move';
+                if (container) container.style.cursor = "move";
               }
             }}
             onMouseLeave={(e) => {
@@ -643,11 +660,11 @@ export function ImageAnnotator({
     if (!isDrawing || tempPoints.length < 1 || !drawingStart) return null;
 
     const endPoint = tempPoints[tempPoints.length - 1];
-    const strokeColor = '#3b82f6';
+    const strokeColor = "#3b82f6";
     const strokeWidth = 2;
 
     switch (currentTool) {
-      case 'circle': {
+      case "circle": {
         const dx = endPoint.x - drawingStart.x;
         const dy = endPoint.y - drawingStart.y;
         const radius = Math.sqrt(dx * dx + dy * dy);
@@ -662,7 +679,7 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'rect': {
+      case "rect": {
         const x = Math.min(drawingStart.x, endPoint.x);
         const y = Math.min(drawingStart.y, endPoint.y);
         const width = Math.abs(endPoint.x - drawingStart.x);
@@ -679,7 +696,7 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'arrow': {
+      case "arrow": {
         return (
           <Arrow
             points={[
@@ -696,9 +713,9 @@ export function ImageAnnotator({
           />
         );
       }
-      case 'freehand':
-      case 'polygon': {
-        const points = tempPoints.flatMap(p => [
+      case "freehand":
+      case "polygon": {
+        const points = tempPoints.flatMap((p) => [
           p.x * dimensions.width,
           p.y * dimensions.height,
         ]);
@@ -776,7 +793,13 @@ export function ImageAnnotator({
         style={{ cursor: getCursor() }}
       >
         <Layer>
-          {image && <KonvaImage image={image} width={dimensions.width} height={dimensions.height} />}
+          {image && (
+            <KonvaImage
+              image={image}
+              width={dimensions.width}
+              height={dimensions.height}
+            />
+          )}
           {annotations.map(renderAnnotation)}
           {renderTempShape()}
         </Layer>
@@ -789,14 +812,15 @@ export function ImageAnnotator({
             </div>
           ) : (
             <div className="text-sm text-gray-700 font-medium">
-              Selected annotation - {annotations.find(a => a.id === selectedAnnotationId)?.geometry.type || 'Unknown'}
+              Selected annotation -{" "}
+              {annotations.find((a) => a.id === selectedAnnotationId)?.geometry
+                .type || "Unknown"}
             </div>
           )}
           {onAnnotationDelete && (
             <button
               onClick={() => onAnnotationDelete(selectedAnnotationId)}
-              className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors"
-              style={{ minWidth: '70px' }}
+              className="min-w-16 rounded bg-red-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-red-700"
             >
               Delete
             </button>

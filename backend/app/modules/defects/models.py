@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -59,3 +59,10 @@ class DefectAnnotation(Base):
     )
     defect = relationship("Defect", back_populates="annotations")
     category = relationship("DefectCategory")
+
+
+# ...
+review_status = Column(String(20), nullable=False, server_default="pending")
+reviewed_by = Column(String(100), nullable=True)
+reviewed_at = Column(DateTime(timezone=True), nullable=True)
+review_comment = Column(Text, nullable=True)

@@ -1,12 +1,20 @@
 import json
 import logging
 import os
+from functools import lru_cache
 from io import BytesIO
 
 from minio import Minio
 from minio.error import S3Error
 
 logger = logging.getLogger("backend_photos_storage")
+
+
+def _is_testing() -> bool:
+    return (
+        os.getenv("ENV", "").lower() == "test"
+        or os.getenv("PYTEST_CURRENT_TEST") is not None
+    )
 
 
 class PhotoStorage:
@@ -21,10 +29,14 @@ class PhotoStorage:
         )
 
         self.bucket_name = os.getenv("MINIO_BUCKET", "qc-vision-photos")
-
         self.public_endpoint = os.getenv("MINIO_PUBLIC_ENDPOINT", "localhost:9000")
         self.internal_endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
-        self._ensure_bucket_exists()
+
+        # ✅ do not make network calls during pytest
+        if not _is_testing():
+            self._ensure_bucket_exists()
+        else:
+            logger.info("PhotoStorage: test mode -> skipping bucket check")
 
     def _ensure_bucket_exists(self):
         """Create bucket if it doesn't exist and configure for public read access"""
@@ -33,8 +45,6 @@ class PhotoStorage:
                 self.client.make_bucket(self.bucket_name)
                 logger.info(f"Created bucket: {self.bucket_name}")
 
-            # Set bucket policy to allow public read access
-            # This way we don't need presigned URLs
             policy = {
                 "Version": "2012-10-17",
                 "Statement": [
@@ -103,4 +113,11 @@ class PhotoStorage:
             raise
 
 
-photo_storage = PhotoStorage()
+# ✅ must exist (your router imports it)
+@lru_cache(maxsize=1)
+def get_photo_storage() -> PhotoStorage:
+    return PhotoStorage()
+
+
+# ✅ optional backward compatibility for old imports
+photo_storage = get_photo_storage()

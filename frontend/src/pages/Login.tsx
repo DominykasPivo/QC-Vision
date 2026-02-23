@@ -1,61 +1,141 @@
-import { useMemo, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { isLoggedIn, loginUser } from '@/lib/auth';
+import { useMemo, useState, type FormEvent } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+import { isLoggedIn, loginUser, setStoredRole } from "@/lib/auth";
+
+// If your project uses request/ApiError elsewhere, use it.
+// Otherwise we use fetch here to match CreateTest's pattern.
+type MeResponse = {
+  username: string;
+  role: string; // e.g. "user" | "worker" | "reviewer" | "admin"
+  // optional: permissions?: string[]
+};
 
 export function Login() {
-    const navigate = useNavigate();
-    const [name, setName] = useState('');
-    const [touched, setTouched] = useState(false);
+  const navigate = useNavigate();
 
-    const trimmed = useMemo(() => name.trim(), [name]);
-    const isValid = trimmed.length > 0;
+  const [username, setUsername] = useState("");
+  const [touched, setTouched] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    if (isLoggedIn()) {
-        return <Navigate to="/tests" replace />;
+  const trimmed = useMemo(() => username.trim(), [username]);
+
+  // ✅ Allow logins (remove the "exactly 5 chars" blocker)
+  const MIN_LEN = 2;
+  const MAX_LEN = 32;
+  const isValid = trimmed.length >= MIN_LEN && trimmed.length <= MAX_LEN;
+
+  if (isLoggedIn()) {
+    return <Navigate to="/tests" replace />;
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setTouched(true);
+    setError(null);
+
+    if (!isValid || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      // Match CreateTest style: raw fetch + parse text
+      const res = await fetch("/api/v1/users/me", {
+        method: "GET",
+        headers: {
+          "X-User": trimmed,
+        },
+      });
+
+      const text = await res.text();
+      const parsed = text
+        ? (JSON.parse(text) as
+            | MeResponse
+            | { detail?: string; message?: string })
+        : null;
+
+      if (!res.ok) {
+        const message =
+          (parsed && ("detail" in parsed ? parsed.detail : undefined)) ||
+          (parsed && ("message" in parsed ? parsed.message : undefined)) ||
+          text ||
+          `Login failed (${res.status})`;
+        throw new Error(message);
+      }
+
+      const me = parsed as MeResponse;
+
+      // Store user + role for permissions (review access)
+      loginUser(me.username);
+      setStoredRole(me.role);
+
+      navigate("/tests", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setTouched(true);
-        if (!isValid) {
-            return;
-        }
-        loginUser(trimmed);
-        navigate('/tests', { replace: true });
-    };
+  const clientError =
+    touched && !isValid
+      ? `Username must be ${MIN_LEN}–${MAX_LEN} characters.`
+      : null;
+  const formError = clientError ?? error;
 
-    return (
-        <div className="login-page">
-            <div className="login-card" role="main">
-                <h1 className="login-title">QC Vision</h1>
-                <p className="login-helper">Enter your username to continue</p>
+  return (
+    <main className="login-page">
+      <div className="login-shell">
+        <section className="login-brand-panel">
+          <p className="login-brand-kicker">QC Vision</p>
+          <h2 className="login-brand-title">
+            Quality control, one focused workspace.
+          </h2>
+          <p className="login-brand-copy">
+            Review tests, manage photos, and track issues with the same clean
+            workflow your team already uses.
+          </p>
 
-                <form onSubmit={handleSubmit} className="login-form" noValidate>
-                    <label className="form-label" htmlFor="login-name">
-                        Username
-                    </label>
-                    <input
-                        id="login-name"
-                        name="name"
-                        className="form-input login-input"
-                        type="text"
-                        autoComplete="username"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        onBlur={() => setTouched(true)}
-                        aria-invalid={touched && !isValid}
-                        aria-describedby={touched && !isValid ? 'login-error' : undefined}
-                        placeholder="Your username"
-                    />
-                    <div className="login-error" aria-live="polite" id="login-error">
-                        {touched && !isValid ? 'Please enter your username to continue.' : ' '}
-                    </div>
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
+            <label
+              className="text-sm font-semibold text-white/95"
+              htmlFor="username"
+            >
+              Username
+            </label>
+            <Input
+              id="username"
+              name="username"
+              density="spacious"
+              className="login-input"
+              placeholder="Your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onBlur={() => setTouched(true)}
+              autoComplete="username"
+              disabled={isLoading}
+              aria-invalid={Boolean(formError)}
+              aria-describedby={formError ? "login-error" : undefined}
+            />
 
-                    <button className="btn btn-primary btn-block login-button" type="submit" disabled={!isValid}>
-                        Login
-                    </button>
-                </form>
+            <div className="login-error" aria-live="polite" id="login-error">
+              {formError ?? " "}
             </div>
-        </div>
-    );
+
+            <Button
+              type="submit"
+              density="spacious"
+              className="login-button w-full"
+              disabled={!isValid || isLoading}
+            >
+              {isLoading ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+        </section>
+      </div>
+    </main>
+  );
 }

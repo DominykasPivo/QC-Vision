@@ -12,7 +12,7 @@ from app.modules.audit.service import log_action
 from .models import Photo
 from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse
 from .service import photo_service
-from .storage import photo_storage
+from .storage import photo_storage  # ✅ module-level name must exist for tests
 
 logger = logging.getLogger("backend_photos_router")
 
@@ -21,7 +21,6 @@ router = APIRouter(prefix="", tags=["photos"])
 
 @router.get("/test/{test_id}", response_model=List[PhotoResponse])
 async def get_photos_for_test(test_id: int, db: Session = Depends(get_db)):
-    """Get all photos for a specific test."""
     photos = db.query(Photo).filter(Photo.test_id == test_id).all()
     return photos
 
@@ -60,9 +59,6 @@ async def get_gallery(
 
 @router.get("/{photo_id}/image")
 async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
-    """Get photo image data directly (proxy through backend).
-    Works on any device without exposing MinIO URLs.
-    """
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
@@ -102,14 +98,8 @@ async def get_photo(photo_id: int, db: Session = Depends(get_db)):
 async def upload_photo(
     test_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)
 ):
-    """
-    Upload a photo for a quality test.
-
-    Returns photo details including ID and file path.
-    """
     username = "system"
 
-    # 1. Validate content type
     if not file.content_type or not file.content_type.startswith("image/"):
         log_action(
             db,
@@ -127,10 +117,9 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="File must be an image")
 
     try:
-        # 2. Call service with correct parameter order
         photo = await photo_service.upload_photo(
             db=db,
-            file=file.file,  # ← file.file is the actual BinaryIO
+            file=file.file,
             filename=file.filename,
             test_id=test_id,
         )
@@ -148,13 +137,9 @@ async def upload_photo(
                 "file_path": getattr(photo, "file_path", None),
             },
         )
-
         return photo
 
     except ValueError as e:
-        # Validation errors (bad image, wrong format, etc.)
-        logger.error(f"Validation error: {str(e)}")
-
         log_action(
             db,
             action="UPLOAD_FAILED",
@@ -169,13 +154,9 @@ async def upload_photo(
                 "test_id": test_id,
             },
         )
-
         raise HTTPException(status_code=400, detail=str(e))
 
     except Exception as e:
-        # Server errors (MinIO down, DB error, etc.)
-        logger.error(f"Upload failed with exception: {str(e)}")
-
         log_action(
             db,
             action="UPLOAD_FAILED",
@@ -190,7 +171,6 @@ async def upload_photo(
                 "test_id": test_id,
             },
         )
-
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
@@ -231,15 +211,9 @@ async def update_verification_status(
 
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
-    """
-    Delete a photo by ID.
-
-    - **photo_id**: Photo ID to delete
-    """
     username = "system"
 
     try:
-        # 1. Get photo from database
         photo = db.query(Photo).filter(Photo.id == photo_id).first()
         if not photo:
             log_action(
@@ -252,23 +226,16 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
             )
             raise HTTPException(status_code=404, detail="Photo not found")
 
-        # Keep info for audit meta before deletion
         photo_path = photo.file_path
         test_id = getattr(photo, "test_id", None)
 
-        # 2. Delete from MinIO storage
         minio_deleted = False
         try:
             await photo_storage.delete_photo(photo.file_path)
             minio_deleted = True
-            logger.info(f"Deleted photo from MinIO: {photo.file_path}")
         except Exception as e:
-            logger.error(
-                f"Failed to delete photo from MinIO: {photo.file_path}, Error: {str(e)}"
-            )
-            # Continue to delete from DB even if MinIO deletion fails
+            logger.error(f"Failed to delete MinIO object {photo.file_path}: {e}")
 
-        # 3. Delete from database
         db.delete(photo)
         db.commit()
 
@@ -284,24 +251,17 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
                 "minio_deleted": minio_deleted,
             },
         )
-
-        logger.info(f"Deleted photo {photo_id}")
+        return
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to delete photo: {str(e)}")
-
         log_action(
             db,
             action="DELETE_FAILED",
             entity_type="Photo",
             entity_id=photo_id,
             username=username,
-            meta={
-                "reason": "server_error",
-                "error": str(e),
-            },
+            meta={"reason": "server_error", "error": str(e)},
         )
-
         raise HTTPException(status_code=500, detail=f"Failed to delete photo: {str(e)}")

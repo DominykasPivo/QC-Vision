@@ -1,19 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Check, Filter } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
-import { DEFECT_SEVERITIES, TEST_STATUSES, TEST_TYPES, formatEnumLabel } from '@/lib/db-constants';
-import { fetchGallery, type GalleryPhoto, type GalleryResponse } from '@/lib/api/gallery';
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Filter } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Pagination } from "@/components/ui/pagination";
+
+import {
+  DEFECT_SEVERITIES,
+  formatEnumLabel,
+} from "@/lib/db-constants";
+import {
+  fetchGallery,
+  type GalleryPhoto,
+  type GalleryResponse,
+} from "@/lib/api/gallery";
 
 const PAGE_SIZE = 20;
 
-const SEVERITY_STYLES: Record<string, { border: string; badge: string }> = {
-    critical: { border: 'border-red-600 border-2', badge: 'bg-red-200 text-red-900' },
-    high: { border: 'border-red-400 border-2', badge: 'bg-red-100 text-red-800' },
-    medium: { border: 'border-orange-400 border-2', badge: 'bg-orange-100 text-orange-800' },
-    low: { border: 'border-yellow-400 border-2', badge: 'bg-yellow-100 text-yellow-800' },
+/* ---------- Extended type (safe typing) ---------- */
+type GalleryPhotoExtended = GalleryPhoto & {
+  highest_severity?: string;
+  defect_count?: number;
 };
 
 const NO_DEFECT_BORDER = 'border-emerald-400 border';
@@ -28,16 +42,62 @@ const VERIFICATION_DOT: Record<string, { bg: string; title: string }> = {
 
 type CategoryRecord = { id: number; name: string; is_active: boolean };
 
-function GalleryCard({ photo }: { photo: GalleryPhoto }) {
-    const style = photo.highest_severity
-        ? SEVERITY_STYLES[photo.highest_severity] ?? { border: NO_DEFECT_BORDER, badge: '' }
-        : { border: NO_DEFECT_BORDER, badge: '' };
+/* ---------- Severity UI styles ---------- */
+const SEVERITY_STYLES: Record<
+  string,
+  { border: string; badge: string }
+> = {
+  critical: {
+    border: "border-red-600 border-2",
+    badge: "bg-red-200 text-red-900",
+  },
+  high: {
+    border: "border-red-400 border-2",
+    badge: "bg-red-100 text-red-800",
+  },
+  medium: {
+    border: "border-orange-400 border-2",
+    badge: "bg-orange-100 text-orange-800",
+  },
+  low: {
+    border: "border-yellow-400 border-2",
+    badge: "bg-yellow-100 text-yellow-800",
+  },
+};
 
-    return (
-        <Link
-            to={`/photos/${photo.id}`}
-            className={`gallery-item relative overflow-hidden rounded-lg ${style.border}`}
-            style={{ backgroundColor: '#1f2937' }}
+const NO_DEFECT_BORDER = "border-emerald-400 border";
+
+/* ---------- Card Component ---------- */
+function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
+  const style = photo.highest_severity
+    ? SEVERITY_STYLES[photo.highest_severity] ?? {
+        border: NO_DEFECT_BORDER,
+        badge: "",
+      }
+    : { border: NO_DEFECT_BORDER, badge: "" };
+
+  return (
+    <Link
+      to={`/photos/${photo.id}`}
+      className={`gallery-item relative overflow-hidden rounded-lg ${style.border}`}
+      style={{ backgroundColor: "#1f2937" }}
+    >
+      <img
+        src={`/api/v1/photos/${photo.id}/image`}
+        alt={`Photo ${photo.id}`}
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+
+      {photo.defect_count && photo.defect_count > 0 && (
+        <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white">
+          {photo.defect_count}
+        </span>
+      )}
+
+      {photo.highest_severity && (
+        <span
+          className={`absolute bottom-1 right-1 rounded-full px-1.5 py-0.5 text-xs font-semibold ${style.badge}`}
         >
             <img
                 src={`/api/v1/photos/${photo.id}/image`}
@@ -66,6 +126,7 @@ function GalleryCard({ photo }: { photo: GalleryPhoto }) {
     );
 }
 
+/* ---------- Main Component ---------- */
 export function Gallery() {
     const [galleryData, setGalleryData] = useState<GalleryResponse | null>(null);
     const [categories, setCategories] = useState<CategoryRecord[]>([]);
@@ -434,5 +495,32 @@ export function Gallery() {
                 </>
             )}
         </div>
-    );
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <p className="mt-6">Loading photos...</p>
+      ) : photos.length === 0 ? (
+        <p className="mt-6">
+          {hasActiveFilters
+            ? "No photos match the selected filters."
+            : "No photos yet."}
+        </p>
+      ) : (
+        <>
+          <div className="gallery-grid mt-4">
+            {photos.map((photo) => (
+              <GalleryCard key={photo.id} photo={photo} />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
+    </div>
+  );
 }
