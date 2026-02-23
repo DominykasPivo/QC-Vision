@@ -30,8 +30,10 @@ const STORAGE_KEYS = {
 
 type ApiTest = {
     id: number | string;
-    productId?: number;
-    product_id?: number;
+    gyraId?: string;
+    gyra_id?: string;
+    productName?: string;
+    product_name?: string;
     testType?: string;
     test_type?: string;
     requester?: string;
@@ -45,8 +47,6 @@ type ApiTest = {
     created_at?: string | null;
     updatedAt?: string | null;
     updated_at?: string | null;
-    externalOrderId?: string;
-    productType?: string;
 };
 
 const normalizeStatus = (value: unknown): TestStatus => {
@@ -75,7 +75,8 @@ const formatDeadline = (value?: string | null): string => {
 };
 
 const toFrontendTest = (raw: ApiTest): Test => {
-    const productId = raw.productId ?? raw.product_id;
+    const gyraId = raw.gyraId ?? raw.gyra_id ?? '';
+    const productName = raw.productName ?? raw.product_name ?? '';
     const testType = normalizeTestType(raw.testType ?? raw.test_type);
     const status = normalizeStatus(raw.status);
     const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
@@ -85,9 +86,8 @@ const toFrontendTest = (raw: ApiTest): Test => {
 
     return {
         id: String(raw.id),
-        externalOrderId: raw.externalOrderId ?? (productId !== undefined ? String(productId) : String(raw.id)),
-        productId,
-        productType: raw.productType ?? (productId !== undefined ? `Product ${productId}` : 'Unknown product'),
+        gyraId,
+        productName,
         testType,
         requester: raw.requester ?? '',
         assignedTo: assignedTo || undefined,

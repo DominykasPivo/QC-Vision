@@ -102,19 +102,5 @@ class PhotoStorage:
             logger.error(f"Failed to delete photo: {str(e)}")
             raise
 
-    def generate_presigned_url(self, file_path: str, expiration: int = 3600) -> str:
-        """Generate a public URL for photo access
-
-        Since bucket is public, we can return a direct URL without presigned parameters
-        """
-        try:
-            # Return direct public URL (no signature needed since bucket is public)
-            url = f"http://{self.public_endpoint}/{self.bucket_name}/{file_path}"
-            logger.debug(f"Generated public URL: {url}")
-            return url
-        except Exception as e:
-            logger.error(f"Failed to generate URL: {str(e)}")
-            return ""
-
 
 photo_storage = PhotoStorage()

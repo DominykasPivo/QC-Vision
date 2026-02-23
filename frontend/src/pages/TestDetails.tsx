@@ -42,8 +42,8 @@ export function TestDetails() {
     const [showPhotoModal, setShowPhotoModal] = useState(false);
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     const [draft, setDraft] = useState({
-        externalOrderId: test?.externalOrderId ?? '',
-        productType: test?.productType ?? '',
+        gyraId: test?.gyraId ?? '',
+        productName: test?.productName ?? '',
         testType: (test?.testType ?? 'incoming') as TestType,
         requester: test?.requester ?? '',
         assignedTo: test?.assignedTo ?? '',
@@ -141,8 +141,8 @@ export function TestDetails() {
         return parsed.toISOString().slice(0, 10);
     };
 
-    const productIdValue = test.productId ?? test.externalOrderId;
-    const productIdLabel = productIdValue ? String(productIdValue) : '—';
+    const gyraIdLabel = test.gyraId?.trim() ? test.gyraId : '—';
+    const productNameLabel = test.productName?.trim() ? test.productName : '—';
     const requesterLabel = test.requester?.trim() ? test.requester : '—';
     const assignedToLabel = test.assignedTo?.trim() ? test.assignedTo : '—';
     const deadlineSource = test.deadlineAt ?? (test.deadline && test.deadline !== 'None' ? test.deadline : null);
@@ -155,8 +155,8 @@ export function TestDetails() {
         const safeStatus = TEST_STATUSES.includes(test.status) ? test.status : 'pending';
         const safeDeadline = test.deadline && test.deadline !== 'None' ? test.deadline : '';
         setDraft({
-            externalOrderId: test.externalOrderId ?? '',
-            productType: test.productType ?? '',
+            gyraId: test.gyraId ?? '',
+            productName: test.productName ?? '',
             testType: safeTestType,
             requester: test.requester ?? '',
             assignedTo: test.assignedTo ?? '',
@@ -264,7 +264,8 @@ export function TestDetails() {
 
             console.log('Updating test...');
             const updateData = {
-                product_id: draft.externalOrderId.trim(),
+                gyra_id: draft.gyraId.trim(),
+                product_name: draft.productName.trim(),
                 test_type: draft.testType,
                 requester: draft.requester.trim(),
                 assigned_to: draft.assignedTo.trim() || null,
@@ -294,8 +295,8 @@ export function TestDetails() {
             console.log('Updated test:', updatedTest);
 
             updateTest(test.id, {
-                externalOrderId: draft.externalOrderId.trim(),
-                productType: draft.productType.trim(),
+                gyraId: draft.gyraId.trim(),
+                productName: draft.productName.trim(),
                 testType: draft.testType,
                 requester: draft.requester.trim(),
                 assignedTo: draft.assignedTo.trim() || undefined,
@@ -426,7 +427,12 @@ export function TestDetails() {
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-lg text-slate-500">
                         <span className="flex items-center gap-1">
                             <MaterialIcon name="qr_code" className="text-sm" />
-                            Product ID: {productIdLabel}
+                            {gyraIdLabel}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                            <MaterialIcon name="inventory_2" className="text-sm" />
+                            {productNameLabel}
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
@@ -458,7 +464,8 @@ export function TestDetails() {
                             <CardContent className="space-y-6 px-8 py-8">
                                 <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
                                     <InfoItem label="Test ID" value={String(test.id)} />
-                                    <InfoItem label="Product ID" value={productIdLabel} />
+                                    <InfoItem label="Gyra ID" value={gyraIdLabel} />
+                                    <InfoItem label="Product Name" value={productNameLabel} />
                                     <InfoItem label="Test Type" value={formatEnumLabel(test.testType)} />
                                     <InfoItem label="Requester" value={requesterLabel} />
                                     <InfoItem
@@ -733,26 +740,26 @@ export function TestDetails() {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-                                        External Order
+                                        Gyra ID
                                     </label>
                                     <Input
                                         className="h-11 rounded-xl border-gray-300 text-gray-900"
-                                        value={draft.externalOrderId}
+                                        value={draft.gyraId}
                                         onChange={(e) =>
-                                            setDraft((prev) => ({ ...prev, externalOrderId: e.target.value }))
+                                            setDraft((prev) => ({ ...prev, gyraId: e.target.value }))
                                         }
                                     />
                                 </div>
 
                                 <div>
                                     <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-                                        Product Type
+                                        Product Name
                                     </label>
                                     <Input
                                         className="h-11 rounded-xl border-gray-300 text-gray-900"
-                                        value={draft.productType}
+                                        value={draft.productName}
                                         onChange={(e) =>
-                                            setDraft((prev) => ({ ...prev, productType: e.target.value }))
+                                            setDraft((prev) => ({ ...prev, productName: e.target.value }))
                                         }
                                     />
                                 </div>

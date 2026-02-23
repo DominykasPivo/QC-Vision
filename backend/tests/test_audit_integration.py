@@ -11,7 +11,8 @@ async def test_create_test_writes_audit_log():
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         # Create a test via the API (multipart form fields)
         form = {
-            "productId": "99999",
+            "gyraId": "GY-99999",
+            "productName": "Test Product",
             "testType": "incoming",
             "requester": "sherifa",
             "status": "pending",

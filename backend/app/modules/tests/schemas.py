@@ -7,7 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class TestCreate(BaseModel):
     """Schema for creating a new quality test."""
 
-    product_id: int = Field(..., description="Product ID for the test")
+    gyra_id: str = Field(..., description="Gyra ID for the test")
+    product_name: str = Field(..., description="Product name for the test")
     test_type: str = Field(..., description="Type of the test")
     requester: str = Field(..., description="Requester of the test")
     assigned_to: Optional[str] = Field(None, description="Person assigned to the test")
@@ -20,7 +21,8 @@ class TestResponse(BaseModel):
     """Schema for test retrieval."""
 
     id: int
-    product_id: int
+    gyra_id: str
+    product_name: str
     test_type: str
     requester: str
     assigned_to: Optional[str] = None

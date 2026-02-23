@@ -21,7 +21,8 @@ END $$;
 
 CREATE TABLE IF NOT EXISTS quality_tests (
   id            SERIAL PRIMARY KEY,
-  product_id    INT NOT NULL,
+  gyra_id       VARCHAR(100) NOT NULL,
+  product_name  VARCHAR(255) NOT NULL,
 
   test_type     test_type NOT NULL,
   requester     TEXT,
@@ -35,10 +36,11 @@ CREATE TABLE IF NOT EXISTS quality_tests (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
---allows tests to be searched by status, deadline, creation date
+--allows tests to be searched by status, deadline, creation date, gyra_id
 CREATE INDEX IF NOT EXISTS idx_quality_tests_status    ON quality_tests(status);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_deadline  ON quality_tests(deadline_at);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_created   ON quality_tests(created_at);
+CREATE INDEX IF NOT EXISTS idx_quality_tests_gyra_id   ON quality_tests(gyra_id);
 
 
 --updates the updated_at field automatically 

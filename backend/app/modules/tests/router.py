@@ -29,7 +29,8 @@ router = APIRouter(prefix="", tags=["tests"])
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_test(
-    productId: int = Form(...),
+    gyraId: str = Form(...),
+    productName: str = Form(...),
     testType: str = Form(...),
     requester: str = Form(...),
     assignedTo: Optional[str] = Form(None),
@@ -57,7 +58,8 @@ async def create_test(
                     meta={
                         "reason": "invalid_deadline_format",
                         "deadlineAt": deadlineAt,
-                        "productId": productId,
+                        "gyraId": gyraId,
+                        "productName": productName,
                         "testType": testType,
                         "requester": requester,
                     },
@@ -68,7 +70,8 @@ async def create_test(
                 )
 
         test_data = TestCreate(
-            product_id=productId,
+            gyra_id=gyraId,
+            product_name=productName,
             test_type=testType,
             requester=requester,
             assigned_to=assignedTo,
@@ -87,7 +90,8 @@ async def create_test(
             entity_id=test.id,
             username=username,
             meta={
-                "productId": productId,
+                "gyraId": gyraId,
+                "productName": productName,
                 "testType": testType,
                 "requester": requester,
                 "assignedTo": assignedTo,
@@ -203,7 +207,8 @@ async def create_test(
             meta={
                 "reason": "server_error",
                 "error": str(e),
-                "productId": productId,
+                "gyraId": gyraId,
+                "productName": productName,
                 "testType": testType,
                 "requester": requester,
             },

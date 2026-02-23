@@ -9,7 +9,8 @@ class Tests(Base):
     __tablename__ = "quality_tests"
 
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column("product_id", Integer, nullable=False, index=True)
+    gyra_id = Column("gyra_id", String(100), nullable=False, index=True)
+    product_name = Column("product_name", String(255), nullable=False)
 
     test_type = Column("test_type", String(50), nullable=False)
     requester = Column(String(100), nullable=False)

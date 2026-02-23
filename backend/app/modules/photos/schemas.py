@@ -33,20 +33,6 @@ class PhotoListResponse(BaseModel):
     photos: list[PhotoResponse]
 
 
-class PhotoUrlResponse(BaseModel):
-    """Schema for presigned URL response (MinIO direct access)."""
-
-    url: str
-    expires_in: int
-
-
-class PhotoUploadResponse(BaseModel):
-    """Extended response after photo upload with access URL."""
-
-    photo: PhotoResponse
-    url: str
-
-
 class GalleryPhotoResponse(BaseModel):
     """Schema for a single gallery photo with aggregated defect info."""
 

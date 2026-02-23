@@ -10,7 +10,7 @@ from app.database import get_db
 from app.modules.audit.service import log_action
 
 from .models import Photo
-from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUrlResponse
+from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse
 from .service import photo_service
 from .storage import photo_storage
 
@@ -58,17 +58,6 @@ async def get_gallery(
     )
 
 
-@router.get("/{photo_id}/url", response_model=PhotoUrlResponse)
-async def get_photo_url(photo_id: int, db: Session = Depends(get_db)):
-    """Get a presigned URL for a photo."""
-    photo = db.query(Photo).filter(Photo.id == photo_id).first()
-    if not photo:
-        raise HTTPException(status_code=404, detail="Photo not found")
-
-    url = photo_storage.generate_presigned_url(photo.file_path, expiration=3600)
-    return PhotoUrlResponse(url=url, expires_in=3600)
-
-
 @router.get("/{photo_id}/image")
 async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
     """Get photo image data directly (proxy through backend).
@@ -98,6 +87,15 @@ async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to retrieve image for photo {photo_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve image")
+
+
+@router.get("/{photo_id}", response_model=PhotoResponse)
+async def get_photo(photo_id: int, db: Session = Depends(get_db)):
+    """Get a single photo by ID."""
+    photo = db.query(Photo).filter(Photo.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return photo
 
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)

@@ -25,7 +25,8 @@ class TestsService:
     async def create_test(self, db: Session, test_data: TestCreate) -> TestResponse:
         """Create a new quality test."""
         test = Tests(
-            product_id=test_data.product_id,
+            gyra_id=test_data.gyra_id,
+            product_name=test_data.product_name,
             test_type=test_data.test_type,
             requester=test_data.requester,
             assigned_to=test_data.assigned_to,
@@ -71,7 +72,8 @@ class TestsService:
                     Tests.assigned_to.ilike(pattern),
                     Tests.description.ilike(pattern),
                     cast(Tests.id, SAString).ilike(pattern),
-                    cast(Tests.product_id, SAString).ilike(pattern),
+                    Tests.gyra_id.ilike(pattern),
+                    Tests.product_name.ilike(pattern),
                 )
             )
 

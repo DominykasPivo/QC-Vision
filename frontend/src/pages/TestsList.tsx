@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination } from '@/components/ui/pagination';
 import { formatEnumLabel, TEST_STATUSES, TEST_TYPES, type TestStatus } from '@/lib/db-constants';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 21;
 
 const statusClass: Record<TestStatus, { accent: string; badge: string; icon: typeof CircleDot }> = {
     open: {
@@ -130,8 +130,8 @@ export function TestsList() {
 
             const haystack = [
                 test.id,
-                test.externalOrderId,
-                test.productType,
+                test.gyraId,
+                test.productName,
                 test.testType,
                 test.requester,
                 test.assignedTo || '',
@@ -215,7 +215,7 @@ export function TestsList() {
                                 type="text"
                                 className="h-14 rounded-full border border-slate-200 bg-white !pl-8 !pr-4 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                                 style={{ paddingLeft: '1.75rem', paddingRight: '1rem' }}
-                                placeholder="Search by ID or Product..."
+                                placeholder="Search by Gyra ID, Product..."
                                 value={searchInput}
                                 onChange={(event) => {
                                     const nextValue = event.target.value;
@@ -276,7 +276,7 @@ export function TestsList() {
                             <Input
                                 type="text"
                                 className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-[15px] leading-5 text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                                placeholder="Search by ID or Product..."
+                                placeholder="Search by Gyra ID, Product..."
                                 value={searchInput}
                                 onChange={(event) => {
                                     const nextValue = event.target.value;
@@ -569,46 +569,47 @@ export function TestsList() {
                                 {paginatedTests.map((test) => {
                                     const styles = statusClass[test.status];
                                     const StatusIcon = styles.icon;
-                                    const productLabel = test.productType?.trim() ? test.productType : formatEnumLabel(test.testType);
+                                    const productLabel = test.productName?.trim() ? test.productName : formatEnumLabel(test.testType);
                                     const requesterLabel = test.requester?.trim() ? test.requester : null;
                                     const deadlineLabel = test.deadline?.trim() ? test.deadline : null;
-                                    const rawPrimaryId = (test.externalOrderId || test.id).trim();
-                                    const primaryId = rawPrimaryId.startsWith('#') ? rawPrimaryId : `#${rawPrimaryId}`;
+                                    const gyraIdDisplay = test.gyraId?.trim() ? test.gyraId : `#${test.id}`;
 
                                     return (
                                         <article
                                             key={test.id}
-                                            className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md shadow-slate-200/60"
+                                            className="relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md shadow-slate-200/60"
                                         >
                                             <div className={`absolute inset-y-0 left-0 w-1.5 ${styles.accent}`} />
-                                            <div className="space-y-4 pr-5 pl-9 py-5" style={{ paddingLeft: '2.25rem' }}>
-                                                <div className="relative min-h-14 pr-36">
-                                                    <div className="min-w-0 flex-1 space-y-1.5">
-                                                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                                                            External Order ID
-                                                        </p>
-                                                        <p className="text-4xl font-bold leading-none text-slate-900">
-                                                            {primaryId}
-                                                        </p>
-                                                        {test.externalOrderId && (
+                                            <div className="flex flex-1 flex-col pr-5 pl-9 py-5" style={{ paddingLeft: '2.25rem' }}>
+                                                <div className="flex-1 space-y-4">
+                                                    <div className="relative min-h-14 pr-36">
+                                                        <div className="min-w-0 flex-1 space-y-1.5">
+                                                            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                                                                Gyra ID
+                                                            </p>
+                                                            <p className="text-4xl font-bold leading-none text-slate-900">
+                                                                {gyraIdDisplay}
+                                                            </p>
                                                             <p className="text-xs font-medium text-slate-500">Test ID: {test.id}</p>
-                                                        )}
+                                                        </div>
+                                                        <span className={`absolute right-5 top-2 inline-flex min-h-9 w-auto items-center gap-1.5 rounded-full border pl-3.5 pr-4 py-2 text-xs font-semibold leading-none whitespace-nowrap ${styles.badge}`}>
+                                                            <StatusIcon className="h-3.5 w-3.5" />
+                                                            {statusLabel(test.status)}
+                                                        </span>
                                                     </div>
-                                                    <span className={`absolute right-5 top-2 inline-flex min-h-9 w-auto items-center gap-1.5 rounded-full border pl-3.5 pr-4 py-2 text-xs font-semibold leading-none whitespace-nowrap ${styles.badge}`}>
-                                                        <StatusIcon className="h-3.5 w-3.5" />
-                                                        {statusLabel(test.status)}
-                                                    </span>
+
+                                                    <div className="space-y-1.5 border-t border-slate-100 pt-3 text-sm text-slate-700">
+                                                        <p className="text-[1.65rem] font-semibold leading-tight text-slate-900">{productLabel}</p>
+                                                        {requesterLabel && <p className="text-sm">Requester: {requesterLabel}</p>}
+                                                        {deadlineLabel && <p className="text-sm">Deadline: {deadlineLabel}</p>}
+                                                    </div>
                                                 </div>
 
-                                                <div className="space-y-1.5 border-t border-slate-100 pt-3 text-sm text-slate-700">
-                                                    <p className="text-[1.65rem] font-semibold leading-tight text-slate-900">{productLabel}</p>
-                                                    {requesterLabel && <p className="text-sm">Requester: {requesterLabel}</p>}
-                                                    {deadlineLabel && <p className="text-sm">Deadline: {deadlineLabel}</p>}
+                                                <div className="pt-4">
+                                                    <Button asChild className="h-11 w-full rounded-full text-base font-semibold">
+                                                        <Link to={`/tests/${test.id}`}>View Details</Link>
+                                                    </Button>
                                                 </div>
-
-                                                <Button asChild className="h-11 w-full rounded-full text-base font-semibold">
-                                                    <Link to={`/tests/${test.id}`}>View Details</Link>
-                                                </Button>
                                             </div>
                                         </article>
                                     );

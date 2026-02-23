@@ -22,7 +22,7 @@ from app.modules.tests.models import Tests
 
 def _seed_test(db):
     """Insert a Tests row and return its id."""
-    t = Tests(product_id=101, test_type="incoming", requester="Alice", status="open")
+    t = Tests(gyra_id="GY-101", product_name="Test Product", test_type="incoming", requester="Alice", status="open")
     db.add(t)
     db.commit()
     db.refresh(t)
@@ -112,30 +112,6 @@ class TestListPhotosRoute:
         resp = client.get(f"/api/v1/photos/test/{test_id}")
         assert resp.status_code == 200
         assert resp.json() == []
-
-
-# ---------------------------------------------------------------------------
-# GET /api/v1/photos/{photo_id}/url
-# ---------------------------------------------------------------------------
-
-
-class TestGetPhotoUrlRoute:
-    def test_returns_url(self, client, db_session, mock_photo_storage):
-        test_id = _seed_test(db_session)
-        photo = Photo(test_id=test_id, file_path="/uploads/p1.jpg")
-        db_session.add(photo)
-        db_session.commit()
-        db_session.refresh(photo)
-
-        resp = client.get(f"/api/v1/photos/{photo.id}/url")
-        assert resp.status_code == 200
-        assert resp.json()["expires_in"] == 3600
-        mock_photo_storage.generate_presigned_url.assert_called_once_with(
-            "/uploads/p1.jpg", expiration=3600
-        )
-
-    def test_404_for_nonexistent_photo(self, client):
-        assert client.get("/api/v1/photos/9999/url").status_code == 404
 
 
 # ---------------------------------------------------------------------------

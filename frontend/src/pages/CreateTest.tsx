@@ -25,7 +25,8 @@ export function CreateTest() {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     const loggedInUser = getStoredUsername();
     const [formData, setFormData] = useState({
-        productId: '',
+        gyraId: '',
+        productName: '',
         testType: 'incoming' as TestType,
         requester: loggedInUser,
         assignedTo: '',
@@ -109,7 +110,8 @@ export function CreateTest() {
         try {
             const submitFormData = new FormData();
             
-            submitFormData.append('productId', formData.productId);
+            submitFormData.append('gyraId', formData.gyraId);
+            submitFormData.append('productName', formData.productName);
             submitFormData.append('testType', formData.testType.trim());
             submitFormData.append('requester', formData.requester.trim());
             if (formData.assignedTo.trim()) {
@@ -176,7 +178,8 @@ console.log('Test created:', result);
 
             // Reset form
             setFormData({
-                productId: '',
+                gyraId: '',
+                productName: '',
                 testType: 'incoming',
                 requester: loggedInUser,
                 assignedTo: '',
@@ -215,21 +218,40 @@ console.log('Test created:', result);
                 </div>
             )}
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div className="form-group">
-                    <label className="form-label" htmlFor="productId">
-                        Product ID
-                    </label>
-                    <Input
-                        type="number"
-                        id="productId"
-                        name="productId"
-                        className="form-input"
-                        placeholder="e.g. 12345"
-                        value={formData.productId}
-                        onChange={handleChange}
-                        required
-                        disabled={isLoading}
-                    />
+                <div className="flex flex-col gap-4 sm:flex-row">
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="gyraId">
+                            Gyra ID
+                        </label>
+                        <Input
+                            type="text"
+                            id="gyraId"
+                            name="gyraId"
+                            className="form-input"
+                            placeholder="e.g. GY-12345"
+                            value={formData.gyraId}
+                            onChange={handleChange}
+                            required
+                            disabled={isLoading}
+                        />
+                    </div>
+
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="productName">
+                            Product Name
+                        </label>
+                        <Input
+                            type="text"
+                            id="productName"
+                            name="productName"
+                            className="form-input"
+                            placeholder="e.g. Blue Polo Shirt"
+                            value={formData.productName}
+                            onChange={handleChange}
+                            required
+                            disabled={isLoading}
+                        />
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-4 sm:flex-row">

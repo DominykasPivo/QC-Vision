@@ -24,7 +24,8 @@ from app.modules.tests.service import tests_service
 class TestCreateTest:
     async def test_all_fields_persisted(self, mock_db):
         data = TestCreate(
-            product_id=103,
+            gyra_id="GY-103",
+            product_name="Test Product",
             test_type="final",
             requester="Dave",
             assigned_to="Eve",
@@ -37,7 +38,8 @@ class TestCreateTest:
         mock_db.add.assert_called_once()
         added = mock_db.add.call_args[0][0]
         assert isinstance(added, Tests)
-        assert added.product_id == 103
+        assert added.gyra_id == "GY-103"
+        assert added.product_name == "Test Product"
         assert added.test_type == "final"
         assert added.requester == "Dave"
         assert added.assigned_to == "Eve"
@@ -46,7 +48,7 @@ class TestCreateTest:
         mock_db.commit.assert_called_once()
 
     async def test_optional_fields_use_defaults(self, mock_db):
-        data = TestCreate(product_id=104, test_type="incoming", requester="Mona")
+        data = TestCreate(gyra_id="GY-104", product_name="Test Product", test_type="incoming", requester="Mona")
 
         await tests_service.create_test(mock_db, data)
 
