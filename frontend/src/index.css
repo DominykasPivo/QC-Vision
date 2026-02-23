@@ -121,16 +121,15 @@ body {
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .app-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   height: var(--header-height);
+  min-height: var(--header-height);
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -429,6 +428,96 @@ body {
   }
 }
 
+/* ===== develop branch styles ===== */
+
+.defect-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.defect-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.defect-chip--low {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.defect-chip--medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.defect-chip--high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.defect-chip--critical {
+  background: #111827;
+  color: #fef2f2;
+}
+
+.defect-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.defect-error-text {
+  color: var(--error);
+  font-size: var(--font-size-sm);
+}
+
+.defect-modal {
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  width: min(520px, 100%);
+  color: var(--text);
+}
+
+.details-section {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.details-section-title {
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.details-placeholder {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.desktop-sidebar {
+  display: none;
+}
+
 @media (min-width: 1024px) {
   .app-shell {
     flex-direction: row;
@@ -481,9 +570,7 @@ body {
     font-size: var(--font-size-base);
     font-weight: 500;
     border-radius: var(--radius-md);
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   .sidebar-nav-item:hover {
