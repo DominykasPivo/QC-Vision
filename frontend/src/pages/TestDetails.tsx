@@ -27,86 +27,123 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
+const VERIFICATION_DOT: Record<string, { bg: string; title: string }> = {
+    approved: { bg: 'bg-emerald-500', title: 'Approved' },
+    rejected: { bg: 'bg-red-500', title: 'Rejected' },
+    pending:  { bg: 'bg-slate-400', title: 'Pending review' },
+};
+
 type ApiPhoto = {
-  id: number;
-  test_id: number;
-  file_path: string;
-  url?: string;
+    id: number;
+    test_id: number;
+    file_path: string;
+    url?: string;
+    verification_status?: 'pending' | 'approved' | 'rejected';
 };
 
 export function TestDetails() {
-  const { tests, addAuditEvent, removeTest, updateTest } =
-    useOutletContext<AppDataContext>();
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const test = tests.find((t) => t.id === id);
-  const [apiPhotos, setApiPhotos] = useState<ApiPhoto[]>([]);
-  const [photosWithDefects, setPhotosWithDefects] = useState<
-    Array<ApiPhoto & { defectCount: number }>
-  >([]);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [newPhotos, setNewPhotos] = useState<File[]>([]);
-  const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
-  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
-  const [newPhotoPreviews, setNewPhotoPreviews] = useState<
-    { file: File; url: string }[]
-  >([]);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const isMobile =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    ) || window.innerWidth < 768;
-  const [draft, setDraft] = useState({
-    externalOrderId: test?.externalOrderId ?? "",
-    productType: test?.productType ?? "",
-    testType: (test?.testType ?? "incoming") as TestType,
-    requester: test?.requester ?? "",
-    assignedTo: test?.assignedTo ?? "",
-    description: test?.description ?? "",
-    deadline: test?.deadline ?? "",
-    status: (test?.status ?? "pending") as TestStatus,
-  });
+    const { tests, addAuditEvent, removeTest, updateTest } = useOutletContext<AppDataContext>();
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const test = tests.find((t) => t.id === id);
+    const [apiPhotos, setApiPhotos] = useState<ApiPhoto[]>([]);
+    const [photosWithDefects, setPhotosWithDefects] = useState<Array<ApiPhoto & { defectCount: number }>>([]);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showUpdateModal, setShowUpdateModal] = useState(false);
+    const [newPhotos, setNewPhotos] = useState<File[]>([]);
+    const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
+    const [photoNotice, setPhotoNotice] = useState<string | null>(null);
+    const [newPhotoPreviews, setNewPhotoPreviews] = useState<{ file: File; url: string }[]>([]);
+    const [showPhotoModal, setShowPhotoModal] = useState(false);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    const [draft, setDraft] = useState({
+        gyraId: test?.gyraId ?? '',
+        productName: test?.productName ?? '',
+        testType: (test?.testType ?? 'incoming') as TestType,
+        requester: test?.requester ?? '',
+        assignedTo: test?.assignedTo ?? '',
+        description: test?.description ?? '',
+        deadline: test?.deadline ?? '',
+        status: (test?.status ?? 'pending') as TestStatus,
+    });
 
-  useEffect(() => {
-    if (id) {
-      fetch(`/api/v1/photos/test/${id}`)
-        .then((res) => res.json())
-        .then(async (data: ApiPhoto[]) => {
-          console.log("Fetched photos from API:", data);
-          const photosWithUrls = await Promise.all(
-            data.map(async (photo: ApiPhoto) => {
-              return {
-                ...photo,
-                url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}`,
-              };
-            }),
-          );
-          console.log("Photos with URLs:", photosWithUrls);
-          setApiPhotos(photosWithUrls);
+    useEffect(() => {
+        if (id) {
+            fetch(`/api/v1/photos/test/${id}`)
+                .then(res => res.json())
+                .then(async (data: ApiPhoto[]) => {
+                    console.log('Fetched photos from API:', data);
+                    const photosWithUrls = await Promise.all(
+                        data.map(async (photo: ApiPhoto) => {
+                            return { ...photo, url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}` };
+                        })
+                    );
+                    console.log('Photos with URLs:', photosWithUrls);
+                    setApiPhotos(photosWithUrls);
 
-          const photosWithDefectData = await Promise.all(
-            photosWithUrls.map(async (photo: ApiPhoto) => {
-              try {
-                const defectsRes = await fetch(
-                  `/api/v1/defects/photo/${photo.id}`,
-                );
-                const defects = await defectsRes.json();
-                return {
-                  ...photo,
-                  defectCount: Array.isArray(defects) ? defects.length : 0,
-                };
-              } catch {
-                return { ...photo, defectCount: 0 };
-              }
-            }),
-          );
-          setPhotosWithDefects(
-            photosWithDefectData.filter((p) => p.defectCount > 0),
-          );
-        })
-        .catch((err) => console.error("Failed to fetch photos:", err));
+                    const photosWithDefectData = await Promise.all(
+                        photosWithUrls.map(async (photo: ApiPhoto) => {
+                            try {
+                                const defectsRes = await fetch(`/api/v1/defects/photo/${photo.id}`);
+                                const defects = await defectsRes.json();
+                                return { ...photo, defectCount: Array.isArray(defects) ? defects.length : 0 };
+                            } catch {
+                                return { ...photo, defectCount: 0 };
+                            }
+                        })
+                    );
+                    setPhotosWithDefects(photosWithDefectData.filter(p => p.defectCount > 0));
+                })
+                .catch(err => console.error('Failed to fetch photos:', err));
+        }
+    }, [id]);
+
+    useEffect(() => {
+        const refetchDefects = async () => {
+            if (id && apiPhotos.length > 0) {
+                try {
+                    const photosWithDefectData = await Promise.all(
+                        apiPhotos.map(async (photo: ApiPhoto) => {
+                            try {
+                                const defectsRes = await fetch(`/api/v1/defects/photo/${photo.id}`);
+                                const defects = await defectsRes.json();
+                                return { ...photo, defectCount: Array.isArray(defects) ? defects.length : 0 };
+                            } catch {
+                                return { ...photo, defectCount: 0 };
+                            }
+                        })
+                    );
+                    setPhotosWithDefects(photosWithDefectData.filter(p => p.defectCount > 0));
+                } catch (err) {
+                    console.error('Failed to refetch defects:', err);
+                }
+            }
+        };
+
+        window.addEventListener('focus', refetchDefects);
+        return () => window.removeEventListener('focus', refetchDefects);
+    }, [id, apiPhotos]);
+
+    useEffect(() => {
+        const previews = newPhotos.map((file) => ({ file, url: URL.createObjectURL(file) }));
+        setNewPhotoPreviews(previews);
+        return () => {
+            previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+        };
+    }, [newPhotos]);
+
+    if (!test) {
+        return (
+            <div className="max-w-[420px] w-full mx-auto px-4 py-6">
+                <Link to="/tests" className="inline-flex items-center gap-1 text-[var(--primary)] text-sm font-medium no-underline mb-4">
+                    <span className="material-symbols-outlined text-base">chevron_left</span>
+                    Back to Tests
+                </Link>
+                <h2 className="text-2xl font-bold text-[var(--text)] mb-2">Test Not Found</h2>
+                <p className="text-[var(--text-secondary)] text-sm">The requested test could not be found.</p>
+            </div>
+        );
     }
   }, [id]);
 
@@ -139,18 +176,34 @@ export function TestDetails() {
       }
     };
 
-    window.addEventListener("focus", refetchDefects);
-    return () => window.removeEventListener("focus", refetchDefects);
-  }, [id, apiPhotos]);
+    const gyraIdLabel = test.gyraId?.trim() ? test.gyraId : '—';
+    const productNameLabel = test.productName?.trim() ? test.productName : '—';
+    const requesterLabel = test.requester?.trim() ? test.requester : '—';
+    const assignedToLabel = test.assignedTo?.trim() ? test.assignedTo : '—';
+    const deadlineSource = test.deadlineAt ?? (test.deadline && test.deadline !== 'None' ? test.deadline : null);
+    const deadlineLabel = deadlineSource ? formatDateOnly(deadlineSource) : '—';
+    const createdLabel = formatDateOnly(test.createdAt ?? null);
+    const updatedLabel = formatDateOnly(test.updatedAt ?? null);
 
-  useEffect(() => {
-    const previews = newPhotos.map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-    }));
-    setNewPhotoPreviews(previews);
-    return () => {
-      previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    const openUpdate = () => {
+        const safeTestType = TEST_TYPES.includes(test.testType) ? test.testType : 'incoming';
+        const safeStatus = TEST_STATUSES.includes(test.status) ? test.status : 'pending';
+        const safeDeadline = test.deadline && test.deadline !== 'None' ? test.deadline : '';
+        setDraft({
+            gyraId: test.gyraId ?? '',
+            productName: test.productName ?? '',
+            testType: safeTestType,
+            requester: test.requester ?? '',
+            assignedTo: test.assignedTo ?? '',
+            description: test.description ?? '',
+            deadline: safeDeadline,
+            status: safeStatus,
+        });
+        setNewPhotos([]);
+        setPhotosToDelete([]);
+        setNewPhotoPreviews([]);
+        setPhotoNotice(null);
+        setShowUpdateModal(true);
     };
   }, [newPhotos]);
 
@@ -555,14 +608,73 @@ export function TestDetails() {
                         ? "text-[#2563eb] font-semibold"
                         : "text-slate-300"
                     }
-                  />
-                  <InfoItem
-                    label="Deadline"
-                    value={deadlineLabel}
-                    valueClassName={
-                      deadlineLabel !== "—"
-                        ? "text-red-600 font-semibold"
-                        : "text-slate-300"
+                }
+            }
+
+            console.log('Updating test...');
+            const updateData = {
+                gyra_id: draft.gyraId.trim(),
+                product_name: draft.productName.trim(),
+                test_type: draft.testType,
+                requester: draft.requester.trim(),
+                assigned_to: draft.assignedTo.trim() || null,
+                description: draft.description.trim() || null,
+                status: draft.status,
+                deadline_at: draft.deadline ? new Date(draft.deadline).toISOString() : null,
+            };
+
+            console.log('Update data:', updateData);
+
+            const response = await fetch(`/api/v1/tests/${test.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            });
+
+            console.log('Update test response:', response.status);
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Update error:', errorData);
+                throw new Error(errorData.detail || 'Failed to update test');
+            }
+
+            const updatedTest = await response.json();
+            console.log('Updated test:', updatedTest);
+
+            updateTest(test.id, {
+                gyraId: draft.gyraId.trim(),
+                productName: draft.productName.trim(),
+                testType: draft.testType,
+                requester: draft.requester.trim(),
+                assignedTo: draft.assignedTo.trim() || undefined,
+                description: draft.description.trim() || null,
+                deadline: draft.deadline,
+                status: draft.status,
+            });
+
+            if (newPhotos.length > 0) {
+                console.log('Uploading new photos...');
+                for (const file of newPhotos) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    console.log(`Uploading ${file.name}`);
+                    const photoResponse = await fetch(`/api/v1/photos/upload?test_id=${test.id}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    console.log(`Upload photo ${file.name} response:`, photoResponse.status);
+                    if (photoResponse.ok) {
+                        const photoData = await photoResponse.json();
+                        console.log('Photo uploaded:', photoData);
+
+                        setApiPhotos(prev => [...prev, { ...photoData, url: `/api/v1/photos/${photoData.id}/image?t=${Date.now()}` }]);
+                    } else {
+                        const errorText = await photoResponse.text();
+                        console.error(`Failed to upload ${file.name}:`, errorText);
                     }
                   />
                 </div>
@@ -854,38 +966,206 @@ export function TestDetails() {
               </p>
             </div>
 
-            <div className="max-h-[72vh] space-y-5 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-                    External Order
-                  </label>
-                  <Input
-                    className="h-11 rounded-xl border-gray-300 text-gray-900"
-                    value={draft.externalOrderId}
-                    onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        externalOrderId: e.target.value,
-                      }))
-                    }
-                  />
+            <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10 md:pt-10">
+                {/* ── Hero Section ── */}
+                <div className="mb-10">
+                    <h1 className="text-5xl font-black text-slate-900">Test #{test.id}</h1>
+                    <div className="mt-3 flex flex-wrap items-center gap-4 text-lg text-slate-500">
+                        <span className="flex items-center gap-1">
+                            <MaterialIcon name="qr_code" className="text-sm" />
+                            {gyraIdLabel}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                            <MaterialIcon name="inventory_2" className="text-sm" />
+                            {productNameLabel}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                            <MaterialIcon name="login" className="text-sm" />
+                            {formatEnumLabel(test.testType)}
+                        </span>
+                        <Badge
+                            className={cn(
+                                'ml-2 rounded-full border-0 px-3 py-1 text-sm font-bold uppercase tracking-wider',
+                                badgeClass,
+                            )}
+                        >
+                            {formatEnumLabel(test.status)}
+                        </Badge>
+                    </div>
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-                    Product Type
-                  </label>
-                  <Input
-                    className="h-11 rounded-xl border-gray-300 text-gray-900"
-                    value={draft.productType}
-                    onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        productType: e.target.value,
-                      }))
-                    }
-                  />
+                {/* ── Two Column Grid ── */}
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                    {/* LEFT COLUMN — Test Information */}
+                    <section>
+                        <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
+                            <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-8 py-6">
+                                <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+                                    <MaterialIcon name="info" className="text-[#2563eb]" />
+                                    Test Information
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6 px-8 py-8">
+                                <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
+                                    <InfoItem label="Test ID" value={String(test.id)} />
+                                    <InfoItem label="Gyra ID" value={gyraIdLabel} />
+                                    <InfoItem label="Product Name" value={productNameLabel} />
+                                    <InfoItem label="Test Type" value={formatEnumLabel(test.testType)} />
+                                    <InfoItem label="Requester" value={requesterLabel} />
+                                    <InfoItem
+                                        label="Assigned To"
+                                        value={assignedToLabel}
+                                        valueClassName={assignedToLabel !== '—' ? 'text-[#2563eb] font-semibold' : 'text-slate-300'}
+                                    />
+                                    <InfoItem
+                                        label="Deadline"
+                                        value={deadlineLabel}
+                                        valueClassName={deadlineLabel !== '—' ? 'text-red-600 font-semibold' : 'text-slate-300'}
+                                    />
+                                </div>
+
+                                <Separator className="bg-slate-100" />
+
+                                <div>
+                                    <p className="mb-2 text-sm font-bold uppercase tracking-widest text-slate-500">
+                                        Description
+                                    </p>
+                                    <p
+                                        className={cn(
+                                            'text-xl',
+                                            hasDescription
+                                                ? 'italic text-slate-700'
+                                                : 'text-slate-400',
+                                        )}
+                                    >
+                                        {hasDescription ? `"${test.description}"` : 'No description provided'}
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-x-4 gap-y-6 border-t border-slate-100 pt-6 md:grid-cols-2">
+                                    <InfoItem label="Created" value={createdLabel} valueClassName="text-lg" />
+                                    <InfoItem label="Last Updated" value={updatedLabel} valueClassName="text-lg" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </section>
+
+                    {/* RIGHT COLUMN — Photos & Defects */}
+                    <section className="space-y-8">
+                        {/* Photos Card */}
+                        <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
+                            <CardHeader className="flex-row items-center justify-between border-b border-slate-100 px-8 py-6">
+                                <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+                                    <MaterialIcon name="photo_library" className="text-[#2563eb]" />
+                                    Photos
+                                </CardTitle>
+                                <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700">
+                                    {apiPhotos.length} Photo{apiPhotos.length !== 1 ? 's' : ''}
+                                </Badge>
+                            </CardHeader>
+                            <CardContent className="px-8 py-8">
+                                {apiPhotos.length === 0 ? (
+                                    <div className="flex min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 text-center">
+                                        <p className="text-xl font-semibold text-slate-400">No photos uploaded</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+                                        {apiPhotos.map((photo) => (
+                                            <Link
+                                                key={photo.id}
+                                                to={`/photos/${photo.id}`}
+                                                className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl ring-1 ring-slate-200 transition-transform active:scale-95"
+                                                aria-label={`Open photo ${photo.id}`}
+                                            >
+                                                {photo.url ? (
+                                                    <>
+                                                        <img
+                                                            src={photo.url}
+                                                            alt={`Photo ${photo.id}`}
+                                                            className="h-full w-full object-cover"
+                                                            onLoad={() => console.log(`Image loaded: Photo ${photo.id}`, photo.url)}
+                                                            onError={(e) => console.error(`Image failed to load: Photo ${photo.id}`, photo.url, e)}
+                                                        />
+                                                        {/* Verification status dot */}
+                                                        {photo.verification_status && VERIFICATION_DOT[photo.verification_status] && (
+                                                            <span
+                                                                className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
+                                                                title={VERIFICATION_DOT[photo.verification_status].title}
+                                                            />
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs font-medium text-slate-500">
+                                                        Loading...
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+                                                    <MaterialIcon name="zoom_in" className="text-3xl text-white" />
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Defects Card */}
+                        <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
+                            <CardHeader className="border-b border-slate-100 px-8 py-6">
+                                <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+                                    <MaterialIcon name="report_problem" className="text-red-600" />
+                                    Defects
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="px-8 py-8">
+                                {photosWithDefects.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                                        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
+                                            <MaterialIcon name="check_circle_outline" className="text-4xl text-green-500" />
+                                        </div>
+                                        <p className="text-xl font-semibold text-slate-500">No defects reported yet</p>
+                                        <p className="mt-1 text-slate-400">This product currently meets all quality standards.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-4 xl:gap-5">
+                                        {photosWithDefects.map((photo) => (
+                                            <Link
+                                                key={photo.id}
+                                                to={`/photos/${photo.id}`}
+                                                className="relative aspect-square overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200"
+                                            >
+                                                {photo.url ? (
+                                                    <>
+                                                        <img
+                                                            src={photo.url}
+                                                            alt={`Photo ${photo.id}`}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                        {/* Verification status dot */}
+                                                        {photo.verification_status && VERIFICATION_DOT[photo.verification_status] && (
+                                                            <span
+                                                                className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
+                                                                title={VERIFICATION_DOT[photo.verification_status].title}
+                                                            />
+                                                        )}
+                                                        <div className="absolute bottom-2 right-2 rounded-md bg-red-500 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+                                                            {photo.defectCount} defect{photo.defectCount !== 1 ? 's' : ''}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs font-medium text-slate-500">
+                                                        Loading...
+                                                    </div>
+                                                )}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </section>
                 </div>
 
                 <div>
@@ -966,52 +1246,33 @@ export function TestDetails() {
                   />
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-                    Description
-                  </label>
-                  <textarea
-                    className="w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-[#2563eb]"
-                    placeholder="Enter test description"
-                    value={draft.description}
-                    onChange={(e) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    rows={4}
-                  />
-                </div>
+                        <div className="max-h-[72vh] space-y-5 overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                                        Gyra ID
+                                    </label>
+                                    <Input
+                                        className="h-11 rounded-xl border-gray-300 text-gray-900"
+                                        value={draft.gyraId}
+                                        onChange={(e) =>
+                                            setDraft((prev) => ({ ...prev, gyraId: e.target.value }))
+                                        }
+                                    />
+                                </div>
 
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-                    Status
-                  </label>
-                  <Select
-                    value={draft.status}
-                    onValueChange={(value) =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        status: value as TestStatus,
-                      }))
-                    }
-                  >
-                    <SelectTrigger
-                      className="h-11 rounded-xl border-gray-300 text-gray-900"
-                      id="update-status"
-                    >
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[260]">
-                      {TEST_STATUSES.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {formatEnumLabel(status)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                                <div>
+                                    <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                                        Product Name
+                                    </label>
+                                    <Input
+                                        className="h-11 rounded-xl border-gray-300 text-gray-900"
+                                        value={draft.productName}
+                                        onChange={(e) =>
+                                            setDraft((prev) => ({ ...prev, productName: e.target.value }))
+                                        }
+                                    />
+                                </div>
 
                 <div className="sm:col-span-2">
                   <label className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">

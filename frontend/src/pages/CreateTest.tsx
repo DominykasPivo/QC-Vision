@@ -22,523 +22,356 @@ import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
 
 export function CreateTest() {
-  const navigate = useNavigate();
-  const { addAuditEvent, refreshTests } = useOutletContext<AppDataContext>();
-  const [showToast, setShowToast] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
-  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
-  const galleryInputRef = useRef<HTMLInputElement | null>(null);
-  const desktopInputRef = useRef<HTMLInputElement | null>(null);
-  const MAX_PHOTOS = 6;
-
-  // Detect if device is mobile
-  const isMobile =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent,
-    ) || window.innerWidth < 768;
-  const loggedInUser = getStoredUsername();
-  const [formData, setFormData] = useState({
-    productId: "",
-    testType: "incoming" as TestType,
-    requester: loggedInUser,
-    assignedTo: "",
-    description: "",
-    deadline: "",
-    status: "open" as TestStatus,
-  });
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) {
-      return;
-    }
-
-    // Backend validation rules from PhotoService
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    const ALLOWED_FORMATS = ["image/jpeg", "image/png", "image/webp"];
-
-    // Validate file types (must start with 'image/')
-    const invalidTypeFiles = files.filter(
-      (file) => !file.type.startsWith("image/"),
-    );
-    if (invalidTypeFiles.length > 0) {
-      setPhotoNotice(`File must be an image`);
-      e.target.value = "";
-      return;
-    }
-
-    // Validate specific formats (JPEG, PNG, WEBP only)
-    const invalidFormatFiles = files.filter(
-      (file) => !ALLOWED_FORMATS.includes(file.type),
-    );
-    if (invalidFormatFiles.length > 0) {
-      setPhotoNotice(`Unsupported format. Allowed: JPEG, PNG, WEBP`);
-      e.target.value = "";
-      return;
-    }
-
-    // Validate file sizes
-    const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
-    if (oversizedFiles.length > 0) {
-      setPhotoNotice(`File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
-      e.target.value = "";
-      return;
-    }
-
-    // Validate not empty
-    const emptyFiles = files.filter((file) => file.size === 0);
-    if (emptyFiles.length > 0) {
-      setPhotoNotice(`File is empty`);
-      e.target.value = "";
-      return;
-    }
-
-    setSelectedPhotos((prev) => {
-      const combined = [...prev, ...files];
-      if (combined.length > MAX_PHOTOS) {
-        setPhotoNotice(
-          `You can upload up to ${MAX_PHOTOS} photos. Extra files were not added.`,
-        );
-      } else {
-        setPhotoNotice(null);
-      }
-      return combined.slice(0, MAX_PHOTOS);
-    });
-    e.target.value = "";
-    setShowPhotoModal(false);
-  };
-
-  const handlePhotoButtonClick = () => {
-    if (isMobile) {
-      setShowPhotoModal(true);
-    } else {
-      desktopInputRef.current?.click();
-    }
-  };
-
-  const handleRemovePhoto = (index: number) => {
-    setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const submitFormData = new FormData();
-
-      submitFormData.append("productId", formData.productId);
-      submitFormData.append("testType", formData.testType.trim());
-      submitFormData.append("requester", formData.requester.trim());
-      if (formData.assignedTo.trim()) {
-        submitFormData.append("assignedTo", formData.assignedTo.trim());
-      }
-      if (formData.description.trim()) {
-        submitFormData.append("description", formData.description.trim());
-      }
-      submitFormData.append(
-        "status",
-        formData.status.toLowerCase().replace(" ", "_"),
-      );
-
-      if (formData.deadline) {
-        submitFormData.append(
-          "deadlineAt",
-          new Date(formData.deadline).toISOString(),
-        );
-      }
-
-      // Add photos (if any)
-      for (const photo of selectedPhotos) {
-        submitFormData.append("photos", photo);
-      }
-
-      // Single request to create test + upload photos
-      const response = await fetch("/api/v1/tests/", {
-        method: "POST",
-        body: submitFormData,
-      });
-
-      const text = await response.text();
-      const parsed = text ? JSON.parse(text) : null;
-
-      if (!response.ok) {
-        // FastAPI often returns {"detail": "..."} but sometimes body can be empty
-        const message =
-          (parsed && (parsed.detail || parsed.message)) ||
-          text ||
-          `Failed to create test (${response.status})`;
-        throw new Error(message);
-      }
-
-      const result = parsed;
-      console.log("Test created:", result);
-
-      const createdTestId = result?.test?.id
-        ? String(result.test.id)
-        : "unknown";
-
-      addAuditEvent({
-        id: `audit-${Date.now()}`,
-        event: `Created test ${createdTestId}`,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Refresh tests from API to show the new test
-      console.log("Refreshing tests...");
-      await refreshTests();
-      console.log("Tests refreshed successfully");
-
-      // Show success toast
-      setShowToast(true);
-      setTimeout(() => {
-        setShowToast(false);
-        navigate("/tests"); // Redirect to tests list
-      }, 2000);
-
-      // Reset form
-      setFormData({
-        productId: "",
-        testType: "incoming",
+    const navigate = useNavigate();
+    const { addAuditEvent, refreshTests } = useOutletContext<AppDataContext>();
+    const [showToast, setShowToast] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [photoNotice, setPhotoNotice] = useState<string | null>(null);
+    const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+    const [showPhotoModal, setShowPhotoModal] = useState(false);
+    const cameraInputRef = useRef<HTMLInputElement | null>(null);
+    const galleryInputRef = useRef<HTMLInputElement | null>(null);
+    const desktopInputRef = useRef<HTMLInputElement | null>(null);
+    const MAX_PHOTOS = 6;
+    
+    // Detect if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    const loggedInUser = getStoredUsername();
+    const [formData, setFormData] = useState({
+        gyraId: '',
+        productName: '',
+        testType: 'incoming' as TestType,
         requester: loggedInUser,
-        assignedTo: "",
-        description: "",
-        deadline: "",
-        status: "open",
-      });
-      setSelectedPhotos([]);
-      setPhotoNotice(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create test");
-      console.error("Error creating test:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        assignedTo: '',
+        description: '',
+        deadline: '',
+        status: 'open' as TestStatus,
+    });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? []);
+        if (files.length === 0) {
+            return;
+        }
 
-  const controlClass =
-    "rounded-2xl border-2 border-slate-300 bg-white font-medium text-slate-900 shadow-none transition-all focus-visible:border-[#2563eb] focus-visible:ring-4 focus-visible:ring-[#2563eb]/20";
-  const mutedControlClass =
-    "rounded-2xl border-2 border-slate-200 bg-slate-100 font-medium text-slate-500 shadow-none";
-  const photoPreviews = useMemo(
-    () =>
-      selectedPhotos.map((file) => ({
-        file,
-        url: URL.createObjectURL(file),
-      })),
-    [selectedPhotos],
-  );
+        // Backend validation rules from PhotoService
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
 
-  useEffect(() => {
-    return () => {
-      photoPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+        // Validate file types (must start with 'image/')
+        const invalidTypeFiles = files.filter(file => !file.type.startsWith('image/'));
+        if (invalidTypeFiles.length > 0) {
+            setPhotoNotice(`File must be an image`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate specific formats (JPEG, PNG, WEBP only)
+        const invalidFormatFiles = files.filter(file => !ALLOWED_FORMATS.includes(file.type));
+        if (invalidFormatFiles.length > 0) {
+            setPhotoNotice(`Unsupported format. Allowed: JPEG, PNG, WEBP`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate file sizes
+        const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+        if (oversizedFiles.length > 0) {
+            setPhotoNotice(`File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validate not empty
+        const emptyFiles = files.filter(file => file.size === 0);
+        if (emptyFiles.length > 0) {
+            setPhotoNotice(`File is empty`);
+            e.target.value = '';
+            return;
+        }
+
+        setSelectedPhotos((prev) => {
+            const combined = [...prev, ...files];
+            if (combined.length > MAX_PHOTOS) {
+                setPhotoNotice(`You can upload up to ${MAX_PHOTOS} photos. Extra files were not added.`);
+            } else {
+                setPhotoNotice(null);
+            }
+            return combined.slice(0, MAX_PHOTOS);
+        });
+        e.target.value = '';
+        setShowPhotoModal(false);
     };
-  }, [photoPreviews]);
 
-  return (
-    <div
-      className={cn(
-        spacing.pageContainer,
-        "min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] bg-slate-50 pb-24 md:pb-8",
-      )}
-    >
-      <div className="mx-auto w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 md:p-6">
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-[30px] font-bold leading-tight tracking-[-0.02em] text-slate-900">
-              Create Test
-            </h2>
-            <p className="mt-1 text-[18px] font-medium text-slate-500">
-              Create a new quality control test
-            </p>
-          </div>
+    const handlePhotoButtonClick = () => {
+        if (isMobile) {
+            setShowPhotoModal(true);
+        } else {
+            desktopInputRef.current?.click();
+        }
+    };
 
-          {error && (
-            <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              {error}
-            </div>
-          )}
-          {photoNotice && (
-            <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-              {photoNotice}
-            </div>
-          )}
+    const handleRemovePhoto = (index: number) => {
+        setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
+    };
 
-          <form
-            onSubmit={handleSubmit}
-            className={cn(spacing.fieldStack)}
-            noValidate
-          >
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="productId"
-              >
-                Product ID
-              </label>
-              <Input
-                type="number"
-                id="productId"
-                name="productId"
-                density="spacious"
-                className={controlClass}
-                placeholder="e.g. 12345"
-                value={formData.productId}
-                onChange={handleChange}
-                required
-                disabled={isLoading}
-              />
-            </div>
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
 
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="testType"
-              >
-                Test Type
-              </label>
-              <Select
-                value={formData.testType}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    testType: value as TestType,
-                  }))
-                }
-                disabled={isLoading}
-              >
-                <SelectTrigger
-                  id="testType"
-                  className={controlClass}
-                  density="spacious"
-                >
-                  <SelectValue placeholder="Select test type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TEST_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {formatEnumLabel(type)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        try {
+            const submitFormData = new FormData();
+            
+            submitFormData.append('gyraId', formData.gyraId);
+            submitFormData.append('productName', formData.productName);
+            submitFormData.append('testType', formData.testType.trim());
+            submitFormData.append('requester', formData.requester.trim());
+            if (formData.assignedTo.trim()) {
+                submitFormData.append('assignedTo', formData.assignedTo.trim());
+            }
+            if (formData.description.trim()) {
+                submitFormData.append('description', formData.description.trim());
+            }
+            submitFormData.append(
+    'status',
+    formData.status.toLowerCase().replace(' ', '_')
+);
 
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="requester"
-              >
-                Requester
-              </label>
-              <Input
-                type="text"
-                id="requester"
-                name="requester"
-                density="spacious"
-                className={mutedControlClass}
-                placeholder="Enter requester name"
-                value={formData.requester}
-                onChange={handleChange}
-                required
-                disabled
-                readOnly
-              />
-            </div>
+            if (formData.deadline) {
+                submitFormData.append('deadlineAt', new Date(formData.deadline).toISOString());
+            }
+            
+            // Add photos (if any)
+            for (const photo of selectedPhotos) {
+                submitFormData.append('photos', photo);
+            }
 
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="assignedTo"
-              >
-                Assigned To (Optional)
-              </label>
-              <Input
-                type="text"
-                id="assignedTo"
-                name="assignedTo"
-                density="spacious"
-                className={controlClass}
-                placeholder="Enter assignee name"
-                value={formData.assignedTo}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
+            // Single request to create test + upload photos
+            const response = await fetch('/api/v1/tests/', {
+                method: 'POST',
+                body: submitFormData,
+            });
 
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="deadline"
-              >
-                Deadline
-              </label>
-              <Input
-                type="date"
-                id="deadline"
-                name="deadline"
-                density="spacious"
-                className={controlClass}
-                value={formData.deadline}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
+const text = await response.text();
+const parsed = text ? JSON.parse(text) : null;
 
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="description"
-              >
-                Description (Optional)
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                className="min-h-40 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 py-4 text-base font-medium text-slate-900 placeholder:text-slate-500 transition-all focus:outline-none focus-visible:border-[#2563eb] focus-visible:ring-4 focus-visible:ring-[#2563eb]/20 disabled:cursor-not-allowed disabled:opacity-60 md:text-lg"
-                placeholder="Enter test description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-                disabled={isLoading}
-                rows={4}
-              />
-            </div>
+if (!response.ok) {
+    // FastAPI often returns {"detail": "..."} but sometimes body can be empty
+    const message =
+        (parsed && (parsed.detail || parsed.message)) ||
+        text ||
+        `Failed to create test (${response.status})`;
+    throw new Error(message);
+}
 
-            <div className={spacing.fieldGroup}>
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="status"
-              >
-                Status
-              </label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: value as TestStatus,
-                  }))
-                }
-                disabled={isLoading}
-              >
-                <SelectTrigger
-                  id="status"
-                  className={controlClass}
-                  density="spacious"
-                >
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TEST_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {formatEnumLabel(status)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+const result = parsed;
+console.log('Test created:', result);
 
-            <div className="space-y-3 md:space-y-4">
-              <label
-                className="text-base font-semibold text-slate-900 md:text-lg"
-                htmlFor="photo-upload-button"
-              >
-                Photos (Optional)
-              </label>
 
-              <button
-                type="button"
-                id="photo-upload-button"
-                className="group flex w-full flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-100/80 px-4 py-8 text-center transition-colors hover:bg-slate-100 focus:outline-none focus-visible:border-[#2563eb] focus-visible:ring-4 focus-visible:ring-[#2563eb]/20 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={handlePhotoButtonClick}
-                disabled={isLoading}
-              >
-                <svg
-                  className="mb-2 h-11 w-11 text-slate-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  />
-                  <circle
-                    cx="12"
-                    cy="13"
-                    r="3.5"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  />
-                  <path
-                    d="M12 3.5v4M10 5.5h4"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <p className="text-base font-semibold leading-tight text-slate-600 md:text-lg">
-                  Upload photos for this test
-                </p>
-                <p className="mt-2 text-sm font-semibold text-slate-500">
-                  {selectedPhotos.length} of {MAX_PHOTOS} selected
-                </p>
-              </button>
+            const createdTestId = result?.test?.id ? String(result.test.id) : 'unknown';
+            
+            addAuditEvent({
+                id: `audit-${Date.now()}`,
+                event: `Created test ${createdTestId}`,
+                timestamp: new Date().toISOString(),
+            });
+            
+            // Refresh tests from API to show the new test
+            console.log('Refreshing tests...');
+            await refreshTests();
+            console.log('Tests refreshed successfully');
+            
+            // Show success toast
+            setShowToast(true);
+            setTimeout(() => {
+                setShowToast(false);
+                navigate('/tests'); // Redirect to tests list
+            }, 2000);
 
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                capture="environment"
-                multiple
-                className="upload-input"
-                onChange={handlePhotoSelect}
-                disabled={isLoading}
-              />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                className="upload-input"
-                onChange={handlePhotoSelect}
-                disabled={isLoading}
-              />
-              <input
-                ref={desktopInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                className="upload-input"
-                onChange={handlePhotoSelect}
-                disabled={isLoading}
-              />
+            // Reset form
+            setFormData({
+                gyraId: '',
+                productName: '',
+                testType: 'incoming',
+                requester: loggedInUser,
+                assignedTo: '',
+                description: '',
+                deadline: '',
+                status: 'open',
+            });
+            setSelectedPhotos([]);
+            setPhotoNotice(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create test');
+            console.error('Error creating test:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-              {photoPreviews.length > 0 && (
-                <div
-                  className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-3"
-                  aria-live="polite"
-                >
-                  {photoPreviews.map((preview, index) => (
-                    <div
-                      key={`${preview.file.name}-${preview.file.lastModified}-${index}`}
-                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    return (
+        <div className="page">
+            <h2 className="page-title">Create Test</h2>
+            <p className="page-description">Create a new quality control test</p>
+
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {error}
+                </div>
+            )}
+            {photoNotice && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded mb-4">
+                    {photoNotice}
+                </div>
+            )}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row">
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="gyraId">
+                            Gyra ID
+                        </label>
+                        <Input
+                            type="text"
+                            id="gyraId"
+                            name="gyraId"
+                            className="form-input"
+                            placeholder="e.g. GY-12345"
+                            value={formData.gyraId}
+                            onChange={handleChange}
+                            required
+                            disabled={isLoading}
+                        />
+                    </div>
+
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="productName">
+                            Product Name
+                        </label>
+                        <Input
+                            type="text"
+                            id="productName"
+                            name="productName"
+                            className="form-input"
+                            placeholder="e.g. Blue Polo Shirt"
+                            value={formData.productName}
+                            onChange={handleChange}
+                            required
+                            disabled={isLoading}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-4 sm:flex-row">
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="testType">
+                            Test Type
+                        </label>
+                        <Select
+                            value={formData.testType}
+                            onValueChange={(value) =>
+                                setFormData((prev) => ({ ...prev, testType: value as TestType }))
+                            }
+                            disabled={isLoading}
+                        >
+                            <SelectTrigger id="testType" className="form-select">
+                                <SelectValue placeholder="Select test type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {TEST_TYPES.map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                        {formatEnumLabel(type)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="requester">
+                            Requester
+                        </label>
+                        <Input
+                            type="text"
+                            id="requester"
+                            name="requester"
+                            className="form-input"
+                            placeholder="Enter requester name"
+                            value={formData.requester}
+                            onChange={handleChange}
+                            required
+                            disabled
+                            readOnly
+                        />
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-4 sm:flex-row">
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="assignedTo">
+                            Assigned To (Optional)
+                        </label>
+                        <Input
+                            type="text"
+                            id="assignedTo"
+                            name="assignedTo"
+                            className="form-input"
+                            placeholder="Enter assignee name"
+                            value={formData.assignedTo}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                        />
+                    </div>
+
+                    <div className="form-group flex-1">
+                        <label className="form-label" htmlFor="deadline">
+                            Deadline
+                        </label>
+                        <Input
+                            type="date"
+                            id="deadline"
+                            name="deadline"
+                            className="form-input"
+                            value={formData.deadline}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                        />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label" htmlFor="description">
+                        Description (Optional)
+                    </label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        className="form-input"
+                        placeholder="Enter test description"
+                        value={formData.description}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                        disabled={isLoading}
+                        rows={3}
+                        style={{ resize: 'vertical' }}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label" htmlFor="status">
+                        Status
+                    </label>
+                    <Select
+                        value={formData.status}
+                        onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, status: value as TestStatus }))
+                        }
+                        disabled={isLoading}
                     >
                       <div className="aspect-square bg-slate-100">
                         <img

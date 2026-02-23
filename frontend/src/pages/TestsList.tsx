@@ -30,7 +30,7 @@ import {
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 21;
 
 const statusClass: Record<
   TestStatus,
@@ -136,212 +136,239 @@ export function TestsList() {
       }
     };
 
-    const filtered = tests.filter((test) => {
-      // Status filter
-      if (statusFilter && test.status !== statusFilter) {
-        return false;
-      }
+    const filteredTests = useMemo(() => {
+        const normalizedQuery = searchQuery.toLowerCase();
+        const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+        
+        // Helper function for date filtering
+        const isInDateRange = (testDeadline: string | null) => {
+            if (!dateRangeFilter || !testDeadline) return true;
+            
+            const deadline = new Date(testDeadline);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            switch (dateRangeFilter) {
+                case 'overdue': {
+                    return deadline < today;
+                }
+                case 'today': {
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    return deadline >= today && deadline < tomorrow;
+                }
+                case 'this_week': {
+                    const weekEnd = new Date(today);
+                    weekEnd.setDate(weekEnd.getDate() + 7);
+                    return deadline >= today && deadline < weekEnd;
+                }
+                case 'this_month': {
+                    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    return deadline >= today && deadline <= monthEnd;
+                }
+                case 'next_month': {
+                    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                    const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+                    return deadline >= nextMonthStart && deadline <= nextMonthEnd;
+                }
+                default:
+                    return true;
+            }
+        };
 
-      // Test type filter
-      if (testTypeFilter && test.testType !== testTypeFilter) {
-        return false;
-      }
+        let filtered = tests.filter((test) => {
+            // Status filter
+            if (statusFilter && test.status !== statusFilter) {
+                return false;
+            }
 
-      // Assigned to filter
-      if (assignedToFilter) {
-        const assignedTo = test.assignedTo?.toLowerCase() || "";
-        if (!assignedTo.includes(assignedToFilter.toLowerCase())) {
-          return false;
-        }
-      }
+            // Test type filter
+            if (testTypeFilter && test.testType !== testTypeFilter) {
+                return false;
+            }
 
-      // Date range filter
-      if (!isInDateRange(test.deadlineAt || null)) {
-        return false;
-      }
+            // Assigned to filter
+            if (assignedToFilter) {
+                const assignedTo = test.assignedTo?.toLowerCase() || '';
+                if (!assignedTo.includes(assignedToFilter.toLowerCase())) {
+                    return false;
+                }
+            }
 
-      // Text search
-      if (tokens.length === 0) {
-        return true;
-      }
+            // Date range filter
+            if (!isInDateRange(test.deadlineAt || null)) {
+                return false;
+            }
 
-      const haystack = [
-        test.id,
-        test.externalOrderId,
-        test.productType,
-        test.testType,
-        test.requester,
-        test.assignedTo || "",
-        test.deadline,
-        test.status,
-        statusLabel(test.status),
-      ]
-        .join(" ")
-        .toLowerCase();
+            // Text search
+            if (tokens.length === 0) {
+                return true;
+            }
 
-      return tokens.every((token) => haystack.includes(token));
-    });
+            const haystack = [
+                test.id,
+                test.gyraId,
+                test.productName,
+                test.testType,
+                test.requester,
+                test.assignedTo || '',
+                test.deadline,
+                test.status,
+                statusLabel(test.status),
+            ]
+                .join(' ')
+                .toLowerCase();
 
-    // Sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "deadline_asc": {
-          const dateA = a.deadlineAt
-            ? new Date(a.deadlineAt).getTime()
-            : Infinity;
-          const dateB = b.deadlineAt
-            ? new Date(b.deadlineAt).getTime()
-            : Infinity;
-          return dateA - dateB;
-        }
-        case "deadline_desc": {
-          const dateA = a.deadlineAt
-            ? new Date(a.deadlineAt).getTime()
-            : -Infinity;
-          const dateB = b.deadlineAt
-            ? new Date(b.deadlineAt).getTime()
-            : -Infinity;
-          return dateB - dateA;
-        }
-        case "created_asc": {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateA - dateB;
-        }
-        case "created_desc": {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA;
-        }
-        case "status": {
-          return a.status.localeCompare(b.status);
-        }
-        case "id_asc": {
-          return String(a.id).localeCompare(String(b.id));
-        }
-        case "id_desc": {
-          return String(b.id).localeCompare(String(a.id));
-        }
-        default:
-          return 0;
-      }
-    });
+            return tokens.every((token) => haystack.includes(token));
+        });
 
-    return filtered;
-  }, [
-    searchQuery,
-    statusFilter,
-    testTypeFilter,
-    assignedToFilter,
-    dateRangeFilter,
-    sortBy,
-    tests,
-  ]);
+        // Sorting
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case 'deadline_asc': {
+                    const dateA = a.deadlineAt ? new Date(a.deadlineAt).getTime() : Infinity;
+                    const dateB = b.deadlineAt ? new Date(b.deadlineAt).getTime() : Infinity;
+                    return dateA - dateB;
+                }
+                case 'deadline_desc': {
+                    const dateA = a.deadlineAt ? new Date(a.deadlineAt).getTime() : -Infinity;
+                    const dateB = b.deadlineAt ? new Date(b.deadlineAt).getTime() : -Infinity;
+                    return dateB - dateA;
+                }
+                case 'created_asc': {
+                    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return dateA - dateB;
+                }
+                case 'created_desc': {
+                    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    return dateB - dateA;
+                }
+                case 'status': {
+                    return a.status.localeCompare(b.status);
+                }
+                case 'id_asc': {
+                    return String(a.id).localeCompare(String(b.id));
+                }
+                case 'id_desc': {
+                    return String(b.id).localeCompare(String(a.id));
+                }
+                default:
+                    return 0;
+            }
+        });
 
-  const totalPages = Math.max(1, Math.ceil(filteredTests.length / PAGE_SIZE));
-  const paginatedTests = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredTests.slice(start, start + PAGE_SIZE);
-  }, [filteredTests, currentPage]);
+        return filtered;
+    }, [searchQuery, statusFilter, testTypeFilter, assignedToFilter, dateRangeFilter, sortBy, tests]);
 
-  const showEmptyState = testsLoaded && tests.length === 0;
-  const showNoMatches =
-    testsLoaded && tests.length > 0 && filteredTests.length === 0;
+    const totalPages = Math.max(1, Math.ceil(filteredTests.length / PAGE_SIZE));
+    const paginatedTests = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredTests.slice(start, start + PAGE_SIZE);
+    }, [filteredTests, currentPage]);
 
-  return (
-    <div className={cn(spacing.pageContainer, spacing.pageStack)}>
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:hidden">
-          Tests
-        </h1>
-        <div className="hidden md:block">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            Tests
-          </h1>
-        </div>
-        <p className="text-sm text-slate-600 sm:text-base">
-          View and manage quality control tests
-        </p>
-      </div>
+    const showEmptyState = testsLoaded && tests.length === 0;
+    const showNoMatches = testsLoaded && tests.length > 0 && filteredTests.length === 0;
 
-      <form
-        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:border-0 md:bg-transparent md:p-0 md:shadow-none"
-        onSubmit={handleSearchSubmit}
-      >
-        <div className="space-y-4 md:hidden">
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <Input
-                type="text"
-                density="spacious"
-                className="rounded-full border border-slate-200 bg-white pl-7 pr-4 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                placeholder="Search by ID or Product..."
-                value={searchInput}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  setSearchInput(nextValue);
-                  if (nextValue.trim() === "") {
-                    setSearchQuery("");
-                    setCurrentPage(1);
-                  }
-                }}
-              />
+    return (
+        <div className="mx-auto w-full max-w-7xl space-y-6 px-4 pb-6 pt-3 sm:space-y-7 sm:px-3">
+            <div className="space-y-2">
+                <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:hidden">Tests</h1>
+                <div className="hidden md:block">
+                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Tests</h1>
+                </div>
+                <p className="text-sm text-slate-600 sm:text-base">View and manage quality control tests</p>
             </div>
             <Button
               type="submit"
               className="h-11 w-11 shrink-0 rounded-full p-0 text-sm font-semibold"
               aria-label="Search tests"
             >
-              <Search className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 w-11 shrink-0 rounded-full border-slate-300 bg-white p-0 text-slate-700 shadow-sm"
-              onClick={() => setMobileFiltersOpen((open) => !open)}
-              aria-label="Open filters"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
+                <div className="space-y-4 md:hidden">
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                            <Input
+                                type="text"
+                                className="h-14 rounded-full border border-slate-200 bg-white !pl-8 !pr-4 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                style={{ paddingLeft: '1.75rem', paddingRight: '1rem' }}
+                                placeholder="Search by Gyra ID, Product..."
+                                value={searchInput}
+                                onChange={(event) => {
+                                    const nextValue = event.target.value;
+                                    setSearchInput(nextValue);
+                                    if (nextValue.trim() === '') {
+                                        setSearchQuery('');
+                                        setCurrentPage(1);
+                                    }
+                                }}
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            className="h-11 w-11 shrink-0 rounded-full p-0 text-sm font-semibold"
+                            aria-label="Search tests"
+                        >
+                            <Search className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 w-11 shrink-0 rounded-full border-slate-300 bg-white p-0 text-slate-700 shadow-sm"
+                            onClick={() => setMobileFiltersOpen((open) => !open)}
+                            aria-label="Open filters"
+                        >
+                            <Filter className="h-4 w-4" />
+                        </Button>
+                    </div>
 
-          <div className="mb-4 space-y-2">
-            <p className="text-sm font-semibold text-slate-700">
-              Status Filter
-            </p>
-            <Select
-              value={statusFilter || "all"}
-              onValueChange={(value) => {
-                setStatusFilter(value === "all" ? "" : value);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger
-                density="spacious"
-                className="rounded-full border border-slate-200 bg-white pl-7 pr-8 text-base font-medium text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:mr-0.5 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-slate-500 [&>svg]:opacity-100"
-              >
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border border-slate-200 bg-white p-1 shadow-lg">
-                <SelectItem
-                  className="rounded-xl px-3 py-2.5 text-base text-slate-900 focus:bg-slate-100"
-                  value="all"
-                >
-                  All Statuses
-                </SelectItem>
-                {TEST_STATUSES.map((status) => (
-                  <SelectItem
-                    className="rounded-xl px-3 py-2.5 text-base text-slate-900 focus:bg-slate-100"
-                    key={status}
-                    value={status}
-                  >
-                    {statusLabel(status)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+                    <div className="mb-4 space-y-2">
+                        <p className="text-sm font-semibold text-slate-700">Status Filter</p>
+                        <Select
+                            value={statusFilter || 'all'}
+                            onValueChange={(value) => { setStatusFilter(value === 'all' ? '' : value); setCurrentPage(1); }}
+                        >
+                            <SelectTrigger
+                                className="h-12 rounded-full border border-slate-200 bg-white !pl-8 !pr-7 text-base font-medium text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:mr-0.5 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-slate-500 [&>svg]:opacity-100"
+                                style={{ paddingLeft: '1.75rem', paddingRight: '2rem' }}
+                            >
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border border-slate-200 bg-white p-1 shadow-lg">
+                                <SelectItem className="rounded-xl px-3 py-2.5 text-base text-slate-900 focus:bg-slate-100" value="all">All Statuses</SelectItem>
+                                {TEST_STATUSES.map((status) => (
+                                    <SelectItem className="rounded-xl px-3 py-2.5 text-base text-slate-900 focus:bg-slate-100" key={status} value={status}>
+                                        {statusLabel(status)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                </div>
+
+                <div className="hidden md:block">
+                    <div className="flex items-center gap-3" style={{ marginBottom: '32px' }}>
+                        <div className="relative flex-1">
+                            <Input
+                                type="text"
+                                className="h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-[15px] leading-5 text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                placeholder="Search by Gyra ID, Product..."
+                                value={searchInput}
+                                onChange={(event) => {
+                                    const nextValue = event.target.value;
+                                    setSearchInput(nextValue);
+                                    if (nextValue.trim() === '') {
+                                        setSearchQuery('');
+                                        setCurrentPage(1);
+                                    }
+                                }}
+                            />
+                        </div>
+                        <Button type="submit" className="h-14 rounded-full px-8 text-base font-semibold md:min-w-32">
+                            Search
+                        </Button>
+                    </div>
 
         <div className="hidden md:block">
           <div className="mb-8 flex items-center gap-3">
@@ -778,17 +805,81 @@ export function TestsList() {
                           )}
                         </div>
 
-                        <Button
-                          asChild
-                          className="h-11 w-full rounded-full text-base font-semibold"
-                        >
-                          <Link to={`/tests/${test.id}`}>View Details</Link>
-                        </Button>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
+            {showEmptyState ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                    <h2 className="text-lg font-semibold text-slate-900">No tests yet</h2>
+                    <p className="mt-2 text-sm text-slate-600">Create your first quality control test to get started.</p>
+                    <Button asChild className="mt-4 h-11 rounded-full px-6 font-semibold">
+                        <Link to="/create">Create Test</Link>
+                    </Button>
+                </div>
+            ) : (
+                <>
+                    <section className="space-y-4">
+                        <h2 className="text-xl font-semibold text-slate-900">Recent Tests</h2>
+                        {showNoMatches ? (
+                            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                                <p className="text-base font-semibold text-red-600">No tests match your search or filters.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+                                {paginatedTests.map((test) => {
+                                    const styles = statusClass[test.status];
+                                    const StatusIcon = styles.icon;
+                                    const productLabel = test.productName?.trim() ? test.productName : formatEnumLabel(test.testType);
+                                    const requesterLabel = test.requester?.trim() ? test.requester : null;
+                                    const deadlineLabel = test.deadline?.trim() ? test.deadline : null;
+                                    const gyraIdDisplay = test.gyraId?.trim() ? test.gyraId : `#${test.id}`;
+
+                                    return (
+                                        <article
+                                            key={test.id}
+                                            className="relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md shadow-slate-200/60"
+                                        >
+                                            <div className={`absolute inset-y-0 left-0 w-1.5 ${styles.accent}`} />
+                                            <div className="flex flex-1 flex-col pr-5 pl-9 py-5" style={{ paddingLeft: '2.25rem' }}>
+                                                <div className="flex-1 space-y-4">
+                                                    <div className="relative min-h-14 pr-36">
+                                                        <div className="min-w-0 flex-1 space-y-1.5">
+                                                            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                                                                Gyra ID
+                                                            </p>
+                                                            <p className="text-4xl font-bold leading-none text-slate-900">
+                                                                {gyraIdDisplay}
+                                                            </p>
+                                                            <p className="text-xs font-medium text-slate-500">Test ID: {test.id}</p>
+                                                        </div>
+                                                        <span className={`absolute right-5 top-2 inline-flex min-h-9 w-auto items-center gap-1.5 rounded-full border pl-3.5 pr-4 py-2 text-xs font-semibold leading-none whitespace-nowrap ${styles.badge}`}>
+                                                            <StatusIcon className="h-3.5 w-3.5" />
+                                                            {statusLabel(test.status)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="space-y-1.5 border-t border-slate-100 pt-3 text-sm text-slate-700">
+                                                        <p className="text-[1.65rem] font-semibold leading-tight text-slate-900">{productLabel}</p>
+                                                        {requesterLabel && <p className="text-sm">Requester: {requesterLabel}</p>}
+                                                        {deadlineLabel && <p className="text-sm">Deadline: {deadlineLabel}</p>}
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-4">
+                                                    <Button asChild className="h-11 w-full rounded-full text-base font-semibold">
+                                                        <Link to={`/tests/${test.id}`}>View Details</Link>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </section>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </>
             )}
           </section>
           <Pagination

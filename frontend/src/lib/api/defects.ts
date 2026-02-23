@@ -46,10 +46,22 @@ export type PhotoRecord = {
   test_id?: number | string;
   file_path?: string;
   url?: string;
+  verification_status?: string;
 };
 
 export async function getPhoto(photoId: string | number) {
   return request<PhotoRecord>(DEFECT_ENDPOINTS.photo(photoId));
+}
+
+export async function updateVerificationStatus(
+  photoId: string | number,
+  verificationStatus: string,
+) {
+  return request<PhotoRecord>(`${API_BASE}/photos/${photoId}/verification`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ verification_status: verificationStatus }),
+  });
 }
 
 export async function getDefectsByPhoto(photoId: string | number) {

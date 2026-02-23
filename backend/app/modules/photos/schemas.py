@@ -21,6 +21,7 @@ class PhotoResponse(BaseModel):
     file_path: str
     time_stamp: datetime
     analysis_results: Optional[str] = None
+    verification_status: str = "pending"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -30,20 +31,6 @@ class PhotoListResponse(BaseModel):
 
     total: int
     photos: list[PhotoResponse]
-
-
-class PhotoUrlResponse(BaseModel):
-    """Schema for presigned URL response (MinIO direct access)."""
-
-    url: str
-    expires_in: int
-
-
-class PhotoUploadResponse(BaseModel):
-    """Extended response after photo upload with access URL."""
-
-    photo: PhotoResponse
-    url: str
 
 
 class GalleryPhotoResponse(BaseModel):
@@ -58,6 +45,7 @@ class GalleryPhotoResponse(BaseModel):
     defect_count: int
     highest_severity: Optional[str] = None
     category_ids: List[int] = []
+    verification_status: str = "pending"
 
     model_config = ConfigDict(from_attributes=True)
 

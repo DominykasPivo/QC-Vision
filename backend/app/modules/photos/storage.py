@@ -112,14 +112,6 @@ class PhotoStorage:
             logger.error(f"Failed to delete photo: {str(e)}")
             raise
 
-    def generate_presigned_url(self, file_path: str, expiration: int = 3600) -> str:
-        """Generate a public URL for photo access (bucket is public)."""
-        try:
-            return f"http://{self.public_endpoint}/{self.bucket_name}/{file_path}"
-        except Exception as e:
-            logger.error(f"Failed to generate URL: {str(e)}")
-            return ""
-
 
 # ✅ must exist (your router imports it)
 @lru_cache(maxsize=1)

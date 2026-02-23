@@ -10,6 +10,7 @@ export type GalleryPhoto = {
   defect_count: number;
   highest_severity: string | null;
   category_ids: number[];
+  verification_status: string;
 };
 
 export type GalleryResponse = {
@@ -27,6 +28,7 @@ export type GalleryFilters = {
   test_type?: string;
   test_status?: string;
   has_defects?: boolean;
+  verification_status?: string;
 };
 
 export async function fetchGallery(
@@ -41,6 +43,8 @@ export async function fetchGallery(
   if (filters.test_status) params.set('test_status', filters.test_status);
   if (filters.has_defects !== undefined)
     params.set('has_defects', String(filters.has_defects));
+  if (filters.verification_status)
+    params.set('verification_status', filters.verification_status);
 
   const qs = params.toString();
   return request<GalleryResponse>(`/api/v1/photos/gallery${qs ? `?${qs}` : ''}`);

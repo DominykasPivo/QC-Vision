@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(docker compose up:*)",
+      "Bash(where:*)",
+      "Bash(node --version:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

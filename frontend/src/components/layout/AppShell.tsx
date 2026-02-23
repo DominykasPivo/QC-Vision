@@ -36,33 +36,24 @@ const STORAGE_KEYS = {
 };
 
 type ApiTest = {
-  id: number | string;
-  productId?: number;
-  product_id?: number;
-  testType?: string;
-  test_type?: string;
-  requester?: string;
-  assignedTo?: string | null;
-  assigned_to?: string | null;
-  description?: string | null;
-  status?: string | null;
-  deadlineAt?: string | null;
-  deadline_at?: string | null;
-  createdAt?: string | null;
-  created_at?: string | null;
-  updatedAt?: string | null;
-  updated_at?: string | null;
-  externalOrderId?: string;
-  productType?: string;
-};
-
-type ApiAuditLog = {
-  id: string | number;
-  created_at: string;
-  action: string;
-  entity_type: string;
-  entity_id?: string | number | null;
-  username?: string | null;
+    id: number | string;
+    gyraId?: string;
+    gyra_id?: string;
+    productName?: string;
+    product_name?: string;
+    testType?: string;
+    test_type?: string;
+    requester?: string;
+    assignedTo?: string | null;
+    assigned_to?: string | null;
+    description?: string | null;
+    status?: string | null;
+    deadlineAt?: string | null;
+    deadline_at?: string | null;
+    createdAt?: string | null;
+    created_at?: string | null;
+    updatedAt?: string | null;
+    updated_at?: string | null;
 };
 
 const normalizeStatus = (value: unknown): TestStatus => {
@@ -85,33 +76,29 @@ const formatDeadline = (value?: string | null): string => {
 };
 
 const toFrontendTest = (raw: ApiTest): Test => {
-  const productId = raw.productId ?? raw.product_id;
-  const testType = normalizeTestType(raw.testType ?? raw.test_type);
-  const status = normalizeStatus(raw.status);
-  const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
-  const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
-  const createdAt = raw.createdAt ?? raw.created_at ?? null;
-  const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
+    const gyraId = raw.gyraId ?? raw.gyra_id ?? '';
+    const productName = raw.productName ?? raw.product_name ?? '';
+    const testType = normalizeTestType(raw.testType ?? raw.test_type);
+    const status = normalizeStatus(raw.status);
+    const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
+    const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
+    const createdAt = raw.createdAt ?? raw.created_at ?? null;
+    const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
 
-  return {
-    id: String(raw.id),
-    externalOrderId:
-      raw.externalOrderId ??
-      (productId !== undefined ? String(productId) : String(raw.id)),
-    productId,
-    productType:
-      raw.productType ??
-      (productId !== undefined ? `Product ${productId}` : "Unknown product"),
-    testType,
-    requester: raw.requester ?? "",
-    assignedTo: assignedTo || undefined,
-    description: raw.description ?? null,
-    deadline: formatDeadline(deadlineAt),
-    deadlineAt,
-    status,
-    createdAt,
-    updatedAt,
-  };
+    return {
+        id: String(raw.id),
+        gyraId,
+        productName,
+        testType,
+        requester: raw.requester ?? '',
+        assignedTo: assignedTo || undefined,
+        description: raw.description ?? null,
+        deadline: formatDeadline(deadlineAt),
+        deadlineAt,
+        status,
+        createdAt,
+        updatedAt,
+    };
 };
 
 export function AppShell() {

@@ -25,3 +25,4 @@ class Photo(Base):
         DateTime(timezone=True), nullable=False, default=datetime.utcnow
     )
     analysis_results = Column(Text, nullable=True)
+    verification_status = Column(Text, nullable=False, default="pending")

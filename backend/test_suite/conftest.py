@@ -122,9 +122,6 @@ def mock_photo_storage(monkeypatch):
     mock.upload_photo = AsyncMock(return_value="photos/20250101/test-uuid.jpg")
     mock.get_photo = AsyncMock(return_value=b"\xff\xd8\xff\xe0fake-jpeg-data")
     mock.delete_photo = AsyncMock(return_value=True)
-    mock.generate_presigned_url = MagicMock(
-        return_value="http://localhost:9000/qc-vision-photos/photos/20250101/test-uuid.jpg"
-    )
 
     # Patch every module that imported photo_storage as a module-level name
     monkeypatch.setattr(_storage_mod, "photo_storage", mock)

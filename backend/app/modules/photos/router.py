@@ -10,7 +10,7 @@ from app.database import get_db
 from app.modules.audit.service import log_action
 
 from .models import Photo
-from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUrlResponse
+from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse
 from .service import photo_service
 from .storage import photo_storage  # ✅ module-level name must exist for tests
 
@@ -34,6 +34,7 @@ async def get_gallery(
     test_type: Optional[str] = Query(default=None),
     test_status: Optional[str] = Query(default=None),
     has_defects: Optional[bool] = Query(default=None),
+    verification_status: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
 ):
     """Get paginated gallery photos with aggregated defect summaries."""
@@ -46,6 +47,7 @@ async def get_gallery(
         test_type=test_type,
         test_status=test_status,
         has_defects=has_defects,
+        verification_status=verification_status,
     )
     return GalleryResponse(
         items=[GalleryPhotoResponse(**item) for item in items],
@@ -53,16 +55,6 @@ async def get_gallery(
         page=page,
         page_size=page_size,
     )
-
-
-@router.get("/{photo_id}/url", response_model=PhotoUrlResponse)
-async def get_photo_url(photo_id: int, db: Session = Depends(get_db)):
-    photo = db.query(Photo).filter(Photo.id == photo_id).first()
-    if not photo:
-        raise HTTPException(status_code=404, detail="Photo not found")
-
-    url = photo_storage.generate_presigned_url(photo.file_path, expiration=3600)
-    return PhotoUrlResponse(url=url, expires_in=3600)
 
 
 @router.get("/{photo_id}/image")
@@ -91,6 +83,15 @@ async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to retrieve image for photo {photo_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve image")
+
+
+@router.get("/{photo_id}", response_model=PhotoResponse)
+async def get_photo(photo_id: int, db: Session = Depends(get_db)):
+    """Get a single photo by ID."""
+    photo = db.query(Photo).filter(Photo.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return photo
 
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)
@@ -171,6 +172,41 @@ async def upload_photo(
             },
         )
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@router.patch("/{photo_id}/verification", response_model=PhotoResponse)
+async def update_verification_status(
+    photo_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+):
+    """Update the verification status of a photo (pending, approved, rejected)."""
+    verification_status = payload.get("verification_status")
+    if not verification_status:
+        raise HTTPException(
+            status_code=400, detail="verification_status is required"
+        )
+
+    try:
+        photo = photo_service.update_verification_status(
+            db, photo_id, verification_status
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    log_action(
+        db,
+        action="UPDATE",
+        entity_type="Photo",
+        entity_id=photo_id,
+        username="system",
+        meta={"verification_status": verification_status},
+    )
+
+    return photo
 
 
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)

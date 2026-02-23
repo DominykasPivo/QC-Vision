@@ -14,18 +14,15 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE TYPE review_status AS ENUM ('pending','approved','rejected');
+  CREATE TYPE photo_verification_status AS ENUM ('pending','approved','rejected');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$ BEGIN
-  CREATE TYPE role AS ENUM ('admin','user','reviewer');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
 
 CREATE TABLE IF NOT EXISTS quality_tests (
   id            SERIAL PRIMARY KEY,
-  product_id    INT NOT NULL,
+  gyra_id       VARCHAR(100) NOT NULL,
+  product_name  VARCHAR(255) NOT NULL,
 
   test_type     test_type NOT NULL,
   requester     TEXT,
@@ -45,13 +42,11 @@ CREATE TABLE IF NOT EXISTS quality_tests (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
---allows tests to be searched by status, deadline, creation date
+--allows tests to be searched by status, deadline, creation date, gyra_id
 CREATE INDEX IF NOT EXISTS idx_quality_tests_status    ON quality_tests(status);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_deadline  ON quality_tests(deadline_at);
 CREATE INDEX IF NOT EXISTS idx_quality_tests_created   ON quality_tests(created_at);
-CREATE INDEX IF NOT EXISTS idx_quality_tests_review_status ON quality_tests(review_status);
-CREATE INDEX IF NOT EXISTS idx_quality_tests_reviewed_by ON quality_tests(reviewed_by);
-
+CREATE INDEX IF NOT EXISTS idx_quality_tests_gyra_id   ON quality_tests(gyra_id);
 
 
 --updates the updated_at field automatically 
@@ -78,7 +73,8 @@ CREATE TABLE IF NOT EXISTS photos (
 
   file_path       TEXT NOT NULL,
   time_stamp      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  analysis_results TEXT
+  analysis_results TEXT,
+  verification_status photo_verification_status NOT NULL DEFAULT 'pending'
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_test_id ON photos(test_id);

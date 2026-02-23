@@ -4,9 +4,8 @@ import type { TestStatus, TestType } from "../lib/db-constants";
 
 export interface Test {
   id: string;
-  externalOrderId: string;
-  productId?: number | string;
-  productType: string;
+  gyraId: string;
+  productName: string;
   testType: TestType;
   requester: string;
   assignedTo?: string;
