@@ -14,6 +14,10 @@ router = APIRouter()
 
 @router.get("/logs", response_model=AuditLogListOut)
 def get_audit_logs(
+    clear_filters: bool = Query(  
+        default=False,
+        description="If true, ignores all filter params and returns unfiltered results.",
+    ),
     action: Optional[str] = Query(default=None),
     entity_type: Optional[str] = Query(default=None),
     entity_id: Optional[int] = Query(default=None),
@@ -24,6 +28,14 @@ def get_audit_logs(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
+    if clear_filters:  # ✅ ADDED: minimal logic to drop all filters when requested
+        action = None
+        entity_type = None
+        entity_id = None
+        username = None
+        created_from = None
+        created_to = None
+
     items, total = list_logs(
         db,
         action=action,
