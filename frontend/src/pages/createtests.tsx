@@ -219,9 +219,9 @@ export function CreateTestsScreen() {
   );
 
   return (
-    <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] bg-gradient-to-b from-[#EEF4FF] to-[#F8FBFF] px-3 py-4 pb-24 md:px-4 md:py-5 md:pb-8">
+    <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] px-3 py-4 pb-24 md:px-4 md:py-5 md:pb-8">
       {/* White shell card */}
-      <section className="w-full rounded-[28px] border-2 border-[#D9E2EF] bg-white px-5 py-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] md:px-8 md:py-8 xl:px-[52px] xl:py-[48px]">
+      <section className="w-full rounded-[28px] border-2 border-slate-200 bg-white px-5 py-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] md:px-8 md:py-8 xl:px-[52px] xl:py-[48px]">
         <div className="flex flex-col gap-5 xl:gap-8">
           {/* ── Top row: title + new-test button ── */}
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">

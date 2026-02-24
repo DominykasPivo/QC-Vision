@@ -401,22 +401,19 @@ export function TestDetails() {
 
     return (
         <div
-            className="test-details-page relative min-h-full bg-[#f3f4f6] pb-8 md:pb-36"
+            className="test-details-page relative min-h-full bg-white pb-8 md:pb-36"
             style={{ fontFamily: "'Inter', sans-serif" }}
         >
-            {/* ── Sticky Top Bar ── */}
-            <div className="sticky top-0 z-10 border-b border-slate-200/50 bg-[#f3f4f6]/80 backdrop-blur-md">
-                <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-10">
+            {/* ── Top Bar ── */}
+            <div className="border-b border-slate-200 bg-white">
+                <div className="mx-auto flex max-w-7xl items-center px-6 py-4 md:px-10">
                     <Link
                         to="/tests"
-                        className="group inline-flex items-center gap-1 text-lg font-semibold text-[#2563eb] no-underline transition-all hover:underline"
+                        className="group inline-flex items-center gap-2 rounded-lg px-1 py-1 text-lg font-semibold text-[#2563eb] no-underline transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
                     >
-                        <MaterialIcon name="arrow_back" className="text-xl" />
-                        <span>Back to Tests</span>
+                        <MaterialIcon name="arrow_back" className="shrink-0 text-[22px] leading-none" />
+                        <span className="leading-none">Back to Tests</span>
                     </Link>
-                    <span className="hidden text-slate-500 md:block">
-                        Test Management System v2.4
-                    </span>
                 </div>
             </div>
 
@@ -953,17 +950,11 @@ export function TestDetails() {
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                    <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-2.5 py-2">
-                                                                        <span className="truncate text-xs text-gray-600">
-                                                                            {photo.file_path.includes('/')
-                                                                                ? photo.file_path
-                                                                                    .split('/')
-                                                                                    .pop()
-                                                                                : `Photo ${photo.id}`}
-                                                                        </span>
+                                                                    <div className="border-t border-gray-100 px-2.5 py-2">
                                                                         <button
                                                                             type="button"
-                                                                            className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                            className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
+                                                                            aria-label={`Remove photo ${photo.id}`}
                                                                             onClick={() =>
                                                                                 setPhotosToDelete((prev) => [
                                                                                     ...prev,
@@ -998,13 +989,11 @@ export function TestDetails() {
                                                                         className="h-full w-full object-cover"
                                                                     />
                                                                 </div>
-                                                                <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-2.5 py-2">
-                                                                    <span className="truncate text-xs text-gray-600">
-                                                                        {preview.file.name}
-                                                                    </span>
+                                                                <div className="border-t border-gray-100 px-2.5 py-2">
                                                                     <button
                                                                         type="button"
-                                                                        className="text-xs font-semibold text-[#2563eb] hover:text-[#1d4ed8]"
+                                                                        className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
+                                                                        aria-label={`Remove ${preview.file.name}`}
                                                                         onClick={() => handleRemoveNewPhoto(index)}
                                                                     >
                                                                         Remove

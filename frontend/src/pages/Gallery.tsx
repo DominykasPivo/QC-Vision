@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, Filter } from "lucide-react";
+import { Filter, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,8 @@ import {
   type GalleryPhoto,
   type GalleryResponse,
 } from "@/lib/api/gallery";
+import { spacing } from "@/lib/ui/spacing";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 
@@ -76,8 +78,8 @@ function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
     return (
         <Link
             to={`/photos/${photo.id}`}
-            className={`gallery-item relative overflow-hidden rounded-lg ${style.border}`}
-            style={{ backgroundColor: '#1f2937' }}
+            className={`group relative block aspect-square overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-transform active:scale-[0.98] ${style.border}`}
+            aria-label={`Open photo ${photo.id}`}
         >
             <img
                 src={`/api/v1/photos/${photo.id}/image`}
@@ -102,6 +104,7 @@ function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
                     {formatEnumLabel(photo.highest_severity)}
                 </span>
             )}
+            <div className="absolute inset-0 bg-black/10 opacity-0 transition-opacity group-hover:opacity-100" />
         </Link>
     );
 }
@@ -160,6 +163,9 @@ export function Gallery() {
     const photos = galleryData?.items ?? [];
 
     const hasActiveFilters = severityFilter || categoryFilter || testTypeFilter || testStatusFilter || hasDefectsFilter || verificationFilter;
+    const hasAdvancedFilters = Boolean(
+        severityFilter || categoryFilter || testTypeFilter || hasDefectsFilter || verificationFilter
+    );
 
     const clearAllFilters = () => {
         setSeverityFilter('');
@@ -178,26 +184,52 @@ export function Gallery() {
 
     // Shared select trigger classes (matching TestsList pattern)
     const triggerCls = 'h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100';
-    const mobileTriggerCls = 'h-14 rounded-2xl border border-slate-200 bg-white !pl-8 !pr-6 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100';
+    const mobileTriggerCls = 'h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]';
 
     return (
-        <div className="page">
-            <div className="flex flex-col gap-1">
-                <h2 className="page-title">Gallery</h2>
-                <p className="page-description">Browse all test photos</p>
+        <div className={cn(spacing.pageContainer, spacing.pageStack, "max-w-none pb-24 md:pb-8")}>
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-slate-900 md:text-4xl">
+                        Gallery
+                    </h2>
+                    <p className="text-base font-medium text-slate-500 md:text-lg">
+                        Browse all test photos
+                    </p>
+                </div>
             </div>
 
-            {/* Mobile: filter button */}
+            {/* Mobile: primary status filter + advanced filters icon (matches Tests page pattern) */}
             <div className="mt-4 flex items-center gap-3 md:hidden">
+                <div className="min-w-0 flex-1">
+                    <Select
+                        value={testStatusFilter || 'all'}
+                        onValueChange={(v) => setFilterAndResetPage(setTestStatusFilter)(v === 'all' ? '' : v)}
+                    >
+                        <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]">
+                            <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            {TEST_STATUSES.map((s) => (
+                                <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <Button
                     type="button"
                     variant="outline"
-                    className="h-11 rounded-full border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm"
-                    onClick={() => setMobileFiltersOpen((open) => !open)}
-                    aria-label="Open filters"
+                    className={cn(
+                        "h-11 w-11 shrink-0 rounded-full border bg-white p-0 shadow-sm",
+                        hasAdvancedFilters
+                            ? "border-[#BFD2F8] bg-[#EAF1FF] text-[#1D4ED8]"
+                            : "border-[#CFD8E3] text-[#64748B]",
+                    )}
+                    aria-label="Open advanced filters"
+                    onClick={() => setMobileFiltersOpen(true)}
                 >
-                    <Filter className="mr-1.5 h-4 w-4" />
-                    Filters
+                    <Filter className="h-4 w-4" />
                 </Button>
             </div>
 
@@ -301,29 +333,31 @@ export function Gallery() {
                     <button
                         type="button"
                         className="absolute inset-0 bg-slate-900/45"
-                        aria-label="Close filters"
+                        aria-label="Close advanced filters"
                         onClick={() => setMobileFiltersOpen(false)}
                     />
                     <div className="relative flex min-h-full items-center justify-center p-4">
-                        <div className="flex max-h-[86vh] w-[90%] max-w-[420px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl sm:w-[92%] sm:max-w-[520px]">
-                            <div className="border-b border-slate-200 px-6 py-6">
+                        <div className="flex max-h-[84vh] w-full max-w-[420px] flex-col overflow-hidden rounded-[24px] border border-[#D5DFEC] bg-white shadow-2xl">
+                            <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-[#0F172A]">Advanced Filters</h3>
+                                    <p className="text-sm text-[#64748B]">Adjust your gallery filters</p>
+                                </div>
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="h-10 rounded-full border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-100 hover:text-blue-800"
+                                    className="h-9 w-9 rounded-full border-[#CFD8E3] p-0 text-[#64748B]"
+                                    aria-label="Close advanced filters"
                                     onClick={() => setMobileFiltersOpen(false)}
                                 >
-                                    <ArrowLeft className="mr-1 h-4 w-4" />
-                                    Go Back
+                                    <X className="h-4 w-4" />
                                 </Button>
-                                <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Gallery Filters</h3>
-                                <p className="mt-2 text-sm leading-6 text-slate-500">Filter photos by defects, test type, and more</p>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6">
-                                <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Severity</p>
+                            <div className="flex-1 space-y-4 overflow-y-auto bg-[#F8FAFF] px-5 py-5">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Severity</p>
                                         <Select value={severityFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setSeverityFilter)(v === 'all' ? '' : v)}>
                                             <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Severity" /></SelectTrigger>
                                             <SelectContent>
@@ -333,8 +367,8 @@ export function Gallery() {
                                         </Select>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Category</p>
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Category</p>
                                         <Select value={categoryFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setCategoryFilter)(v === 'all' ? '' : v)}>
                                             <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Category" /></SelectTrigger>
                                             <SelectContent>
@@ -344,8 +378,8 @@ export function Gallery() {
                                         </Select>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Test Type</p>
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Test Type</p>
                                         <Select value={testTypeFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setTestTypeFilter)(v === 'all' ? '' : v)}>
                                             <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Test Type" /></SelectTrigger>
                                             <SelectContent>
@@ -355,19 +389,8 @@ export function Gallery() {
                                         </Select>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Test Status</p>
-                                        <Select value={testStatusFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setTestStatusFilter)(v === 'all' ? '' : v)}>
-                                            <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Test Status" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Statuses</SelectItem>
-                                                {TEST_STATUSES.map((s) => <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Defects</p>
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Defects</p>
                                         <Select value={hasDefectsFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setHasDefectsFilter)(v === 'all' ? '' : v)}>
                                             <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Defects" /></SelectTrigger>
                                             <SelectContent>
@@ -378,8 +401,8 @@ export function Gallery() {
                                         </Select>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Verification</p>
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Verification</p>
                                         <Select value={verificationFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setVerificationFilter)(v === 'all' ? '' : v)}>
                                             <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Verification" /></SelectTrigger>
                                             <SelectContent>
@@ -391,14 +414,13 @@ export function Gallery() {
                                 </div>
                             </div>
 
-                            <div className="sticky bottom-0 border-t border-slate-200 bg-white px-6 pb-6 pt-4">
+                            <div className="border-t border-[#E2E8F0] bg-white px-5 py-4">
                                 <Button
                                     type="button"
-                                    className="relative h-14 w-full rounded-2xl text-sm font-bold uppercase tracking-wide"
+                                    className="h-11 w-full rounded-[12px] bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8]"
                                     onClick={() => setMobileFiltersOpen(false)}
                                 >
                                     Apply Filters
-                                    <Check className="absolute right-4 h-5 w-5" />
                                 </Button>
                             </div>
                         </div>
@@ -453,16 +475,16 @@ export function Gallery() {
 
             {/* Gallery content */}
             {loading ? (
-                <p className="page-description mt-6">Loading photos...</p>
+                <p className="mt-6 text-base font-medium text-slate-500">Loading photos...</p>
             ) : photos.length === 0 ? (
-                <p className="page-description mt-6">
+                <p className="mt-6 text-base font-medium text-slate-500">
                     {hasActiveFilters
                         ? 'No photos match the selected filters.'
                         : 'No photos yet. Upload photos when creating a test.'}
                 </p>
             ) : (
                 <>
-                    <div className="gallery-grid mt-4">
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                         {photos.map((photo) => (
                             <GalleryCard key={photo.id} photo={photo} />
                         ))}

@@ -172,6 +172,7 @@ body {
 .app-content.app-content--test-details {
   width: 100%;
   max-width: none;
+  padding-top: var(--page-top-pad);
 }
 
 .bottom-nav {
@@ -425,6 +426,7 @@ body {
 
   .app-content.app-content--test-details {
     max-width: none;
+    padding-top: var(--page-top-pad-desktop);
   }
 }
 
@@ -617,6 +619,7 @@ body {
 
   .app-content.app-content--test-details {
     max-width: none;
+    padding-top: var(--page-top-pad-desktop);
   }
 
   .bottom-nav {
