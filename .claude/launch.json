@@ -19,5 +19,6 @@
       "runtimeArgs": ["compose", "up", "--build", "backend"],
       "port": 8000
     }
-  ]
+  ],
+  "autoVerify": false
 }

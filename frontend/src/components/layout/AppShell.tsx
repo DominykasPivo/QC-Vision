@@ -248,6 +248,22 @@ export function AppShell() {
     };
   }, [refreshTests, storageHydrated]);
 
+  // Poll for updated tests every 30 seconds, but only when the tab is visible.
+  // This does NOT affect any in-progress form edits because form draft state
+  // lives in each page component independently of the tests context array.
+  useEffect(() => {
+    if (!testsLoaded) return;
+
+    const POLL_MS = 30_000;
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        refreshTests();
+      }
+    }, POLL_MS);
+
+    return () => clearInterval(id);
+  }, [testsLoaded, refreshTests]);
+
   const addTest = (test: Test) => setTests((prev) => [test, ...prev]);
   const addPhoto = (photo: Photo) => setPhotos((prev) => [photo, ...prev]);
   const addAuditEvent = (event: AuditEvent) =>
