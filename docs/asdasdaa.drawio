@@ -22,7 +22,7 @@
         <mxCell id="za8xQzKgsstbTqghUS_0-68" parent="1" style="whiteSpace=wrap;strokeWidth=2;" value="Mobile Browser&#xa;:3000" vertex="1">
           <mxGeometry height="78" width="169" x="50" y="894" as="geometry" />
         </mxCell>
-        <mxCell id="za8xQzKgsstbTqghUS_0-69" parent="1" style="whiteSpace=wrap;strokeWidth=2;" value="React SPA&#xa;TailwindCSS&#xa;30s Polling" vertex="1">
+        <mxCell id="za8xQzKgsstbTqghUS_0-69" parent="1" style="whiteSpace=wrap;strokeWidth=2;" value="React &#xa;TailwindCSS&#xa;30s Polling" vertex="1">
           <mxGeometry height="102" width="144" x="332" y="950" as="geometry" />
         </mxCell>
         <mxCell id="za8xQzKgsstbTqghUS_0-70" parent="1" style="whiteSpace=wrap;strokeWidth=2;" value="Test Management" vertex="1">
