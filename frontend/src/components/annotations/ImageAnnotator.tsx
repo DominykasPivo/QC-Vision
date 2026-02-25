@@ -8,7 +8,7 @@ import {
   Line,
   Arrow,
 } from "react-konva";
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import type Konva from "konva";
 import type {
   Annotation,
@@ -126,8 +126,8 @@ export function ImageAnnotator({
         onAnnotationDelete(selectedAnnotationId);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedAnnotationId, onAnnotationDelete]);
 
   // --- Zoom ---
@@ -192,11 +192,14 @@ export function ImageAnnotator({
   };
 
   // --- Stage interaction (pan + draw) ---
-  const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+  const handleStageMouseDown = (
+    e: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+  ) => {
     // Pan when zoomed + select mode + click on background
-    if (scale > 1 && currentTool === 'select' && !enableMove) {
+    if (scale > 1 && currentTool === "select" && !enableMove) {
       const stage = e.target.getStage();
-      const clickedOnBackground = e.target === stage || e.target.getClassName() === 'Image';
+      const clickedOnBackground =
+        e.target === stage || e.target.getClassName() === "Image";
       if (clickedOnBackground && stage) {
         const pos = stage.getPointerPosition();
         if (pos) {
@@ -208,7 +211,7 @@ export function ImageAnnotator({
     }
 
     // Drawing
-    if (readonly || currentTool === 'select') return;
+    if (readonly || currentTool === "select") return;
 
     const stage = e.target.getStage();
     if (!stage) return;
@@ -224,7 +227,9 @@ export function ImageAnnotator({
     setTempPoints([normalized]);
   };
 
-  const handleStageMouseMove = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+  const handleStageMouseMove = (
+    e: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+  ) => {
     // Panning
     if (isPanning) {
       const stage = stageRef.current;
@@ -328,7 +333,7 @@ export function ImageAnnotator({
         }
         break;
       }
-      case 'polygon': {
+      case "polygon": {
         if (tempPoints.length > 2) {
           geometry = {
             type: "polygon",
@@ -369,7 +374,9 @@ export function ImageAnnotator({
       return;
     }
     // Single touch — forward to normal handler
-    handleStageMouseDown(e as unknown as Konva.KonvaEventObject<MouseEvent | TouchEvent>);
+    handleStageMouseDown(
+      e as unknown as Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+    );
   };
 
   const handleTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
@@ -391,7 +398,10 @@ export function ImageAnnotator({
 
       const scaleFactor = newDist / lastPinchDistRef.current;
       const oldScale = stage.scaleX();
-      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, oldScale * scaleFactor));
+      const newScale = Math.max(
+        MIN_SCALE,
+        Math.min(MAX_SCALE, oldScale * scaleFactor),
+      );
 
       const mousePointTo = {
         x: (center.x - stage.x()) / oldScale,
@@ -417,7 +427,9 @@ export function ImageAnnotator({
       return;
     }
     // Single touch — forward to normal handler
-    handleStageMouseMove(e as unknown as Konva.KonvaEventObject<MouseEvent | TouchEvent>);
+    handleStageMouseMove(
+      e as unknown as Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+    );
   };
 
   const handleTouchEnd = (e: Konva.KonvaEventObject<TouchEvent>) => {
@@ -437,7 +449,10 @@ export function ImageAnnotator({
   };
 
   // Annotation drag - uses node.position() (local coords) for zoom compatibility
-  const handleAnnotationDragEnd = (annotation: Annotation, e: Konva.KonvaEventObject<DragEvent>) => {
+  const handleAnnotationDragEnd = (
+    annotation: Annotation,
+    e: Konva.KonvaEventObject<DragEvent>,
+  ) => {
     if (readonly || !onAnnotationUpdate) return;
 
     const node = e.target;
@@ -509,9 +524,9 @@ export function ImageAnnotator({
   };
 
   const getDefaultCursor = () => {
-    if (scale > 1 && currentTool === 'select' && !enableMove) return 'grab';
-    if (currentTool !== 'select') return 'crosshair';
-    return 'default';
+    if (scale > 1 && currentTool === "select" && !enableMove) return "grab";
+    if (currentTool !== "select") return "crosshair";
+    return "default";
   };
 
   const renderAnnotation = (annotation: Annotation) => {
@@ -733,7 +748,7 @@ export function ImageAnnotator({
   };
 
   const getCursor = () => {
-    if (isPanning) return 'grabbing';
+    if (isPanning) return "grabbing";
     return getDefaultCursor();
   };
 

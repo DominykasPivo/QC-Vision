@@ -77,7 +77,8 @@ function toUiEvent(item: ApiAuditEventItem): UiAuditEvent {
 }
 
 export function AuditLog() {
-  const { auditEvents: initialAuditEvents } = useOutletContext<AppDataContext>();
+  const { auditEvents: initialAuditEvents } =
+    useOutletContext<AppDataContext>();
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -112,7 +113,9 @@ export function AuditLog() {
         offset: 0,
       });
 
-      const items: ApiAuditEventItem[] = Array.isArray(data?.items) ? data.items : [];
+      const items: ApiAuditEventItem[] = Array.isArray(data?.items)
+        ? data.items
+        : [];
       setAuditEvents(items.map(toUiEvent));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load audit logs");
@@ -131,7 +134,9 @@ export function AuditLog() {
 
     for (const ev of auditEvents) {
       const groupId =
-        ev.testId != null ? String(ev.testId) : extractTestId(ev.event) ?? "other";
+        ev.testId != null
+          ? String(ev.testId)
+          : (extractTestId(ev.event) ?? "other");
 
       if (!map[groupId]) map[groupId] = [];
       map[groupId].push(ev);

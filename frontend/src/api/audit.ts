@@ -27,7 +27,9 @@ export async function fetchAuditLogs(params: FetchAuditParams = {}) {
     if (params.username) searchParams.set("username", params.username);
   }
 
-  const res = await fetch(`${API_URL}/api/v1/audit/logs?${searchParams.toString()}`);
+  const res = await fetch(
+    `${API_URL}/api/v1/audit/logs?${searchParams.toString()}`,
+  );
 
   if (!res.ok) {
     throw new Error(`Failed to fetch audit logs (${res.status})`);

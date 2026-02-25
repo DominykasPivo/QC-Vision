@@ -28,23 +28,20 @@ import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 
-const NO_DEFECT_BORDER = 'border-emerald-400 border';
+const NO_DEFECT_BORDER = "border-emerald-400 border";
 
-const VERIFICATION_STATUSES = ['pending', 'approved', 'rejected'] as const;
+const VERIFICATION_STATUSES = ["pending", "approved", "rejected"] as const;
 
 const VERIFICATION_DOT: Record<string, { bg: string; title: string }> = {
-    approved: { bg: 'bg-emerald-500', title: 'Approved' },
-    rejected: { bg: 'bg-red-500', title: 'Rejected' },
-    pending:  { bg: 'bg-slate-400', title: 'Pending review' },
+  approved: { bg: "bg-emerald-500", title: "Approved" },
+  rejected: { bg: "bg-red-500", title: "Rejected" },
+  pending: { bg: "bg-slate-400", title: "Pending review" },
 };
 
 type CategoryRecord = { id: number; name: string; is_active: boolean };
 
 /* ---------- Severity UI styles ---------- */
-const SEVERITY_STYLES: Record<
-  string,
-  { border: string; badge: string }
-> = {
+const SEVERITY_STYLES: Record<string, { border: string; badge: string }> = {
   critical: {
     border: "border-red-600 border-2",
     badge: "bg-red-200 text-red-900",
@@ -65,431 +62,574 @@ const SEVERITY_STYLES: Record<
 
 /* ---------- Card Component ---------- */
 function GalleryCard({ photo }: { photo: GalleryPhoto }) {
-    const style = photo.highest_severity
-        ? SEVERITY_STYLES[photo.highest_severity] ?? { border: NO_DEFECT_BORDER, badge: '' }
-        : { border: NO_DEFECT_BORDER, badge: '' };
+  const style = photo.highest_severity
+    ? (SEVERITY_STYLES[photo.highest_severity] ?? {
+        border: NO_DEFECT_BORDER,
+        badge: "",
+      })
+    : { border: NO_DEFECT_BORDER, badge: "" };
 
-    return (
-        <Link
-            to={`/photos/${photo.id}`}
-            className={`group relative block aspect-square overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-transform active:scale-[0.98] ${style.border}`}
-            aria-label={`Open photo ${photo.id}`}
+  return (
+    <Link
+      to={`/photos/${photo.id}`}
+      className={`group relative block aspect-square overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-transform active:scale-[0.98] ${style.border}`}
+      aria-label={`Open photo ${photo.id}`}
+    >
+      <img
+        src={`/api/v1/photos/${photo.id}/image`}
+        alt={`Photo ${photo.id}`}
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+      {/* Verification status dot */}
+      {photo.verification_status &&
+        VERIFICATION_DOT[photo.verification_status] && (
+          <span
+            className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
+            title={VERIFICATION_DOT[photo.verification_status].title}
+          />
+        )}
+      {photo.defect_count && photo.defect_count > 0 && (
+        <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white">
+          {photo.defect_count}
+        </span>
+      )}
+      {photo.highest_severity && (
+        <span
+          className={`absolute bottom-1 right-1 rounded-full px-1.5 py-0.5 text-xs font-semibold ${style.badge}`}
         >
-            <img
-                src={`/api/v1/photos/${photo.id}/image`}
-                alt={`Photo ${photo.id}`}
-                className="h-full w-full object-cover"
-                loading="lazy"
-            />
-            {/* Verification status dot */}
-            {photo.verification_status && VERIFICATION_DOT[photo.verification_status] && (
-                <span
-                    className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
-                    title={VERIFICATION_DOT[photo.verification_status].title}
-                />
-            )}
-            {photo.defect_count && photo.defect_count > 0 && (
-                <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-xs font-semibold text-white">
-                    {photo.defect_count}
-                </span>
-            )}
-            {photo.highest_severity && (
-                <span className={`absolute bottom-1 right-1 rounded-full px-1.5 py-0.5 text-xs font-semibold ${style.badge}`}>
-                    {formatEnumLabel(photo.highest_severity)}
-                </span>
-            )}
-            <div className="absolute inset-0 bg-black/10 opacity-0 transition-opacity group-hover:opacity-100" />
-        </Link>
-    );
+          {formatEnumLabel(photo.highest_severity)}
+        </span>
+      )}
+      <div className="absolute inset-0 bg-black/10 opacity-0 transition-opacity group-hover:opacity-100" />
+    </Link>
+  );
 }
 
 /* ---------- Main Component ---------- */
 export function Gallery() {
-    const [galleryData, setGalleryData] = useState<GalleryResponse | null>(null);
-    const [categories, setCategories] = useState<CategoryRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [currentPage, setCurrentPage] = useState(1);
+  const [galleryData, setGalleryData] = useState<GalleryResponse | null>(null);
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
-    // Filters
-    const [severityFilter, setSeverityFilter] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('');
-    const [testTypeFilter, setTestTypeFilter] = useState('');
-    const [testStatusFilter, setTestStatusFilter] = useState('');
-    const [hasDefectsFilter, setHasDefectsFilter] = useState('');
-    const [verificationFilter, setVerificationFilter] = useState('');
-    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  // Filters
+  const [severityFilter, setSeverityFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [testTypeFilter, setTestTypeFilter] = useState("");
+  const [testStatusFilter, setTestStatusFilter] = useState("");
+  const [hasDefectsFilter, setHasDefectsFilter] = useState("");
+  const [verificationFilter, setVerificationFilter] = useState("");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-    // Fetch categories on mount
-    useEffect(() => {
-        fetch('/api/v1/defects/categories')
-            .then((res) => res.json())
-            .then((data) => setCategories(data))
-            .catch(console.error);
-    }, []);
+  // Fetch categories on mount
+  useEffect(() => {
+    fetch("/api/v1/defects/categories")
+      .then((res) => res.json())
+      .then((data) => setCategories(data))
+      .catch(console.error);
+  }, []);
 
-    // Fetch gallery data when filters or page change
-    const loadGallery = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await fetchGallery({
-                page: currentPage,
-                page_size: PAGE_SIZE,
-                severity: severityFilter || undefined,
-                category_id: categoryFilter ? Number(categoryFilter) : undefined,
-                test_type: testTypeFilter || undefined,
-                test_status: testStatusFilter || undefined,
-                has_defects: hasDefectsFilter ? hasDefectsFilter === 'true' : undefined,
-                verification_status: verificationFilter || undefined,
-            });
-            setGalleryData(data);
-        } catch (err) {
-            console.error('Failed to fetch gallery:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [currentPage, severityFilter, categoryFilter, testTypeFilter, testStatusFilter, hasDefectsFilter, verificationFilter]);
+  // Fetch gallery data when filters or page change
+  const loadGallery = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchGallery({
+        page: currentPage,
+        page_size: PAGE_SIZE,
+        severity: severityFilter || undefined,
+        category_id: categoryFilter ? Number(categoryFilter) : undefined,
+        test_type: testTypeFilter || undefined,
+        test_status: testStatusFilter || undefined,
+        has_defects: hasDefectsFilter ? hasDefectsFilter === "true" : undefined,
+        verification_status: verificationFilter || undefined,
+      });
+      setGalleryData(data);
+    } catch (err) {
+      console.error("Failed to fetch gallery:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    currentPage,
+    severityFilter,
+    categoryFilter,
+    testTypeFilter,
+    testStatusFilter,
+    hasDefectsFilter,
+    verificationFilter,
+  ]);
 
-    useEffect(() => {
-        loadGallery();
-    }, [loadGallery]);
+  useEffect(() => {
+    loadGallery();
+  }, [loadGallery]);
 
-    const totalPages = galleryData ? Math.max(1, Math.ceil(galleryData.total / PAGE_SIZE)) : 1;
-    const photos = galleryData?.items ?? [];
+  const totalPages = galleryData
+    ? Math.max(1, Math.ceil(galleryData.total / PAGE_SIZE))
+    : 1;
+  const photos = galleryData?.items ?? [];
 
-    const hasActiveFilters = severityFilter || categoryFilter || testTypeFilter || testStatusFilter || hasDefectsFilter || verificationFilter;
-    const hasAdvancedFilters = Boolean(
-        severityFilter || categoryFilter || testTypeFilter || hasDefectsFilter || verificationFilter
-    );
+  const hasActiveFilters =
+    severityFilter ||
+    categoryFilter ||
+    testTypeFilter ||
+    testStatusFilter ||
+    hasDefectsFilter ||
+    verificationFilter;
+  const hasAdvancedFilters = Boolean(
+    severityFilter ||
+    categoryFilter ||
+    testTypeFilter ||
+    hasDefectsFilter ||
+    verificationFilter,
+  );
 
-    const clearAllFilters = () => {
-        setSeverityFilter('');
-        setCategoryFilter('');
-        setTestTypeFilter('');
-        setTestStatusFilter('');
-        setHasDefectsFilter('');
-        setVerificationFilter('');
-        setCurrentPage(1);
+  const clearAllFilters = () => {
+    setSeverityFilter("");
+    setCategoryFilter("");
+    setTestTypeFilter("");
+    setTestStatusFilter("");
+    setHasDefectsFilter("");
+    setVerificationFilter("");
+    setCurrentPage(1);
+  };
+
+  const setFilterAndResetPage =
+    <T,>(setter: (v: T) => void) =>
+    (value: T) => {
+      setter(value);
+      setCurrentPage(1);
     };
 
-    const setFilterAndResetPage = <T,>(setter: (v: T) => void) => (value: T) => {
-        setter(value);
-        setCurrentPage(1);
-    };
+  // Shared select trigger classes (matching TestsList pattern)
+  const triggerCls =
+    "h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100";
+  const mobileTriggerCls =
+    "h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]";
 
-    // Shared select trigger classes (matching TestsList pattern)
-    const triggerCls = 'h-14 rounded-full border border-slate-200 bg-white !pl-6 !pr-5 text-base text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-slate-500 [&>svg]:opacity-100';
-    const mobileTriggerCls = 'h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]';
+  return (
+    <div
+      className={cn(
+        spacing.pageContainer,
+        spacing.pageStack,
+        "max-w-none pb-24 md:pb-8",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-slate-900 md:text-4xl">
+            Gallery
+          </h2>
+          <p className="text-base font-medium text-slate-500 md:text-lg">
+            Browse all test photos
+          </p>
+        </div>
+      </div>
 
-    return (
-        <div className={cn(spacing.pageContainer, spacing.pageStack, "max-w-none pb-24 md:pb-8")}>
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                    <h2 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-slate-900 md:text-4xl">
-                        Gallery
-                    </h2>
-                    <p className="text-base font-medium text-slate-500 md:text-lg">
-                        Browse all test photos
-                    </p>
-                </div>
-            </div>
+      {/* Mobile: primary status filter + advanced filters icon (matches Tests page pattern) */}
+      <div className="mt-4 flex items-center gap-3 md:hidden">
+        <div className="min-w-0 flex-1">
+          <Select
+            value={testStatusFilter || "all"}
+            onValueChange={(v) =>
+              setFilterAndResetPage(setTestStatusFilter)(v === "all" ? "" : v)
+            }
+          >
+            <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {TEST_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {formatEnumLabel(s)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "h-11 w-11 shrink-0 rounded-full border bg-white p-0 shadow-sm",
+            hasAdvancedFilters
+              ? "border-[#BFD2F8] bg-[#EAF1FF] text-[#1D4ED8]"
+              : "border-[#CFD8E3] text-[#64748B]",
+          )}
+          aria-label="Open advanced filters"
+          onClick={() => setMobileFiltersOpen(true)}
+        >
+          <Filter className="h-4 w-4" />
+        </Button>
+      </div>
 
-            {/* Mobile: primary status filter + advanced filters icon (matches Tests page pattern) */}
-            <div className="mt-4 flex items-center gap-3 md:hidden">
-                <div className="min-w-0 flex-1">
-                    <Select
-                        value={testStatusFilter || 'all'}
-                        onValueChange={(v) => setFilterAndResetPage(setTestStatusFilter)(v === 'all' ? '' : v)}
-                    >
-                        <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]">
-                            <SelectValue placeholder="All Statuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
-                            {TEST_STATUSES.map((s) => (
-                                <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+      {/* Desktop filters */}
+      <div className="mt-4 hidden md:block">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+          <Select
+            value={severityFilter || "all"}
+            onValueChange={(v) =>
+              setFilterAndResetPage(setSeverityFilter)(v === "all" ? "" : v)
+            }
+          >
+            <SelectTrigger className={triggerCls}>
+              <SelectValue placeholder="Severity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Severities</SelectItem>
+              {DEFECT_SEVERITIES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {formatEnumLabel(s)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={categoryFilter || "all"}
+            onValueChange={(v) =>
+              setFilterAndResetPage(setCategoryFilter)(v === "all" ? "" : v)
+            }
+          >
+            <SelectTrigger className={triggerCls}>
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={testTypeFilter || "all"}
+            onValueChange={(v) =>
+              setFilterAndResetPage(setTestTypeFilter)(v === "all" ? "" : v)
+            }
+          >
+            <SelectTrigger className={triggerCls}>
+              <SelectValue placeholder="Test Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {TEST_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {formatEnumLabel(t)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={testStatusFilter || "all"}
+            onValueChange={(v) =>
+              setFilterAndResetPage(setTestStatusFilter)(v === "all" ? "" : v)
+            }
+          >
+            <SelectTrigger className={triggerCls}>
+              <SelectValue placeholder="Test Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {TEST_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {formatEnumLabel(s)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={hasDefectsFilter || "all"}
+            onValueChange={(v) =>
+              setFilterAndResetPage(setHasDefectsFilter)(v === "all" ? "" : v)
+            }
+          >
+            <SelectTrigger className={triggerCls}>
+              <SelectValue placeholder="Defects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Photos</SelectItem>
+              <SelectItem value="true">With Defects</SelectItem>
+              <SelectItem value="false">Without Defects</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={verificationFilter || "all"}
+            onValueChange={(v) =>
+              setFilterAndResetPage(setVerificationFilter)(v === "all" ? "" : v)
+            }
+          >
+            <SelectTrigger className={triggerCls}>
+              <SelectValue placeholder="Verification" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Verifications</SelectItem>
+              {VERIFICATION_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {formatEnumLabel(s)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Mobile filter modal */}
+      {mobileFiltersOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/45"
+            aria-label="Close advanced filters"
+            onClick={() => setMobileFiltersOpen(false)}
+          />
+          <div className="relative flex min-h-full items-center justify-center p-4">
+            <div className="flex max-h-[84vh] w-full max-w-[420px] flex-col overflow-hidden rounded-[24px] border border-[#D5DFEC] bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#0F172A]">
+                    Advanced Filters
+                  </h3>
+                  <p className="text-sm text-[#64748B]">
+                    Adjust your gallery filters
+                  </p>
                 </div>
                 <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                        "h-11 w-11 shrink-0 rounded-full border bg-white p-0 shadow-sm",
-                        hasAdvancedFilters
-                            ? "border-[#BFD2F8] bg-[#EAF1FF] text-[#1D4ED8]"
-                            : "border-[#CFD8E3] text-[#64748B]",
-                    )}
-                    aria-label="Open advanced filters"
-                    onClick={() => setMobileFiltersOpen(true)}
+                  type="button"
+                  variant="outline"
+                  className="h-9 w-9 rounded-full border-[#CFD8E3] p-0 text-[#64748B]"
+                  aria-label="Close advanced filters"
+                  onClick={() => setMobileFiltersOpen(false)}
                 >
-                    <Filter className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
-            </div>
+              </div>
 
-            {/* Desktop filters */}
-            <div className="mt-4 hidden md:block">
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+              <div className="flex-1 space-y-4 overflow-y-auto bg-[#F8FAFF] px-5 py-5">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Severity
+                    </p>
                     <Select
-                        value={severityFilter || 'all'}
-                        onValueChange={(v) => setFilterAndResetPage(setSeverityFilter)(v === 'all' ? '' : v)}
+                      value={severityFilter || "all"}
+                      onValueChange={(v) =>
+                        setFilterAndResetPage(setSeverityFilter)(
+                          v === "all" ? "" : v,
+                        )
+                      }
                     >
-                        <SelectTrigger className={triggerCls}>
-                            <SelectValue placeholder="Severity" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Severities</SelectItem>
-                            {DEFECT_SEVERITIES.map((s) => (
-                                <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={categoryFilter || 'all'}
-                        onValueChange={(v) => setFilterAndResetPage(setCategoryFilter)(v === 'all' ? '' : v)}
-                    >
-                        <SelectTrigger className={triggerCls}>
-                            <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {categories.map((c) => (
-                                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={testTypeFilter || 'all'}
-                        onValueChange={(v) => setFilterAndResetPage(setTestTypeFilter)(v === 'all' ? '' : v)}
-                    >
-                        <SelectTrigger className={triggerCls}>
-                            <SelectValue placeholder="Test Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            {TEST_TYPES.map((t) => (
-                                <SelectItem key={t} value={t}>{formatEnumLabel(t)}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={testStatusFilter || 'all'}
-                        onValueChange={(v) => setFilterAndResetPage(setTestStatusFilter)(v === 'all' ? '' : v)}
-                    >
-                        <SelectTrigger className={triggerCls}>
-                            <SelectValue placeholder="Test Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
-                            {TEST_STATUSES.map((s) => (
-                                <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={hasDefectsFilter || 'all'}
-                        onValueChange={(v) => setFilterAndResetPage(setHasDefectsFilter)(v === 'all' ? '' : v)}
-                    >
-                        <SelectTrigger className={triggerCls}>
-                            <SelectValue placeholder="Defects" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Photos</SelectItem>
-                            <SelectItem value="true">With Defects</SelectItem>
-                            <SelectItem value="false">Without Defects</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={verificationFilter || 'all'}
-                        onValueChange={(v) => setFilterAndResetPage(setVerificationFilter)(v === 'all' ? '' : v)}
-                    >
-                        <SelectTrigger className={triggerCls}>
-                            <SelectValue placeholder="Verification" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Verifications</SelectItem>
-                            {VERIFICATION_STATUSES.map((s) => (
-                                <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            {/* Mobile filter modal */}
-            {mobileFiltersOpen && (
-                <div className="fixed inset-0 z-50 md:hidden">
-                    <button
-                        type="button"
-                        className="absolute inset-0 bg-slate-900/45"
-                        aria-label="Close advanced filters"
-                        onClick={() => setMobileFiltersOpen(false)}
-                    />
-                    <div className="relative flex min-h-full items-center justify-center p-4">
-                        <div className="flex max-h-[84vh] w-full max-w-[420px] flex-col overflow-hidden rounded-[24px] border border-[#D5DFEC] bg-white shadow-2xl">
-                            <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-[#0F172A]">Advanced Filters</h3>
-                                    <p className="text-sm text-[#64748B]">Adjust your gallery filters</p>
-                                </div>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="h-9 w-9 rounded-full border-[#CFD8E3] p-0 text-[#64748B]"
-                                    aria-label="Close advanced filters"
-                                    onClick={() => setMobileFiltersOpen(false)}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-
-                            <div className="flex-1 space-y-4 overflow-y-auto bg-[#F8FAFF] px-5 py-5">
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Severity</p>
-                                        <Select value={severityFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setSeverityFilter)(v === 'all' ? '' : v)}>
-                                            <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Severity" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Severities</SelectItem>
-                                                {DEFECT_SEVERITIES.map((s) => <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Category</p>
-                                        <Select value={categoryFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setCategoryFilter)(v === 'all' ? '' : v)}>
-                                            <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Category" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Categories</SelectItem>
-                                                {categories.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Test Type</p>
-                                        <Select value={testTypeFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setTestTypeFilter)(v === 'all' ? '' : v)}>
-                                            <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Test Type" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Types</SelectItem>
-                                                {TEST_TYPES.map((t) => <SelectItem key={t} value={t}>{formatEnumLabel(t)}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Defects</p>
-                                        <Select value={hasDefectsFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setHasDefectsFilter)(v === 'all' ? '' : v)}>
-                                            <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Defects" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Photos</SelectItem>
-                                                <SelectItem value="true">With Defects</SelectItem>
-                                                <SelectItem value="false">Without Defects</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">Verification</p>
-                                        <Select value={verificationFilter || 'all'} onValueChange={(v) => setFilterAndResetPage(setVerificationFilter)(v === 'all' ? '' : v)}>
-                                            <SelectTrigger className={mobileTriggerCls}><SelectValue placeholder="Verification" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Verifications</SelectItem>
-                                                {VERIFICATION_STATUSES.map((s) => <SelectItem key={s} value={s}>{formatEnumLabel(s)}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="border-t border-[#E2E8F0] bg-white px-5 py-4">
-                                <Button
-                                    type="button"
-                                    className="h-11 w-full rounded-[12px] bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8]"
-                                    onClick={() => setMobileFiltersOpen(false)}
-                                >
-                                    Apply Filters
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Active filter chips */}
-            {hasActiveFilters && (
-                <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                    <span className="text-sm font-semibold text-slate-600">Active filters:</span>
-                    {severityFilter && (
-                        <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                            Severity: {formatEnumLabel(severityFilter)}
-                        </span>
-                    )}
-                    {categoryFilter && (
-                        <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                            Category: {categories.find((c) => String(c.id) === categoryFilter)?.name ?? categoryFilter}
-                        </span>
-                    )}
-                    {testTypeFilter && (
-                        <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                            Type: {formatEnumLabel(testTypeFilter)}
-                        </span>
-                    )}
-                    {testStatusFilter && (
-                        <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                            Status: {formatEnumLabel(testStatusFilter)}
-                        </span>
-                    )}
-                    {hasDefectsFilter && (
-                        <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                            {hasDefectsFilter === 'true' ? 'With Defects' : 'Without Defects'}
-                        </span>
-                    )}
-                    {verificationFilter && (
-                        <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                            Verification: {formatEnumLabel(verificationFilter)}
-                        </span>
-                    )}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="h-8 rounded-full border border-slate-300 bg-slate-50 px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-100"
-                        onClick={clearAllFilters}
-                    >
-                        Clear All Filters
-                    </Button>
-                </div>
-            )}
-
-            {/* Gallery content */}
-            {loading ? (
-                <p className="mt-6 text-base font-medium text-slate-500">Loading photos...</p>
-            ) : photos.length === 0 ? (
-                <p className="mt-6 text-base font-medium text-slate-500">
-                    {hasActiveFilters
-                        ? 'No photos match the selected filters.'
-                        : 'No photos yet. Upload photos when creating a test.'}
-                </p>
-            ) : (
-                <>
-                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                        {photos.map((photo) => (
-                            <GalleryCard key={photo.id} photo={photo} />
+                      <SelectTrigger className={mobileTriggerCls}>
+                        <SelectValue placeholder="Severity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Severities</SelectItem>
+                        {DEFECT_SEVERITIES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {formatEnumLabel(s)}
+                          </SelectItem>
                         ))}
-                    </div>
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
-                    />
-                </>
-            )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Category
+                    </p>
+                    <Select
+                      value={categoryFilter || "all"}
+                      onValueChange={(v) =>
+                        setFilterAndResetPage(setCategoryFilter)(
+                          v === "all" ? "" : v,
+                        )
+                      }
+                    >
+                      <SelectTrigger className={mobileTriggerCls}>
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Test Type
+                    </p>
+                    <Select
+                      value={testTypeFilter || "all"}
+                      onValueChange={(v) =>
+                        setFilterAndResetPage(setTestTypeFilter)(
+                          v === "all" ? "" : v,
+                        )
+                      }
+                    >
+                      <SelectTrigger className={mobileTriggerCls}>
+                        <SelectValue placeholder="Test Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        {TEST_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {formatEnumLabel(t)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Defects
+                    </p>
+                    <Select
+                      value={hasDefectsFilter || "all"}
+                      onValueChange={(v) =>
+                        setFilterAndResetPage(setHasDefectsFilter)(
+                          v === "all" ? "" : v,
+                        )
+                      }
+                    >
+                      <SelectTrigger className={mobileTriggerCls}>
+                        <SelectValue placeholder="Defects" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Photos</SelectItem>
+                        <SelectItem value="true">With Defects</SelectItem>
+                        <SelectItem value="false">Without Defects</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Verification
+                    </p>
+                    <Select
+                      value={verificationFilter || "all"}
+                      onValueChange={(v) =>
+                        setFilterAndResetPage(setVerificationFilter)(
+                          v === "all" ? "" : v,
+                        )
+                      }
+                    >
+                      <SelectTrigger className={mobileTriggerCls}>
+                        <SelectValue placeholder="Verification" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Verifications</SelectItem>
+                        {VERIFICATION_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {formatEnumLabel(s)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-[#E2E8F0] bg-white px-5 py-4">
+                <Button
+                  type="button"
+                  className="h-11 w-full rounded-[12px] bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8]"
+                  onClick={() => setMobileFiltersOpen(false)}
+                >
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
-    );
+      )}
+
+      {/* Active filter chips */}
+      {hasActiveFilters && (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          <span className="text-sm font-semibold text-slate-600">
+            Active filters:
+          </span>
+          {severityFilter && (
+            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Severity: {formatEnumLabel(severityFilter)}
+            </span>
+          )}
+          {categoryFilter && (
+            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Category:{" "}
+              {categories.find((c) => String(c.id) === categoryFilter)?.name ??
+                categoryFilter}
+            </span>
+          )}
+          {testTypeFilter && (
+            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Type: {formatEnumLabel(testTypeFilter)}
+            </span>
+          )}
+          {testStatusFilter && (
+            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Status: {formatEnumLabel(testStatusFilter)}
+            </span>
+          )}
+          {hasDefectsFilter && (
+            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              {hasDefectsFilter === "true" ? "With Defects" : "Without Defects"}
+            </span>
+          )}
+          {verificationFilter && (
+            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Verification: {formatEnumLabel(verificationFilter)}
+            </span>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 rounded-full border border-slate-300 bg-slate-50 px-3 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-100"
+            onClick={clearAllFilters}
+          >
+            Clear All Filters
+          </Button>
+        </div>
+      )}
+
+      {/* Gallery content */}
+      {loading ? (
+        <p className="mt-6 text-base font-medium text-slate-500">
+          Loading photos...
+        </p>
+      ) : photos.length === 0 ? (
+        <p className="mt-6 text-base font-medium text-slate-500">
+          {hasActiveFilters
+            ? "No photos match the selected filters."
+            : "No photos yet. Upload photos when creating a test."}
+        </p>
+      ) : (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {photos.map((photo) => (
+              <GalleryCard key={photo.id} photo={photo} />
+            ))}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
+    </div>
+  );
 }

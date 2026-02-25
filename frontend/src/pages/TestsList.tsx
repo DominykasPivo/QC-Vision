@@ -86,52 +86,59 @@ export function TestsList() {
     setCurrentPage(1);
   };
 
-  const isInDateRange = useCallback((deadlineAt: string | null) => {
-    if (!dateRangeFilter || !deadlineAt) return true;
+  const isInDateRange = useCallback(
+    (deadlineAt: string | null) => {
+      if (!dateRangeFilter || !deadlineAt) return true;
 
-    const deadline = new Date(deadlineAt);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      const deadline = new Date(deadlineAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    switch (dateRangeFilter) {
-      case "overdue":
-        return deadline < today;
+      switch (dateRangeFilter) {
+        case "overdue":
+          return deadline < today;
 
-      case "today": {
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return deadline >= today && deadline < tomorrow;
+        case "today": {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return deadline >= today && deadline < tomorrow;
+        }
+
+        case "this_week": {
+          const weekEnd = new Date(today);
+          weekEnd.setDate(weekEnd.getDate() + 7);
+          return deadline >= today && deadline < weekEnd;
+        }
+
+        case "this_month": {
+          const monthEnd = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            0,
+          );
+          return deadline >= today && deadline <= monthEnd;
+        }
+
+        case "next_month": {
+          const nextMonthStart = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            1,
+          );
+          const nextMonthEnd = new Date(
+            today.getFullYear(),
+            today.getMonth() + 2,
+            0,
+          );
+          return deadline >= nextMonthStart && deadline <= nextMonthEnd;
+        }
+
+        default:
+          return true;
       }
-
-      case "this_week": {
-        const weekEnd = new Date(today);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        return deadline >= today && deadline < weekEnd;
-      }
-
-      case "this_month": {
-        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        return deadline >= today && deadline <= monthEnd;
-      }
-
-      case "next_month": {
-        const nextMonthStart = new Date(
-          today.getFullYear(),
-          today.getMonth() + 1,
-          1,
-        );
-        const nextMonthEnd = new Date(
-          today.getFullYear(),
-          today.getMonth() + 2,
-          0,
-        );
-        return deadline >= nextMonthStart && deadline <= nextMonthEnd;
-      }
-
-      default:
-        return true;
-    }
-  }, [dateRangeFilter]);
+    },
+    [dateRangeFilter],
+  );
 
   const filteredTests = useMemo(() => {
     const normalizedQuery = searchQuery.toLowerCase();
@@ -170,13 +177,21 @@ export function TestsList() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "deadline_asc": {
-          const dateA = a.deadlineAt ? new Date(a.deadlineAt).getTime() : Infinity;
-          const dateB = b.deadlineAt ? new Date(b.deadlineAt).getTime() : Infinity;
+          const dateA = a.deadlineAt
+            ? new Date(a.deadlineAt).getTime()
+            : Infinity;
+          const dateB = b.deadlineAt
+            ? new Date(b.deadlineAt).getTime()
+            : Infinity;
           return dateA - dateB;
         }
         case "deadline_desc": {
-          const dateA = a.deadlineAt ? new Date(a.deadlineAt).getTime() : -Infinity;
-          const dateB = b.deadlineAt ? new Date(b.deadlineAt).getTime() : -Infinity;
+          const dateA = a.deadlineAt
+            ? new Date(a.deadlineAt).getTime()
+            : -Infinity;
+          const dateB = b.deadlineAt
+            ? new Date(b.deadlineAt).getTime()
+            : -Infinity;
           return dateB - dateA;
         }
         case "created_asc": {
@@ -219,7 +234,8 @@ export function TestsList() {
   }, [filteredTests, currentPage]);
 
   const showEmptyState = testsLoaded && tests.length === 0;
-  const showNoMatches = testsLoaded && tests.length > 0 && filteredTests.length === 0;
+  const showNoMatches =
+    testsLoaded && tests.length > 0 && filteredTests.length === 0;
 
   const hasActiveFilters =
     Boolean(searchQuery) ||
@@ -518,8 +534,12 @@ export function TestsList() {
                         <SelectItem value="overdue">Overdue</SelectItem>
                         <SelectItem value="today">Due Today</SelectItem>
                         <SelectItem value="this_week">Due This Week</SelectItem>
-                        <SelectItem value="this_month">Due This Month</SelectItem>
-                        <SelectItem value="next_month">Due Next Month</SelectItem>
+                        <SelectItem value="this_month">
+                          Due This Month
+                        </SelectItem>
+                        <SelectItem value="next_month">
+                          Due Next Month
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -539,10 +559,18 @@ export function TestsList() {
                         <SelectValue placeholder="Sort by" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="created_desc">Newest First</SelectItem>
-                        <SelectItem value="created_asc">Oldest First</SelectItem>
-                        <SelectItem value="deadline_asc">Deadline: Soonest</SelectItem>
-                        <SelectItem value="deadline_desc">Deadline: Latest</SelectItem>
+                        <SelectItem value="created_desc">
+                          Newest First
+                        </SelectItem>
+                        <SelectItem value="created_asc">
+                          Oldest First
+                        </SelectItem>
+                        <SelectItem value="deadline_asc">
+                          Deadline: Soonest
+                        </SelectItem>
+                        <SelectItem value="deadline_desc">
+                          Deadline: Latest
+                        </SelectItem>
                         <SelectItem value="status">Status</SelectItem>
                         <SelectItem value="id_asc">ID: A-Z</SelectItem>
                         <SelectItem value="id_desc">ID: Z-A</SelectItem>
@@ -646,7 +674,9 @@ export function TestsList() {
       ) : (
         <>
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-slate-900">Recent Tests</h2>
+            <h2 className="text-xl font-semibold text-slate-900">
+              Recent Tests
+            </h2>
 
             {showNoMatches ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -681,7 +711,9 @@ export function TestsList() {
                       key={test.id}
                       className="relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md shadow-slate-200/60"
                     >
-                      <div className={`absolute inset-y-0 left-0 w-1.5 ${styles.accent}`} />
+                      <div
+                        className={`absolute inset-y-0 left-0 w-1.5 ${styles.accent}`}
+                      />
                       <div className="flex flex-1 flex-col px-5 py-5 pl-9">
                         <div className="flex-1 space-y-4">
                           <div className="relative min-h-14 pr-36">
@@ -710,10 +742,14 @@ export function TestsList() {
                               {productLabel}
                             </p>
                             {requesterLabel && (
-                              <p className="text-sm">Requester: {requesterLabel}</p>
+                              <p className="text-sm">
+                                Requester: {requesterLabel}
+                              </p>
                             )}
                             {deadlineLabel && (
-                              <p className="text-sm">Deadline: {deadlineLabel}</p>
+                              <p className="text-sm">
+                                Deadline: {deadlineLabel}
+                              </p>
                             )}
                           </div>
                         </div>
