@@ -1,7 +1,7 @@
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { AppDataContext } from '../components/layout/AppShell';
 import { formatEnumLabel } from '@/lib/db-constants';
-import { type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

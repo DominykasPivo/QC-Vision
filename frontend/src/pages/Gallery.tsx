@@ -28,12 +28,6 @@ import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 
-/* ---------- Extended type (safe typing) ---------- */
-type GalleryPhotoExtended = GalleryPhoto & {
-  highest_severity?: string;
-  defect_count?: number;
-};
-
 const NO_DEFECT_BORDER = 'border-emerald-400 border';
 
 const VERIFICATION_STATUSES = ['pending', 'approved', 'rejected'] as const;
@@ -70,7 +64,7 @@ const SEVERITY_STYLES: Record<
 };
 
 /* ---------- Card Component ---------- */
-function GalleryCard({ photo }: { photo: GalleryPhotoExtended }) {
+function GalleryCard({ photo }: { photo: GalleryPhoto }) {
     const style = photo.highest_severity
         ? SEVERITY_STYLES[photo.highest_severity] ?? { border: NO_DEFECT_BORDER, badge: '' }
         : { border: NO_DEFECT_BORDER, badge: '' };

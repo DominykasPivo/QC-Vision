@@ -25,6 +25,7 @@ import {
   updateAnnotation,
   deleteAnnotation,
   updateVerificationStatus,
+  type DefectPayload,
   type DefectRecord,
   type PhotoRecord,
 } from "@/lib/api/defects";
@@ -122,11 +123,7 @@ export function PhotoDefects() {
     }
   }, [photoId]);
 
-  useEffect(() => {
-    loadDefects();
-  }, [loadDefects]);
-
-  const loadPhoto = async () => {
+  const loadPhoto = useCallback(async () => {
     if (!photoId) return;
     try {
       const data = await getPhoto(photoId);
@@ -134,15 +131,12 @@ export function PhotoDefects() {
     } catch (error) {
       console.error('Failed to load photo:', error);
     }
-  };
+  }, [photoId]);
 
   useEffect(() => {
-    if (!photoId) {
-      return;
-    }
     loadDefects();
     loadPhoto();
-  }, [photoId]);
+  }, [loadDefects, loadPhoto]);
 
   const handleVerification = async (status: string) => {
     if (!photoId || isSaving) return;

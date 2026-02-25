@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  photos as initialPhotos,
-  tests as initialTests,
-} from "../../mock/data";
+import { photos as initialPhotos, tests as initialTests } from "../../mock/data";
 import type { AuditEvent, Photo, Test } from "../../mock/data";
 import {
   TEST_STATUSES,
@@ -36,24 +33,41 @@ const STORAGE_KEYS = {
 };
 
 type ApiTest = {
-    id: number | string;
-    gyraId?: string;
-    gyra_id?: string;
-    productName?: string;
-    product_name?: string;
-    testType?: string;
-    test_type?: string;
-    requester?: string;
-    assignedTo?: string | null;
-    assigned_to?: string | null;
-    description?: string | null;
-    status?: string | null;
-    deadlineAt?: string | null;
-    deadline_at?: string | null;
-    createdAt?: string | null;
-    created_at?: string | null;
-    updatedAt?: string | null;
-    updated_at?: string | null;
+  id: number | string;
+  gyraId?: string;
+  gyra_id?: string;
+  productName?: string;
+  product_name?: string;
+  testType?: string;
+  test_type?: string;
+  requester?: string;
+  assignedTo?: string | null;
+  assigned_to?: string | null;
+  description?: string | null;
+  status?: string | null;
+  deadlineAt?: string | null;
+  deadline_at?: string | null;
+  createdAt?: string | null;
+  created_at?: string | null;
+  updatedAt?: string | null;
+  updated_at?: string | null;
+};
+
+type ApiAuditLog = {
+  id: string | number;
+  created_at: string;
+  action: string;
+  entity_type: string;
+  entity_id?: number | string | null;
+  username?: string | null;
+  meta?: {
+    user_visible?: boolean;
+    test_id?: number | string;
+    updated_fields?: string[];
+    from?: string;
+    to?: string;
+    [key: string]: unknown;
+  } | null;
 };
 
 const normalizeStatus = (value: unknown): TestStatus => {
@@ -76,29 +90,29 @@ const formatDeadline = (value?: string | null): string => {
 };
 
 const toFrontendTest = (raw: ApiTest): Test => {
-    const gyraId = raw.gyraId ?? raw.gyra_id ?? '';
-    const productName = raw.productName ?? raw.product_name ?? '';
-    const testType = normalizeTestType(raw.testType ?? raw.test_type);
-    const status = normalizeStatus(raw.status);
-    const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
-    const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
-    const createdAt = raw.createdAt ?? raw.created_at ?? null;
-    const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
+  const gyraId = raw.gyraId ?? raw.gyra_id ?? "";
+  const productName = raw.productName ?? raw.product_name ?? "";
+  const testType = normalizeTestType(raw.testType ?? raw.test_type);
+  const status = normalizeStatus(raw.status);
+  const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
+  const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
+  const createdAt = raw.createdAt ?? raw.created_at ?? null;
+  const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
 
-    return {
-        id: String(raw.id),
-        gyraId,
-        productName,
-        testType,
-        requester: raw.requester ?? '',
-        assignedTo: assignedTo || undefined,
-        description: raw.description ?? null,
-        deadline: formatDeadline(deadlineAt),
-        deadlineAt,
-        status,
-        createdAt,
-        updatedAt,
-    };
+  return {
+    id: String(raw.id),
+    gyraId,
+    productName,
+    testType,
+    requester: raw.requester ?? "",
+    assignedTo: assignedTo || undefined,
+    description: raw.description ?? null,
+    deadline: formatDeadline(deadlineAt),
+    deadlineAt,
+    status,
+    createdAt,
+    updatedAt,
+  };
 };
 
 export function AppShell() {
@@ -161,10 +175,7 @@ export function AppShell() {
 
   useEffect(() => {
     if (!storageHydrated) return;
-    localStorage.setItem(
-      STORAGE_KEYS.deletedTests,
-      JSON.stringify(deletedTestIds),
-    );
+    localStorage.setItem(STORAGE_KEYS.deletedTests, JSON.stringify(deletedTestIds));
   }, [deletedTestIds, storageHydrated]);
 
   useEffect(() => {
@@ -175,8 +186,9 @@ export function AppShell() {
   const refreshTests = useCallback(async () => {
     try {
       const response = await fetch("/api/v1/tests/?limit=100");
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(`Failed to load tests (${response.status})`);
+      }
 
       const payload = await response.json();
 
@@ -202,19 +214,57 @@ export function AppShell() {
   }, [deletedTestIds]);
 
   useEffect(() => {
+    const formatAuditEventText = (log: ApiAuditLog, testId: number | string) => {
+      if (log.action === "STATUS_CHANGE" && log.meta?.from !== undefined) {
+        return `Test ${testId}: Status changed: ${log.meta.from} → ${log.meta.to}`;
+      }
+      if (log.action === "ASSIGN") {
+        return `Test ${testId}: Assigned: ${log.meta?.from ?? "none"} → ${log.meta?.to ?? "none"}`;
+      }
+      if (log.action === "UNASSIGN") {
+        return `Test ${testId}: Unassigned: ${log.meta?.from ?? "none"} → none`;
+      }
+      if (log.action === "TEST_TYPE_CHANGE" && log.meta?.from !== undefined) {
+        return `Test ${testId}: Test type changed: ${log.meta.from} → ${log.meta.to}`;
+      }
+      if (log.action === "UPLOAD") {
+        return `Test ${testId}: Uploaded Photo${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
+      }
+      if (log.action === "UPDATE") {
+        const fields = Array.isArray(log.meta?.updated_fields) ? log.meta.updated_fields : null;
+        return fields?.length
+          ? `Test ${testId}: Updated fields: ${fields.join(", ")}`
+          : `Test ${testId}: UPDATE ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
+      }
+
+      return `Test ${testId}: ${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
+    };
+
     const loadAuditLogs = async () => {
       try {
         const data = await fetchAuditLogs();
 
-        const mapped: AuditEvent[] = (data?.items ?? []).map(
-          (log: ApiAuditLog) => ({
-            id: String(log.id),
-            timestamp: log.created_at,
-            event: `${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""} by ${
-              log.username ?? "system"
-            }`,
-          }),
-        );
+        const items: ApiAuditLog[] = Array.isArray(data?.items) ? data.items : [];
+
+        const mapped = items
+          .filter((log) => log?.meta?.user_visible !== false)
+          .map((log) => {
+            const testId =
+              log.entity_type === "Test"
+                ? log.entity_id
+                : typeof log?.meta?.test_id === "number" || typeof log?.meta?.test_id === "string"
+                  ? log.meta.test_id
+                  : null;
+
+            if (!testId) return null;
+
+            return {
+              id: String(log.id),
+              timestamp: log.created_at,
+              event: formatAuditEventText(log, testId),
+            } as AuditEvent;
+          })
+          .filter(Boolean) as AuditEvent[];
 
         setAuditEvents(mapped);
       } catch (error) {
@@ -255,9 +305,7 @@ export function AppShell() {
 
   const removeTest = (testId: string) => {
     setTests((prev) => prev.filter((t) => t.id !== testId));
-    setDeletedTestIds((prev) =>
-      prev.includes(testId) ? prev : [testId, ...prev],
-    );
+    setDeletedTestIds((prev) => (prev.includes(testId) ? prev : [testId, ...prev]));
   };
 
   const removePhotosForTest = (testId: string) => {
@@ -269,9 +317,7 @@ export function AppShell() {
   };
 
   const updateTest = (testId: string, updates: Partial<Test>) => {
-    setTests((prev) =>
-      prev.map((t) => (t.id === testId ? { ...t, ...updates } : t)),
-    );
+    setTests((prev) => prev.map((t) => (t.id === testId ? { ...t, ...updates } : t)));
   };
 
   const contextValue = useMemo(
@@ -298,13 +344,7 @@ export function AppShell() {
         to: "/tests",
         label: "Tests",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -317,18 +357,8 @@ export function AppShell() {
         to: "/create",
         label: "Create",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         ),
       },
@@ -336,13 +366,7 @@ export function AppShell() {
         to: "/gallery",
         label: "Gallery",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -355,18 +379,8 @@ export function AppShell() {
         to: "/audit",
         label: "Audit",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
         ),
       },
@@ -377,18 +391,8 @@ export function AppShell() {
         to: "/review",
         label: "Review",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 0 0 1 18 0Z"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 0 0 1 18 0Z" />
           </svg>
         ),
       });
@@ -411,9 +415,7 @@ export function AppShell() {
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) =>
-                `sidebar-nav-item ${isActive ? "active" : ""}`
-              }
+              className={({ isActive }) => `sidebar-nav-item ${isActive ? "active" : ""}`}
             >
               {item.icon}
               <span>{item.label}</span>
@@ -438,9 +440,7 @@ export function AppShell() {
           </button>
         </header>
 
-        <main
-          className={`app-content ${isTestDetailsRoute ? "app-content--test-details" : ""}`}
-        >
+        <main className={`app-content ${isTestDetailsRoute ? "app-content--test-details" : ""}`}>
           <Outlet context={contextValue} />
         </main>
       </div>

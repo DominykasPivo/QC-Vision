@@ -26,9 +26,6 @@ from .service import tests_service
 
 logger = logging.getLogger("backend_tests_router")
 
-# ✅ IMPORTANT:
-# main.py already includes this router with prefix="/api/v1/tests"
-# so this router MUST have prefix=""
 router = APIRouter(prefix="", tags=["tests"])
 
 
@@ -45,7 +42,6 @@ async def create_test(
     photos: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
 ):
-    """Create a new quality control test with optional photo uploads."""
     username = "system"
 
     try:
@@ -259,6 +255,7 @@ async def review_test(
 
 @router.get("/{test_id}", response_model=TestResponse)
 async def get_test(test_id: int, db: Session = Depends(get_db)):
+    """Retrieve a specific quality test by ID."""
     test = await tests_service.get_test(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
@@ -283,7 +280,56 @@ async def list_tests(
 async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_db)):
     username = "system"
     try:
+        current = await tests_service.get_test(db, test_id)
+        if not current:
+            raise HTTPException(status_code=404, detail="Test not found")
+
+        before_status = getattr(current, "status", None)
+        before_assigned_to = getattr(current, "assigned_to", None)
+        before_test_type = getattr(current, "test_type", None)
+
         updated = await tests_service.update_test(db, test_id, test_data)
+
+        after_status = getattr(updated, "status", None)
+        after_assigned_to = getattr(updated, "assigned_to", None)
+        after_test_type = getattr(updated, "test_type", None)
+
+        if "status" in test_data and before_status != after_status:
+            log_action(
+                db,
+                action="STATUS_CHANGE",
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_status, "to": after_status},
+            )
+
+        if "assigned_to" in test_data and before_assigned_to != after_assigned_to:
+            if after_assigned_to and not before_assigned_to:
+                action = "ASSIGN"
+            elif not after_assigned_to and before_assigned_to:
+                action = "UNASSIGN"
+            else:
+                action = "ASSIGN"
+
+            log_action(
+                db,
+                action=action,
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_assigned_to, "to": after_assigned_to},
+            )
+
+        if "test_type" in test_data and before_test_type != after_test_type:
+            log_action(
+                db,
+                action="TEST_TYPE_CHANGE",
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_test_type, "to": after_test_type},
+            )
 
         log_action(
             db,
@@ -296,8 +342,10 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
 
         return updated
 
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Test not found")
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         log_action(
             db,
@@ -337,4 +385,4 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
             username=username,
             meta={"reason": "server_error", "error": str(e)},
         )
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) 
