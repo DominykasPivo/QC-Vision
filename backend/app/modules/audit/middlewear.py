@@ -52,7 +52,9 @@ def try_extract_ids(body_bytes: bytes) -> tuple[int | None, int | None]:
         data = json.loads(body_bytes.decode("utf-8"))
         if isinstance(data, dict):
             entity_id = data.get("id") if isinstance(data.get("id"), int) else None
-            test_id = data.get("test_id") if isinstance(data.get("test_id"), int) else None
+            test_id = (
+                data.get("test_id") if isinstance(data.get("test_id"), int) else None
+            )
             return entity_id, test_id
     except Exception:
         pass

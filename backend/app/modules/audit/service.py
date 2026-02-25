@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-from uuid import uuid4  
+from uuid import uuid4
 
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
@@ -37,7 +37,7 @@ def _normalize_meta(
     entity_id: int,
     meta: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    
+
     m: Dict[str, Any] = dict(meta or {})
 
     if entity_type == "Test" and isinstance(entity_id, int) and entity_id > 0:
@@ -97,7 +97,7 @@ def log_action(
     Designed to NEVER break the main request flow if logging fails.
     """
     try:
-        meta = _normalize_meta(  
+        meta = _normalize_meta(
             action=action,
             entity_type=entity_type,
             entity_id=entity_id,

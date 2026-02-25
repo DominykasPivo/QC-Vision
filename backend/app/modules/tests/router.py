@@ -385,4 +385,4 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
             username=username,
             meta={"reason": "server_error", "error": str(e)},
         )
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

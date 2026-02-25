@@ -48,7 +48,12 @@ class TestCreateTest:
         mock_db.commit.assert_called_once()
 
     async def test_optional_fields_use_defaults(self, mock_db):
-        data = TestCreate(gyra_id="GY-104", product_name="Test Product", test_type="incoming", requester="Mona")
+        data = TestCreate(
+            gyra_id="GY-104",
+            product_name="Test Product",
+            test_type="incoming",
+            requester="Mona",
+        )
 
         await tests_service.create_test(mock_db, data)
 

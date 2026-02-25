@@ -72,7 +72,9 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
         created_at=_dt(7),
     )
 
-    r = client.get("/api/v1/audit/tests/1/activity?user_actions_only=true&limit=200&offset=0")
+    r = client.get(
+        "/api/v1/audit/tests/1/activity?user_actions_only=true&limit=200&offset=0"
+    )
     assert r.status_code == 200
 
     data = r.json()
@@ -85,7 +87,10 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
         is_related = (x.get("meta") or {}).get("test_id") == 1
         assert is_direct or is_related
 
-    assert all(((x.get("meta") or {}).get("test_id") != 2 and x["entity_id"] != 2) for x in items)
+    assert all(
+        ((x.get("meta") or {}).get("test_id") != 2 and x["entity_id"] != 2)
+        for x in items
+    )
 
 
 def test_excludes_system_get_logs_correctly(client, db_session):
@@ -118,7 +123,9 @@ def test_excludes_system_get_logs_correctly(client, db_session):
         created_at=_dt(8),
     )
 
-    r = client.get("/api/v1/audit/tests/1/activity?user_actions_only=true&limit=200&offset=0")
+    r = client.get(
+        "/api/v1/audit/tests/1/activity?user_actions_only=true&limit=200&offset=0"
+    )
     assert r.status_code == 200
 
     items = r.json()["items"]
@@ -153,7 +160,9 @@ def test_returns_correct_order_newest_first(client, db_session):
         created_at=_dt(10),
     )
 
-    r = client.get("/api/v1/audit/tests/1/activity?user_actions_only=true&limit=200&offset=0")
+    r = client.get(
+        "/api/v1/audit/tests/1/activity?user_actions_only=true&limit=200&offset=0"
+    )
     assert r.status_code == 200
 
     items = r.json()["items"]
@@ -175,13 +184,17 @@ def test_pagination_if_implemented(client, db_session):
 
     newest_first = list(reversed(ids))
 
-    r1 = client.get("/api/v1/audit/tests/1/activity?user_actions_only=true&limit=2&offset=0")
+    r1 = client.get(
+        "/api/v1/audit/tests/1/activity?user_actions_only=true&limit=2&offset=0"
+    )
     assert r1.status_code == 200
     d1 = r1.json()
     assert d1["total"] == 5
     assert [x["id"] for x in d1["items"]] == newest_first[0:2]
 
-    r2 = client.get("/api/v1/audit/tests/1/activity?user_actions_only=true&limit=2&offset=2")
+    r2 = client.get(
+        "/api/v1/audit/tests/1/activity?user_actions_only=true&limit=2&offset=2"
+    )
     assert r2.status_code == 200
     d2 = r2.json()
     assert d2["total"] == 5

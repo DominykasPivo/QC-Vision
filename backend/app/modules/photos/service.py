@@ -243,7 +243,10 @@ class PhotoService:
 
         offset = (page - 1) * page_size
         results = (
-            query.order_by(Photo.time_stamp.desc()).offset(offset).limit(page_size).all()
+            query.order_by(Photo.time_stamp.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
         )
 
         items = []

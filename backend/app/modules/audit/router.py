@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.get("/logs", response_model=AuditLogListOut)
 def get_audit_logs(
-    clear_filters: bool = Query(  
+    clear_filters: bool = Query(
         default=False,
         description="If true, ignores all filter params and returns unfiltered results.",
     ),
@@ -56,6 +56,7 @@ def get_audit_log(log_id: int, db: Session = Depends(get_db)):
     if not log:
         raise HTTPException(status_code=404, detail="Audit log not found")
     return log
+
 
 @router.get("/tests/{test_id}/activity", response_model=AuditLogListOut)
 def get_test_activity(
