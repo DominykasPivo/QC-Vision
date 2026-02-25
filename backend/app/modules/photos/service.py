@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime, timezone
 from io import BytesIO
 from typing import BinaryIO, List, Optional, Tuple
@@ -172,6 +173,10 @@ class PhotoService:
         verification_status: Optional[str] = None,
     ) -> Tuple[List[dict], int]:
         """Get photos with aggregated defect data for the gallery view."""
+        # Detect database type for SQL dialect compatibility
+        database_url = os.getenv("DATABASE_URL", "postgresql://")
+        is_sqlite = database_url.startswith("sqlite")
+        
         severity_order = case(
             (Defect.severity == "critical", 4),
             (Defect.severity == "high", 3),
@@ -188,6 +193,16 @@ class PhotoService:
             else_=None,
         )
 
+        # Use SQLite-compatible group_concat or PostgreSQL array_agg
+        if is_sqlite:
+            category_agg = func.group_concat(distinct(DefectAnnotation.category_id)).label(
+                "category_ids"
+            )
+        else:
+            category_agg = func.array_agg(distinct(DefectAnnotation.category_id)).label(
+                "category_ids"
+            )
+
         query = (
             db.query(
                 Photo.id,
@@ -198,9 +213,7 @@ class PhotoService:
                 Tests.status.label("test_status"),
                 func.count(distinct(Defect.id)).label("defect_count"),
                 highest_severity_expr.label("highest_severity"),
-                func.array_agg(distinct(DefectAnnotation.category_id)).label(
-                    "category_ids"
-                ),
+                category_agg,
                 Photo.verification_status,
             )
             .join(Tests, Photo.test_id == Tests.id)
@@ -234,9 +247,18 @@ class PhotoService:
         elif has_defects is False:
             query = query.having(func.count(distinct(Defect.id)) == 0)
         if category_id is not None:
-            query = query.having(
-                func.bool_or(DefectAnnotation.category_id == category_id)
-            )
+            if is_sqlite:
+                # For SQLite: check if category_id appears in comma-separated string
+                # We use LIKE pattern matching instead of bool_or
+                query = query.having(
+                    func.group_concat(distinct(DefectAnnotation.category_id)).like(
+                        f"%{category_id}%"
+                    )
+                )
+            else:
+                query = query.having(
+                    func.bool_or(DefectAnnotation.category_id == category_id)
+                )
 
         count_subquery = query.subquery()
         total = db.query(func.count()).select_from(count_subquery).scalar() or 0
@@ -251,7 +273,11 @@ class PhotoService:
 
         items = []
         for row in results:
-            cat_ids = row.category_ids or []
+            # Handle both PostgreSQL array and SQLite comma-separated string
+            if is_sqlite and isinstance(row.category_ids, str):
+                cat_ids = [int(c) for c in row.category_ids.split(",") if c]
+            else:
+                cat_ids = row.category_ids or []
             cat_ids = [c for c in cat_ids if c is not None]
             items.append(
                 {

@@ -10,7 +10,7 @@ from app.database import get_db
 from app.modules.audit.service import log_action
 
 from .models import Photo
-from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse
+from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUpdate
 from .service import photo_service
 from .storage import photo_storage  # ✅ module-level name must exist for tests
 
@@ -202,6 +202,36 @@ async def update_verification_status(
         entity_id=photo_id,
         username="system",
         meta={"verification_status": verification_status},
+    )
+
+    return photo
+
+
+@router.patch("/{photo_id}", response_model=PhotoResponse)
+async def update_photo(
+    photo_id: int,
+    update_data: PhotoUpdate,
+    db: Session = Depends(get_db),
+):
+    """Update photo metadata (e.g., description)."""
+    photo = db.query(Photo).filter(Photo.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    # Update only the fields that are provided
+    if update_data.description is not None:
+        photo.description = update_data.description
+
+    db.commit()
+    db.refresh(photo)
+
+    log_action(
+        db,
+        action="UPDATE",
+        entity_type="Photo",
+        entity_id=photo_id,
+        username="system",
+        meta={"description": update_data.description},
     )
 
     return photo

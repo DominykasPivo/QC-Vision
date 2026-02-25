@@ -21,9 +21,16 @@ class PhotoResponse(BaseModel):
     file_path: str
     time_stamp: datetime
     analysis_results: Optional[str] = None
+    description: Optional[str] = None
     verification_status: str = "pending"
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PhotoUpdate(BaseModel):
+    """Schema for updating photo metadata."""
+
+    description: Optional[str] = Field(None, description="Photo description")
 
 
 class PhotoListResponse(BaseModel):
@@ -45,6 +52,7 @@ class GalleryPhotoResponse(BaseModel):
     defect_count: int
     highest_severity: Optional[str] = None
     category_ids: List[int] = []
+    description: Optional[str] = None
     verification_status: str = "pending"
 
     model_config = ConfigDict(from_attributes=True)

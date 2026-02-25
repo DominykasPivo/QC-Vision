@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS photos (
   file_path       TEXT NOT NULL,
   time_stamp      TIMESTAMPTZ NOT NULL DEFAULT now(),
   analysis_results TEXT,
+  description     TEXT,
   verification_status photo_verification_status NOT NULL DEFAULT 'pending'
 );
 

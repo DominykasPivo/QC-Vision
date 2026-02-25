@@ -247,3 +247,105 @@ class TestDeleteDefectRoute:
 
         # 404 for nonexistent
         assert client.delete("/api/v1/defects/9999").status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# PUT /api/v1/defects/annotations/{annotation_id}  –  move/update annotations
+# ---------------------------------------------------------------------------
+
+
+class TestUpdateAnnotationRoute:
+    def test_update_annotation_geometry(self, client, db_session):
+        """Test updating annotation geometry for moving annotations (circles and rectangles)."""
+        _test_id, photo_id, cat_id = _seed(db_session)
+
+        # Test circle annotation movement
+        defect = client.post(
+            f"/api/v1/defects/photo/{photo_id}",
+            json={
+                "category_id": cat_id,
+                "description": "Test defect",
+                "severity": "medium",
+                "annotations": [
+                    {
+                        "category_id": cat_id,
+                        "geometry": {
+                            "type": "circle",
+                            "cx": 0.5,
+                            "cy": 0.5,
+                            "r": 0.1,
+                        },
+                    }
+                ],
+            },
+        ).json()
+
+        annotation_id = defect["annotations"][0]["id"]
+
+        # Move circle annotation
+        new_geometry = {
+            "type": "circle",
+            "cx": 0.6,  # moved right
+            "cy": 0.4,  # moved up
+            "r": 0.1,
+        }
+
+        resp = client.put(
+            f"/api/v1/defects/annotations/{annotation_id}",
+            json={"geometry": new_geometry},
+        )
+        assert resp.status_code == 200
+
+        updated = resp.json()
+        assert updated["geometry"]["cx"] == 0.6
+        assert updated["geometry"]["cy"] == 0.4
+        assert updated["geometry"]["r"] == 0.1
+
+        # Test rectangle annotation movement
+        defect2 = client.post(
+            f"/api/v1/defects/photo/{photo_id}",
+            json={
+                "category_id": cat_id,
+                "severity": "high",
+                "annotations": [
+                    {
+                        "category_id": cat_id,
+                        "geometry": {
+                            "type": "rectangle",
+                            "x": 0.2,
+                            "y": 0.3,
+                            "w": 0.4,
+                            "h": 0.3,
+                        },
+                    }
+                ],
+            },
+        ).json()
+
+        annotation_id2 = defect2["annotations"][0]["id"]
+
+        # Move rectangle
+        new_geometry2 = {
+            "type": "rectangle",
+            "x": 0.3,
+            "y": 0.2,
+            "w": 0.4,
+            "h": 0.3,
+        }
+
+        resp = client.put(
+            f"/api/v1/defects/annotations/{annotation_id2}",
+            json={"geometry": new_geometry2},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["geometry"]["x"] == 0.3
+        assert resp.json()["geometry"]["y"] == 0.2
+
+    def test_404_for_nonexistent_annotation(self, client):
+        """Test 404 response for updating nonexistent annotation."""
+        resp = client.put(
+            "/api/v1/defects/annotations/9999",
+            json={"geometry": {"type": "circle", "cx": 0.5, "cy": 0.5, "r": 0.1}},
+        )
+        assert resp.status_code == 404
+

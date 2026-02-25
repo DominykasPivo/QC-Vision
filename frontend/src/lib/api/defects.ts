@@ -46,6 +46,7 @@ export type PhotoRecord = {
   test_id?: number | string;
   file_path?: string;
   url?: string;
+  description?: string | null;
   verification_status?: string;
 };
 
@@ -61,6 +62,17 @@ export async function updateVerificationStatus(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ verification_status: verificationStatus }),
+  });
+}
+
+export async function updatePhoto(
+  photoId: string | number,
+  data: { description?: string | null },
+) {
+  return request<PhotoRecord>(`${API_BASE}/photos/${photoId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
   });
 }
 

@@ -25,6 +25,7 @@ import {
   updateAnnotation,
   deleteAnnotation,
   updateVerificationStatus,
+  updatePhoto,
   type DefectPayload,
   type DefectRecord,
   type PhotoRecord,
@@ -78,6 +79,8 @@ export function PhotoDefects() {
   );
   const [isMoveMode, setIsMoveMode] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionText, setDescriptionText] = useState("");
   const fieldGroupClass = "space-y-2";
   const fieldLabelClass = "text-sm font-medium text-slate-700";
   const textInputClass =
@@ -130,6 +133,7 @@ export function PhotoDefects() {
     try {
       const data = await getPhoto(photoId);
       setPhoto(data);
+      setDescriptionText(data.description || "");
     } catch (error) {
       console.error("Failed to load photo:", error);
     }
@@ -155,6 +159,30 @@ export function PhotoDefects() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleEditDescription = () => {
+    setIsEditingDescription(true);
+  };
+
+  const handleSaveDescription = async () => {
+    if (!photoId || isSaving) return;
+    setIsSaving(true);
+    setActionError(null);
+    try {
+      const updated = await updatePhoto(photoId, { description: descriptionText });
+      setPhoto(updated);
+      setIsEditingDescription(false);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Failed to update description.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelDescription = () => {
+    setDescriptionText(photo?.description || "");
+    setIsEditingDescription(false);
   };
 
   if (!photoId) {
@@ -805,6 +833,61 @@ export function PhotoDefects() {
                 annotation to reposition it
               </div>
             )}
+
+            {/* Photo Description Section */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="flex items-start justify-between mb-2">
+                <label className="text-sm font-semibold text-slate-700">Photo Description</label>
+                {!isEditingDescription && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEditDescription}
+                    disabled={isSaving}
+                    className="h-7 text-xs"
+                  >
+                    Edit
+                  </Button>
+                )}
+              </div>
+              {isEditingDescription ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={descriptionText}
+                    onChange={(e) => setDescriptionText(e.target.value)}
+                    placeholder="Add a description for this photo..."
+                    rows={3}
+                    className={textInputClass}
+                    disabled={isSaving}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleSaveDescription}
+                      disabled={isSaving}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelDescription}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                  {photo?.description || "No description provided."}
+                </p>
+              )}
+            </div>
+
             {editingDefect && form.annotations.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-700">
