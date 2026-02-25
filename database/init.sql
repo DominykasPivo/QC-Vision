@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS idx_quality_tests_reviewed_by ON quality_tests(review
 
 
 
---updates the updated_at field automatically 
+--updates the updated_at field automatically
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

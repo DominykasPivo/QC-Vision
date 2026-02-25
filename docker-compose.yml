@@ -1,5 +1,5 @@
 services:
-  
+
   frontend:
     build:
       context: ./frontend
@@ -28,7 +28,7 @@ services:
     environment:
       # Database
       - DATABASE_URL=postgresql://${POSTGRES_USER:-qc_user}:${POSTGRES_PASSWORD:-qc_password}@postgres:5432/${POSTGRES_DB:-qc_vision}
-      
+
       # MinIO Storage
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
@@ -36,23 +36,23 @@ services:
       - MINIO_BUCKET_PHOTOS=photos
       # - MINIO_BUCKET_THUMBNAILS=thumbnails
       # - MINIO_BUCKET_EXPORTS=exports
-      
+
       # NocoDB Configuration
       - NOCODB_URL=${NOCODB_URL:-http://nocodb:8080}
       - NOCODB_API_TOKEN=${NOCODB_API_TOKEN}
       - NOCODB_BASE_ID=${NOCODB_BASE_ID}
       - NOCODB_TABLE_ID=${NOCODB_TABLE_ID}
-      
+
       # # Simple Authentication (User Identity Only)
       # - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
       # - JWT_ALGORITHM=HS256
       # - JWT_EXPIRATION_HOURS=24
-      
+
       # Application Settings
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - DEBUG=${DEBUG:-true}
       - LOG_LEVEL=${LOG_LEVEL:-info}
-      
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,7 +117,7 @@ services:
     container_name: qc_vision_nocodb
     ports:
       - "8080:8080"
-    environment:            
+    environment:
       - NC_PUBLIC_URL=http://localhost:8080
       - NC_AUTH_JWT_SECRET=${NOCODB_JWT_SECRET:-your-secret-key-change-in-production}
       - NC_ADMIN_EMAIL=${NOCODB_ADMIN_EMAIL:-admin@example.com}
