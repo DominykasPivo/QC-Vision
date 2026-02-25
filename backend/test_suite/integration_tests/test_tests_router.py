@@ -148,6 +148,53 @@ class TestListTestsRoute:
         data = client.get("/api/v1/tests/?offset=100").json()
         assert data["items"] == []
 
+    def test_advanced_search_and_filters(self, client):
+        """Test comprehensive search across multiple fields and status filtering."""
+        # Create diverse test data
+        client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                gyraId="GY-2001",
+                productName="Blue T-Shirt",
+                testType="incoming",
+                requester="Alice Thompson",
+                assignedTo="Bob Inspector",
+                description="Check for print quality issues",
+                status="open",
+            ),
+        )
+        client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                gyraId="GY-2002",
+                productName="Red Hoodie",
+                testType="final",
+                requester="Carol Smith",
+                description="Verify embroidery alignment",
+                status="in_progress",
+            ),
+        )
+
+        # Test multi-field search
+        data = client.get("/api/v1/tests/?search=Hoodie").json()
+        assert data["total"] == 1
+        assert data["items"][0]["product_name"] == "Red Hoodie"
+
+        data = client.get("/api/v1/tests/?search=GY-2001").json()
+        assert data["total"] == 1
+        assert data["items"][0]["gyra_id"] == "GY-2001"
+
+        # Test status filter
+        data = client.get("/api/v1/tests/?status=open").json()
+        assert all(t["status"] == "open" for t in data["items"])
+        assert any(t["gyra_id"] == "GY-2001" for t in data["items"])
+
+        # Test combined search + status filter
+        data = client.get("/api/v1/tests/?search=Alice&status=open").json()
+        assert data["total"] >= 1
+        assert all(t["status"] == "open" for t in data["items"])
+        assert all("Alice" in t["requester"] for t in data["items"])
+
 
 # ---------------------------------------------------------------------------
 # PATCH /api/v1/tests/{test_id}
