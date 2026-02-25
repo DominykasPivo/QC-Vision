@@ -39,14 +39,16 @@ import type {
 } from "@/lib/annotation-types";
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
-
-type DefectFormState = {
-  category_id: number;
-  severity: DefectSeverity;
-  description: string;
-  color: string;
-  annotations: AnnotationGeometry[];
-};
+import {
+  createEmptyDefectForm,
+  initializeDefectForm,
+  addAnnotationToForm,
+  removeAnnotationFromForm,
+  updateAnnotationInForm,
+  validateDefectForm,
+  type DefectFormState,
+} from "@/lib/forms/defect-form";
+import { formatTimestamp } from "@/lib/utils/date-formatting";
 
 export function PhotoDefects() {
   const { photoId } = useParams<{ photoId: string }>();
@@ -64,13 +66,7 @@ export function PhotoDefects() {
   const [deletingDefect, setDeletingDefect] = useState<DefectRecord | null>(
     null,
   );
-  const [form, setForm] = useState<DefectFormState>({
-    category_id: DEFECT_CATEGORIES[0].id,
-    severity: DEFECT_SEVERITIES[0],
-    description: "",
-    color: DEFECT_COLORS[0].value,
-    annotations: [],
-  });
+  const [form, setForm] = useState<DefectFormState>(createEmptyDefectForm());
   const [currentTool, setCurrentTool] = useState<DrawingTool>("select");
   const [selectedAnnotation, setSelectedAnnotation] =
     useState<Annotation | null>(null);
@@ -98,13 +94,7 @@ export function PhotoDefects() {
   }, [photoId]);
 
   const resetForm = () => {
-    setForm({
-      category_id: DEFECT_CATEGORIES[0].id,
-      severity: DEFECT_SEVERITIES[0],
-      description: "",
-      color: DEFECT_COLORS[0].value,
-      annotations: [],
-    });
+    setForm(createEmptyDefectForm());
     setCurrentTool("select");
     setSelectedAnnotation(null);
   };
@@ -217,21 +207,7 @@ export function PhotoDefects() {
   };
 
   const openEdit = (defect: DefectRecord) => {
-    const firstAnnotation =
-      defect.annotations && defect.annotations.length > 0
-        ? defect.annotations[0]
-        : null;
-    setForm({
-      category_id: firstAnnotation
-        ? firstAnnotation.category_id
-        : DEFECT_CATEGORIES[0].id,
-      severity: (DEFECT_SEVERITIES.includes(defect.severity as DefectSeverity)
-        ? (defect.severity as DefectSeverity)
-        : DEFECT_SEVERITIES[0]) as DefectSeverity,
-      description: defect.description ?? "",
-      color: firstAnnotation?.color ?? DEFECT_COLORS[0].value,
-      annotations: [],
-    });
+    setForm(initializeDefectForm(defect));
     setActionError(null);
     setShowCreate(false);
     setIsDrawingMode(false);
@@ -240,18 +216,12 @@ export function PhotoDefects() {
   };
 
   const handleAnnotationCreate = (geometry: AnnotationGeometry) => {
-    setForm((prev) => ({
-      ...prev,
-      annotations: [...prev.annotations, geometry],
-    }));
+    setForm((prev) => addAnnotationToForm(prev, geometry));
     setCurrentTool("select");
   };
 
   const handleAnnotationDelete = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      annotations: prev.annotations.filter((_, i) => i !== index),
-    }));
+    setForm((prev) => removeAnnotationFromForm(prev, index));
   };
 
   const handleAnnotationUpdate = async (
@@ -261,12 +231,7 @@ export function PhotoDefects() {
     if (annotationId < 0) {
       // Temporary annotation (from form)
       const index = -annotationId - 1;
-      setForm((prev) => ({
-        ...prev,
-        annotations: prev.annotations.map((ann, i) =>
-          i === index ? geometry : ann,
-        ),
-      }));
+      setForm((prev) => updateAnnotationInForm(prev, index, geometry));
       return;
     }
 
@@ -325,25 +290,18 @@ export function PhotoDefects() {
     editingDefect?.annotations ||
     allAnnotations;
 
-  const formatTimestamp = (value?: string | null) => {
-    if (!value) {
-      return "—";
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    return parsed.toLocaleString();
-  };
-
   const handleCreate = async () => {
     if (!photoId || isSaving) {
       return;
     }
-    if (form.annotations.length === 0) {
-      setActionError("Please draw at least one annotation on the photo.");
+    
+    // Validate form
+    const validationError = validateDefectForm(form);
+    if (validationError) {
+      setActionError(validationError);
       return;
     }
+
     setIsSaving(true);
     setActionError(null);
     try {

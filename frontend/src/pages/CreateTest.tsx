@@ -20,6 +20,9 @@ import type { AppDataContext } from "../components/layout/AppShell";
 import { getStoredUsername } from "@/lib/auth";
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
+import { validatePhotoFiles, mergePhotoFiles, PHOTO_VALIDATION } from "@/lib/validation/photo-validation";
+import { buildTestSubmitFormData, createEmptyTestForm, type TestFormData } from "@/lib/forms/test-form";
+import { createTest as createTestAPI } from "@/lib/api/tests";
 
 export function CreateTest() {
   const navigate = useNavigate();
@@ -33,7 +36,7 @@ export function CreateTest() {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const desktopInputRef = useRef<HTMLInputElement | null>(null);
-  const MAX_PHOTOS = 6;
+  const MAX_PHOTOS = PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST;
 
   // Detect if device is mobile
   const isMobile =
@@ -41,16 +44,9 @@ export function CreateTest() {
       navigator.userAgent,
     ) || window.innerWidth < 768;
   const loggedInUser = getStoredUsername();
-  const [formData, setFormData] = useState({
-    gyraId: "",
-    productName: "",
-    testType: "incoming" as TestType,
-    requester: loggedInUser,
-    assignedTo: "",
-    description: "",
-    deadline: "",
-    status: "open" as TestStatus,
-  });
+  const [formData, setFormData] = useState<TestFormData>(
+    createEmptyTestForm(loggedInUser)
+  );
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -58,57 +54,23 @@ export function CreateTest() {
       return;
     }
 
-    // Backend validation rules from PhotoService
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    const ALLOWED_FORMATS = ["image/jpeg", "image/png", "image/webp"];
+    // Validate files
+    const validationError = validatePhotoFiles(files);
+    if (validationError) {
+      setPhotoNotice(validationError.message);
+      e.target.value = "";
+      return;
+    }
 
-    // Validate file types (must start with 'image/')
-    const invalidTypeFiles = files.filter(
-      (file) => !file.type.startsWith("image/"),
+    // Merge with existing photos
+    const { photos: mergedPhotos, warning } = mergePhotoFiles(
+      selectedPhotos,
+      files,
+      MAX_PHOTOS
     );
-    if (invalidTypeFiles.length > 0) {
-      setPhotoNotice(`File must be an image`);
-      e.target.value = "";
-      return;
-    }
 
-    // Validate specific formats (JPEG, PNG, WEBP only)
-    const invalidFormatFiles = files.filter(
-      (file) => !ALLOWED_FORMATS.includes(file.type),
-    );
-    if (invalidFormatFiles.length > 0) {
-      setPhotoNotice(`Unsupported format. Allowed: JPEG, PNG, WEBP`);
-      e.target.value = "";
-      return;
-    }
-
-    // Validate file sizes
-    const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
-    if (oversizedFiles.length > 0) {
-      setPhotoNotice(`File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
-      e.target.value = "";
-      return;
-    }
-
-    // Validate not empty
-    const emptyFiles = files.filter((file) => file.size === 0);
-    if (emptyFiles.length > 0) {
-      setPhotoNotice(`File is empty`);
-      e.target.value = "";
-      return;
-    }
-
-    setSelectedPhotos((prev) => {
-      const combined = [...prev, ...files];
-      if (combined.length > MAX_PHOTOS) {
-        setPhotoNotice(
-          `You can upload up to ${MAX_PHOTOS} photos. Extra files were not added.`,
-        );
-      } else {
-        setPhotoNotice(null);
-      }
-      return combined.slice(0, MAX_PHOTOS);
-    });
+    setSelectedPhotos(mergedPhotos);
+    setPhotoNotice(warning);
     e.target.value = "";
     setShowPhotoModal(false);
   };
@@ -131,54 +93,11 @@ export function CreateTest() {
     setError(null);
 
     try {
-      const submitFormData = new FormData();
+      // Build form data for submission
+      const submitFormData = buildTestSubmitFormData(formData, selectedPhotos);
 
-      submitFormData.append("gyraId", formData.gyraId);
-      submitFormData.append("productName", formData.productName);
-      submitFormData.append("testType", formData.testType.trim());
-      submitFormData.append("requester", formData.requester.trim());
-      if (formData.assignedTo.trim()) {
-        submitFormData.append("assignedTo", formData.assignedTo.trim());
-      }
-      if (formData.description.trim()) {
-        submitFormData.append("description", formData.description.trim());
-      }
-      submitFormData.append(
-        "status",
-        formData.status.toLowerCase().replace(" ", "_"),
-      );
-
-      if (formData.deadline) {
-        submitFormData.append(
-          "deadlineAt",
-          new Date(formData.deadline).toISOString(),
-        );
-      }
-
-      // Add photos (if any)
-      for (const photo of selectedPhotos) {
-        submitFormData.append("photos", photo);
-      }
-
-      // Single request to create test + upload photos
-      const response = await fetch("/api/v1/tests/", {
-        method: "POST",
-        body: submitFormData,
-      });
-
-      const text = await response.text();
-      const parsed = text ? JSON.parse(text) : null;
-
-      if (!response.ok) {
-        // FastAPI often returns {"detail": "..."} but sometimes body can be empty
-        const message =
-          (parsed && (parsed.detail || parsed.message)) ||
-          text ||
-          `Failed to create test (${response.status})`;
-        throw new Error(message);
-      }
-
-      const result = parsed;
+      // Create test via API
+      const result = await createTestAPI(submitFormData);
       console.log("Test created:", result);
 
       const createdTestId = result?.test?.id
@@ -204,16 +123,7 @@ export function CreateTest() {
       }, 2000);
 
       // Reset form
-      setFormData({
-        gyraId: "",
-        productName: "",
-        testType: "incoming",
-        requester: loggedInUser,
-        assignedTo: "",
-        description: "",
-        deadline: "",
-        status: "open",
-      });
+      setFormData(createEmptyTestForm(loggedInUser));
       setSelectedPhotos([]);
       setPhotoNotice(null);
     } catch (err) {

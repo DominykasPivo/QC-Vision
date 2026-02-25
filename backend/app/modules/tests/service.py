@@ -12,6 +12,7 @@ from app.modules.photos.storage import photo_storage  # ✅ conftest patches thi
 
 from .models import Tests
 from .schemas import TestCreate
+from .cleanup_utils import cleanup_test_photos
 
 logger = logging.getLogger("backend_tests_service")
 
@@ -94,33 +95,24 @@ class TestsService:
 
     async def delete_test(self, db: Session, test_id: int) -> None:
         """
-        ✅ Must remove test AND all related photos (DB rows + MinIO objects).
-        Unit test expects:
-        - photo_storage.delete_photo awaited once per photo
-        - db.query(Photo).filter(...).delete() used (not db.delete(photo) in a loop)
-        - db.delete(test) called exactly once
+        Delete a test and all related photos (DB rows + MinIO objects).
+        
+        This method ensures complete cleanup by:
+        1. Deleting photos from MinIO storage
+        2. Deleting photo database records
+        3. Deleting the test record
+        
+        The photo cleanup is delegated to cleanup_utils to maintain
+        separation of concerns and improve testability.
         """
         test = db.query(Tests).filter(Tests.id == test_id).first()
         if not test:
             raise ValueError("Test not found")
 
-        # 1) fetch photos for storage cleanup
-        photos = db.query(Photo).filter(Photo.test_id == test_id).all()
+        # Delete all photos (storage + database)
+        await cleanup_test_photos(db, test_id)
 
-        # 2) delete from storage (best-effort)
-        for p in photos:
-            try:
-                if getattr(p, "file_path", None):
-                    await photo_storage.delete_photo(p.file_path)
-            except Exception as e:
-                logger.warning(
-                    f"Failed to delete from storage {getattr(p, 'file_path', None)}: {e}"
-                )
-
-        # 3) delete photo rows in ONE shot (keeps db.delete call count correct)
-        db.query(Photo).filter(Photo.test_id == test_id).delete()
-
-        # 4) delete test row exactly once
+        # Delete test record
         db.delete(test)
         db.commit()
 

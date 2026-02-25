@@ -13,6 +13,8 @@ import {
 } from "@/lib/db-constants";
 import { isReviewer, logoutUser } from "@/lib/auth";
 import { fetchAuditLogs } from "@/api/audit";
+import { toFrontendTest, type ApiTest, type ApiAuditLog } from "@/lib/api/normalization";
+import { processAuditLogs } from "@/lib/api/audit-formatting";
 
 export type AppDataContext = {
   tests: Test[];
@@ -33,89 +35,6 @@ const STORAGE_KEYS = {
   photos: "qc-vision:photos",
   audit: "qc-vision:audit-events",
   deletedTests: "qc-vision:deleted-tests",
-};
-
-type ApiTest = {
-  id: number | string;
-  gyraId?: string;
-  gyra_id?: string;
-  productName?: string;
-  product_name?: string;
-  testType?: string;
-  test_type?: string;
-  requester?: string;
-  assignedTo?: string | null;
-  assigned_to?: string | null;
-  description?: string | null;
-  status?: string | null;
-  deadlineAt?: string | null;
-  deadline_at?: string | null;
-  createdAt?: string | null;
-  created_at?: string | null;
-  updatedAt?: string | null;
-  updated_at?: string | null;
-};
-
-type ApiAuditLog = {
-  id: string | number;
-  created_at: string;
-  action: string;
-  entity_type: string;
-  entity_id?: number | string | null;
-  username?: string | null;
-  meta?: {
-    user_visible?: boolean;
-    test_id?: number | string;
-    updated_fields?: string[];
-    from?: string;
-    to?: string;
-    [key: string]: unknown;
-  } | null;
-};
-
-const normalizeStatus = (value: unknown): TestStatus => {
-  if (typeof value !== "string") return "pending";
-  return TEST_STATUSES.includes(value as TestStatus)
-    ? (value as TestStatus)
-    : "pending";
-};
-
-const normalizeTestType = (value: unknown): TestType => {
-  if (typeof value !== "string") return "other";
-  return TEST_TYPES.includes(value as TestType) ? (value as TestType) : "other";
-};
-
-const formatDeadline = (value?: string | null): string => {
-  if (!value) return "None";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toISOString().slice(0, 10);
-};
-
-const toFrontendTest = (raw: ApiTest): Test => {
-  const gyraId = raw.gyraId ?? raw.gyra_id ?? "";
-  const productName = raw.productName ?? raw.product_name ?? "";
-  const testType = normalizeTestType(raw.testType ?? raw.test_type);
-  const status = normalizeStatus(raw.status);
-  const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
-  const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
-  const createdAt = raw.createdAt ?? raw.created_at ?? null;
-  const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
-
-  return {
-    id: String(raw.id),
-    gyraId,
-    productName,
-    testType,
-    requester: raw.requester ?? "",
-    assignedTo: assignedTo || undefined,
-    description: raw.description ?? null,
-    deadline: formatDeadline(deadlineAt),
-    deadlineAt,
-    status,
-    createdAt,
-    updatedAt,
-  };
 };
 
 export function AppShell() {
@@ -220,37 +139,6 @@ export function AppShell() {
   }, [deletedTestIds]);
 
   useEffect(() => {
-    const formatAuditEventText = (
-      log: ApiAuditLog,
-      testId: number | string,
-    ) => {
-      if (log.action === "STATUS_CHANGE" && log.meta?.from !== undefined) {
-        return `Test ${testId}: Status changed: ${log.meta.from} → ${log.meta.to}`;
-      }
-      if (log.action === "ASSIGN") {
-        return `Test ${testId}: Assigned: ${log.meta?.from ?? "none"} → ${log.meta?.to ?? "none"}`;
-      }
-      if (log.action === "UNASSIGN") {
-        return `Test ${testId}: Unassigned: ${log.meta?.from ?? "none"} → none`;
-      }
-      if (log.action === "TEST_TYPE_CHANGE" && log.meta?.from !== undefined) {
-        return `Test ${testId}: Test type changed: ${log.meta.from} → ${log.meta.to}`;
-      }
-      if (log.action === "UPLOAD") {
-        return `Test ${testId}: Uploaded Photo${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
-      }
-      if (log.action === "UPDATE") {
-        const fields = Array.isArray(log.meta?.updated_fields)
-          ? log.meta.updated_fields
-          : null;
-        return fields?.length
-          ? `Test ${testId}: Updated fields: ${fields.join(", ")}`
-          : `Test ${testId}: UPDATE ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
-      }
-
-      return `Test ${testId}: ${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
-    };
-
     const loadAuditLogs = async () => {
       try {
         const data = await fetchAuditLogs();
@@ -259,26 +147,7 @@ export function AppShell() {
           ? data.items
           : [];
 
-        const mapped = items
-          .filter((log) => log?.meta?.user_visible !== false)
-          .map((log) => {
-            const testId =
-              log.entity_type === "Test"
-                ? log.entity_id
-                : typeof log?.meta?.test_id === "number" ||
-                    typeof log?.meta?.test_id === "string"
-                  ? log.meta.test_id
-                  : null;
-
-            if (!testId) return null;
-
-            return {
-              id: String(log.id),
-              timestamp: log.created_at,
-              event: formatAuditEventText(log, testId),
-            } as AuditEvent;
-          })
-          .filter(Boolean) as AuditEvent[];
+        const mapped = processAuditLogs(items);
 
         setAuditEvents(mapped);
       } catch (error) {

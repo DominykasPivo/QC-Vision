@@ -5,6 +5,10 @@ from sqlalchemy.orm import Session, joinedload
 
 from .models import Defect, DefectAnnotation, DefectCategory
 from .schemas import AnnotationCreate, DefectCreate, DefectUpdate
+from .annotation_handlers import (
+    extract_annotation_fields,
+    handle_annotation_updates,
+)
 
 
 class DefectsService:
@@ -87,51 +91,17 @@ class DefectsService:
 
         update_data = payload.model_dump(exclude_unset=True)
 
-        # Pop fields that are not direct Defect columns
-        category_id = update_data.pop("category_id", None)
-        color = update_data.pop("color", None)
-        new_annotations = update_data.pop("annotations", None)
+        # Extract annotation-related fields
+        category_id, color, new_annotations = extract_annotation_fields(update_data)
 
         # Apply scalar fields (severity, description)
         for field, value in update_data.items():
             setattr(defect, field, value)
 
-        # Update color on ALL existing annotations
-        if color is not None:
-            for ann in defect.annotations:
-                ann.color = color
-
-        # Append new annotations to existing ones
-        if new_annotations is not None:
-            for ann_data in new_annotations:
-                db.add(
-                    DefectAnnotation(
-                        defect_id=defect_id,
-                        category_id=ann_data["category_id"],
-                        geometry=ann_data["geometry"],
-                        color=ann_data.get("color") or color,
-                    )
-                )
-        elif category_id is not None:
-            # Update category on first annotation if only category_id was sent
-            annotation = (
-                db.query(DefectAnnotation)
-                .filter(DefectAnnotation.defect_id == defect_id)
-                .first()
-            )
-            if annotation is not None:
-                annotation.category_id = category_id
-                if color is not None:
-                    annotation.color = color
-            else:
-                db.add(
-                    DefectAnnotation(
-                        defect_id=defect_id,
-                        category_id=category_id,
-                        geometry={},
-                        color=color,
-                    )
-                )
+        # Handle all annotation updates
+        handle_annotation_updates(
+            db, defect, defect_id, category_id, color, new_annotations
+        )
 
         db.commit()
         db.refresh(defect)
