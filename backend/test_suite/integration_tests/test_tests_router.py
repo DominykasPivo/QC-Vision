@@ -8,7 +8,7 @@ form field through the ``files`` parameter using the
 ``None`` filename as a plain form field inside a multipart body.
 
 Response keys use the *alias* names defined in TestResponse
-(gyra_id, product_name, test_type, assigned_to, deadline_at, created_at, updated_at)
+(jira_id, product_name, test_type, assigned_to, deadline_at, created_at, updated_at)
 because FastAPI's jsonable_encoder defaults to ``by_alias=True``.
 """
 
@@ -33,7 +33,7 @@ class TestCreateTestRoute:
         resp = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-101",
+                jiraId="GY-101",
                 productName="Test Product",
                 testType="incoming",
                 requester="Alice",
@@ -42,7 +42,7 @@ class TestCreateTestRoute:
         assert resp.status_code == 201
 
         body = resp.json()
-        assert body["test"]["gyra_id"] == "GY-101"
+        assert body["test"]["jira_id"] == "GY-101"
         assert body["test"]["product_name"] == "Test Product"
         assert body["test"]["requester"] == "Alice"
         assert body["test"]["status"] == "pending"  # default
@@ -52,7 +52,7 @@ class TestCreateTestRoute:
         resp = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-103",
+                jiraId="GY-103",
                 productName="Test Product",
                 testType="final",
                 requester="Dave",
@@ -74,7 +74,7 @@ class TestCreateTestRoute:
         resp = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-105",
+                jiraId="GY-105",
                 productName="Test Product",
                 testType="incoming",
                 requester="Frank",
@@ -87,7 +87,7 @@ class TestCreateTestRoute:
         resp = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-104",
+                jiraId="GY-104",
                 productName="Test Product",
                 testType="incoming",
                 requester="Mona",
@@ -111,7 +111,7 @@ class TestGetTestRoute:
         created = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-102",
+                jiraId="GY-102",
                 productName="Test Product",
                 testType="in_process",
                 requester="Carol",
@@ -121,7 +121,7 @@ class TestGetTestRoute:
         resp = client.get(f"/api/v1/tests/{created['id']}")
         assert resp.status_code == 200
         assert resp.json()["id"] == created["id"]
-        assert resp.json()["gyra_id"] == "GY-102"
+        assert resp.json()["jira_id"] == "GY-102"
         assert resp.json()["product_name"] == "Test Product"
 
 
@@ -137,7 +137,7 @@ class TestListTestsRoute:
             client.post(
                 "/api/v1/tests/",
                 files=_form_fields(
-                    gyraId=f"GY-{101 + i}",
+                    jiraId=f"GY-{101 + i}",
                     productName="Test Product",
                     testType="incoming",
                     requester=requesters[i % 5],
@@ -172,7 +172,7 @@ class TestListTestsRoute:
         client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-2001",
+                jiraId="GY-2001",
                 productName="Blue T-Shirt",
                 testType="incoming",
                 requester="Alice Thompson",
@@ -184,7 +184,7 @@ class TestListTestsRoute:
         client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-2002",
+                jiraId="GY-2002",
                 productName="Red Hoodie",
                 testType="final",
                 requester="Carol Smith",
@@ -200,12 +200,12 @@ class TestListTestsRoute:
 
         data = client.get("/api/v1/tests/?search=GY-2001").json()
         assert data["total"] == 1
-        assert data["items"][0]["gyra_id"] == "GY-2001"
+        assert data["items"][0]["jira_id"] == "GY-2001"
 
         # Test status filter
         data = client.get("/api/v1/tests/?status=open").json()
         assert all(t["status"] == "open" for t in data["items"])
-        assert any(t["gyra_id"] == "GY-2001" for t in data["items"])
+        assert any(t["jira_id"] == "GY-2001" for t in data["items"])
 
         # Test combined search + status filter
         data = client.get("/api/v1/tests/?search=Alice&status=open").json()
@@ -224,7 +224,7 @@ class TestUpdateTestRoute:
         test_id = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-102",
+                jiraId="GY-102",
                 productName="Test Product",
                 testType="incoming",
                 requester="Carol",
@@ -263,7 +263,7 @@ class TestDeleteTestRoute:
         test_id = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-104",
+                jiraId="GY-104",
                 productName="Test Product",
                 testType="other",
                 requester="Mona",

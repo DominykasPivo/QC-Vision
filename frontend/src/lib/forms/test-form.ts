@@ -6,7 +6,7 @@
 import type { TestStatus, TestType } from '../db-constants';
 
 export type TestFormData = {
-  gyraId: string;
+  jiraId: string;
   productName: string;
   testType: TestType;
   requester: string;
@@ -26,7 +26,7 @@ export function buildTestSubmitFormData(
   const submitFormData = new FormData();
 
   // Required fields
-  submitFormData.append('gyraId', formData.gyraId);
+  submitFormData.append('jiraId', formData.jiraId);
   submitFormData.append('productName', formData.productName);
   submitFormData.append('testType', formData.testType.trim());
   submitFormData.append('requester', formData.requester.trim());
@@ -67,7 +67,7 @@ export function buildTestSubmitFormData(
  */
 export function createEmptyTestForm(username: string): TestFormData {
   return {
-    gyraId: '',
+    jiraId: '',
     productName: '',
     testType: 'incoming',
     requester: username,

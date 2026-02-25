@@ -131,7 +131,7 @@ export function CreateTestsScreen() {
 
       const haystack = [
         test.id,
-        test.gyraId,
+        test.jiraId,
         test.productName,
         test.testType,
         test.requester,
@@ -602,7 +602,7 @@ export function CreateTestsScreen() {
             <>
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
                 {paginatedTests.map((test) => {
-                  const rawPrimaryId = (test.gyraId || test.id).trim();
+                  const rawPrimaryId = (test.jiraId || test.id).trim();
                   const primaryId = rawPrimaryId.startsWith("#")
                     ? rawPrimaryId
                     : `#${rawPrimaryId}`;

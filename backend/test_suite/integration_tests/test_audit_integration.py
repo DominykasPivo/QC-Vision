@@ -1,6 +1,6 @@
 def test_create_test_writes_audit_log(client):
     form = {
-        "gyraId": "99999",
+        "jiraId": "99999",
         "productName": "Test Product",
         "testType": "incoming",
         "requester": "sherifa",

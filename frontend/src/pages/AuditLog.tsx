@@ -129,6 +129,19 @@ export function AuditLog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Poll for audit log updates every 30 seconds when tab is visible
+  useEffect(() => {
+    const POLL_MS = 30_000; // 30 seconds
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        fetchLogs();
+      }
+    }, POLL_MS);
+
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [action, entityType, entityId, username]); // Re-setup polling when filters change
+
   const grouped = useMemo(() => {
     const map: Record<string, UiAuditEvent[]> = {};
 

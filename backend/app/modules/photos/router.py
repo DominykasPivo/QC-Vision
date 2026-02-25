@@ -12,7 +12,7 @@ from app.modules.audit.service import log_action
 from .models import Photo
 from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUpdate
 from .service import photo_service
-from .storage import photo_storage  # ✅ module-level name must exist for tests
+from .storage import photo_storage 
 
 logger = logging.getLogger("backend_photos_router")
 

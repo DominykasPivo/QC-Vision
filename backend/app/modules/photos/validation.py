@@ -20,9 +20,6 @@ MAX_DIMENSION = 10000
 def validate_file_size(file) -> int:
     """
     Validate file size and return the size in bytes.
-    
-    Raises:
-        ValueError: If file is empty or too large
     """
     file.seek(0, 2)  # Seek to end
     file_size = file.tell()
@@ -42,9 +39,6 @@ def validate_file_size(file) -> int:
 def open_and_verify_image(file) -> Image.Image:
     """
     Open and verify image file integrity.
-    
-    Raises:
-        ValueError: If file is not a valid image or is corrupted
     """
     try:
         img = Image.open(file)
@@ -66,9 +60,6 @@ def open_and_verify_image(file) -> Image.Image:
 def validate_image_format(img: Image.Image) -> None:
     """
     Validate image format is supported.
-    
-    Raises:
-        ValueError: If image format is not in ALLOWED_FORMATS
     """
     if img.format not in ALLOWED_FORMATS:
         raise ValueError(
@@ -80,12 +71,6 @@ def validate_image_format(img: Image.Image) -> None:
 def validate_image_dimensions(img: Image.Image) -> Tuple[int, int]:
     """
     Validate image dimensions are within acceptable range.
-    
-    Returns:
-        Tuple of (width, height)
-        
-    Raises:
-        ValueError: If image is too small or too large
     """
     width, height = img.size
 
@@ -110,24 +95,15 @@ def validate_photo_file(file, filename: str) -> Image.Image:
     
     Validates file size, opens and verifies the image,
     checks format and dimensions.
-    
-    Returns:
-        PIL Image object if validation passes
-        
-    Raises:
-        ValueError: If any validation check fails
     """
     try:
-        # Validate file size
+
         file_size = validate_file_size(file)
 
-        # Open and verify image
         img = open_and_verify_image(file)
 
-        # Validate format
         validate_image_format(img)
 
-        # Validate dimensions
         width, height = validate_image_dimensions(img)
 
         logger.info(

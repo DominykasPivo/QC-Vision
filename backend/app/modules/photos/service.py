@@ -109,8 +109,8 @@ class PhotoService:
         verification_status: Optional[str] = None,
     ) -> Tuple[List[dict], int]:
         """Get photos with aggregated defect data for the gallery view."""
-        # Detect database type for SQL dialect compatibility
         database_url = os.getenv("DATABASE_URL", "postgresql://")
+        # Detect database type for SQL dialect compatibility
         is_sqlite = database_url.startswith("sqlite")
         
         severity_order = case(

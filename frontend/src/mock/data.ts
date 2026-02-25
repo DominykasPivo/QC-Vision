@@ -4,7 +4,7 @@ import type { TestStatus, TestType } from "../lib/db-constants";
 
 export interface Test {
   id: string;
-  gyraId: string;
+  jiraId: string;
   productName: string;
   testType: TestType;
   requester: string;

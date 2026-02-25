@@ -36,7 +36,7 @@ PRODUCT_NAMES = [
 
 
 def create_test(base_url: str, index: int) -> dict:
-    gyra_id = f"GY-{random.randint(100, 99999)}"
+    jira_id = f"GY-{random.randint(100, 99999)}"
     product_name = random.choice(PRODUCT_NAMES)
     test_type = random.choice(TEST_TYPES)
     requester = random.choice(REQUESTERS)
@@ -50,7 +50,7 @@ def create_test(base_url: str, index: int) -> dict:
         deadline = (datetime.now(timezone.utc) + timedelta(days=delta)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     form_data = {
-        "gyraId": gyra_id,
+        "jiraId": jira_id,
         "productName": product_name,
         "testType": test_type,
         "requester": requester,

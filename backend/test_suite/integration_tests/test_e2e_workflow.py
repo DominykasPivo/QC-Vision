@@ -60,7 +60,7 @@ class TestEndToEndQualityInspectionWorkflow:
         test_response = client.post(
             "/api/v1/tests/",
             files=_form_fields(
-                gyraId="GY-E2E-001",
+                jiraId="GY-E2E-001",
                 productName="Premium Cotton T-Shirt",
                 testType="incoming",
                 requester="Sarah Manager",
@@ -74,7 +74,7 @@ class TestEndToEndQualityInspectionWorkflow:
         test = test_response.json()["test"]
         test_id = test["id"]
 
-        assert test["gyra_id"] == "GY-E2E-001"
+        assert test["jira_id"] == "GY-E2E-001"
         assert test["status"] == "in_progress"
         assert test["assigned_to"] == "John Inspector"
 
@@ -227,10 +227,10 @@ class TestEndToEndQualityInspectionWorkflow:
         # STEP 7: Manager searches and filters tests for reporting
         # ===================================================================
 
-        # Search by Gyra ID
-        search_gyra = client.get("/api/v1/tests/?search=E2E-001").json()
-        assert search_gyra["total"] >= 1
-        assert any(t["gyra_id"] == "GY-E2E-001" for t in search_gyra["items"])
+        # Search by Jira ID
+        search_jira = client.get("/api/v1/tests/?search=E2E-001").json()
+        assert search_jira["total"] >= 1
+        assert any(t["jira_id"] == "GY-E2E-001" for t in search_jira["items"])
 
         # Search by product name
         search_product = client.get("/api/v1/tests/?search=Cotton").json()

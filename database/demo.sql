@@ -24,7 +24,7 @@ VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert quality tests (IDs will start at 1 because of RESTART IDENTITY)
-INSERT INTO quality_tests (gyra_id, product_name, test_type, requester, assigned_to, status, deadline_at)
+INSERT INTO quality_tests (jira_id, product_name, test_type, requester, assigned_to, status, deadline_at)
 VALUES
   ('GY-101', 'Red Cotton T-Shirt',   'incoming',    'Alice', 'Bob',   'open',        now() + interval '3 days'),
   ('GY-102', 'Blue Polo Shirt',      'in_process',  'Carol', NULL,    'in_progress', now() + interval '1 day'),
@@ -94,7 +94,7 @@ VALUES
 -- Insert audit logs (simple realistic events)
 INSERT INTO audit_logs (action, entity_type, entity_id, meta, username)
 VALUES
-  ('create_test', 'quality_tests', 1, jsonb_build_object('gyra_id','GY-101','product_name','Red Cotton T-Shirt','test_type','incoming'), 'Alice'),
+  ('create_test', 'quality_tests', 1, jsonb_build_object('jira_id','GY-101','product_name','Red Cotton T-Shirt','test_type','incoming'), 'Alice'),
   ('upload_photo', 'photos', 1, jsonb_build_object('file_path','/uploads/test1/photo1.jpg'), 'Bob'),
   ('upload_photo', 'photos', 2, jsonb_build_object('file_path','/uploads/test1/photo2.jpg'), 'Bob'),
   ('add_defect', 'defects', 1, jsonb_build_object('severity','high'), 'Bob'),

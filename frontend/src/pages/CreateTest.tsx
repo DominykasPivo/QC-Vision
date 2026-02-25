@@ -196,18 +196,18 @@ export function CreateTest() {
               <div className={spacing.fieldGroup}>
                 <label
                   className="text-base font-semibold text-slate-900 md:text-lg"
-                  htmlFor="gyraId"
+                  htmlFor="jiraId"
                 >
-                  Gyra ID
+                  Jira ID
                 </label>
                 <Input
                   type="text"
-                  id="gyraId"
-                  name="gyraId"
+                  id="jiraId"
+                  name="jiraId"
                   density="spacious"
                   className={controlClass}
                   placeholder="e.g. GY-12345"
-                  value={formData.gyraId}
+                  value={formData.jiraId}
                   onChange={handleChange}
                   required
                   disabled={isLoading}

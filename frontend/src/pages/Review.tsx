@@ -59,6 +59,18 @@ export function Review() {
     void loadPending();
   }, []);
 
+  // Poll for pending tests every 30 seconds when tab is visible
+  useEffect(() => {
+    const POLL_MS = 30_000; // 30 seconds
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        void loadPending();
+      }
+    }, POLL_MS);
+
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const approveTest = async (id: number) => {
     try {
       await request<TestResponse>(`/api/v1/tests/${id}/review`, {

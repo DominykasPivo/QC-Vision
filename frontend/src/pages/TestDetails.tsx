@@ -66,7 +66,7 @@ export function TestDetails() {
       navigator.userAgent,
     ) || window.innerWidth < 768;
   const [draft, setDraft] = useState({
-    gyraId: test?.gyraId ?? "",
+    jiraId: test?.jiraId ?? "",
     productName: test?.productName ?? "",
     testType: (test?.testType ?? "incoming") as TestType,
     requester: test?.requester ?? "",
@@ -194,7 +194,7 @@ export function TestDetails() {
     return parsed.toISOString().slice(0, 10);
   };
 
-  const gyraIdLabel = test.gyraId?.trim() ? test.gyraId : "—";
+  const jiraIdLabel = test.jiraId?.trim() ? test.jiraId : "—";
   const productNameLabel = test.productName?.trim() ? test.productName : "—";
   const requesterLabel = test.requester?.trim() ? test.requester : "—";
   const assignedToLabel = test.assignedTo?.trim() ? test.assignedTo : "—";
@@ -215,7 +215,7 @@ export function TestDetails() {
     const safeDeadline =
       test.deadline && test.deadline !== "None" ? test.deadline : "";
     setDraft({
-      gyraId: test.gyraId ?? "",
+      jiraId: test.jiraId ?? "",
       productName: test.productName ?? "",
       testType: safeTestType,
       requester: test.requester ?? "",
@@ -343,7 +343,7 @@ export function TestDetails() {
 
       console.log("Updating test...");
       const updateData = {
-        gyra_id: draft.gyraId.trim(),
+        jira_id: draft.jiraId.trim(),
         product_name: draft.productName.trim(),
         test_type: draft.testType,
         requester: draft.requester.trim(),
@@ -376,7 +376,7 @@ export function TestDetails() {
       console.log("Updated test:", updatedTest);
 
       updateTest(test.id, {
-        gyraId: draft.gyraId.trim(),
+        jiraId: draft.jiraId.trim(),
         productName: draft.productName.trim(),
         testType: draft.testType,
         requester: draft.requester.trim(),
@@ -524,7 +524,7 @@ export function TestDetails() {
           <div className="mt-3 flex flex-wrap items-center gap-4 text-lg text-slate-500">
             <span className="flex items-center gap-1">
               <MaterialIcon name="qr_code" className="text-sm" />
-              {gyraIdLabel}
+              {jiraIdLabel}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1">
@@ -561,7 +561,7 @@ export function TestDetails() {
               <CardContent className="space-y-6 px-8 py-8">
                 <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
                   <InfoItem label="Test ID" value={String(test.id)} />
-                  <InfoItem label="Gyra ID" value={gyraIdLabel} />
+                  <InfoItem label="Jira ID" value={jiraIdLabel} />
                   <InfoItem label="Product Name" value={productNameLabel} />
                   <InfoItem
                     label="Test Type"
@@ -903,13 +903,13 @@ export function TestDetails() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
-                    Gyra ID
+                    Jira ID
                   </label>
                   <Input
                     className="h-11 rounded-xl border-gray-300 text-gray-900"
-                    value={draft.gyraId}
+                    value={draft.jiraId}
                     onChange={(e) =>
-                      setDraft((prev) => ({ ...prev, gyraId: e.target.value }))
+                      setDraft((prev) => ({ ...prev, jiraId: e.target.value }))
                     }
                   />
                 </div>

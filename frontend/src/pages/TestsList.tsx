@@ -159,7 +159,7 @@ export function TestsList() {
 
       const haystack = [
         test.id,
-        test.gyraId,
+        test.jiraId,
         test.productName,
         test.testType,
         test.requester,
@@ -263,7 +263,7 @@ export function TestsList() {
             <Input
               type="text"
               className="h-12 rounded-full border border-slate-200 bg-white px-5 text-base text-slate-900 shadow-sm placeholder:text-slate-400"
-              placeholder="Search by Gyra ID, Product..."
+              placeholder="Search by Jira ID, Product..."
               value={searchInput}
               onChange={(event) => {
                 const nextValue = event.target.value;
@@ -302,7 +302,7 @@ export function TestsList() {
               <Input
                 type="text"
                 className="h-12 rounded-full border border-slate-200 bg-white px-5 text-[15px] leading-5 text-slate-900 shadow-sm placeholder:text-slate-500"
-                placeholder="Search by Gyra ID, Product..."
+                placeholder="Search by Jira ID, Product..."
                 value={searchInput}
                 onChange={(event) => {
                   const nextValue = event.target.value;
@@ -690,8 +690,8 @@ export function TestsList() {
                   const styles = statusClass[test.status];
                   const StatusIcon = styles.icon;
 
-                  const gyraIdDisplay = test.gyraId?.trim()
-                    ? test.gyraId
+                  const jiraIdDisplay = test.jiraId?.trim()
+                    ? test.jiraId
                     : `#${test.id}`;
 
                   const productLabel = test.productName?.trim()
@@ -719,10 +719,10 @@ export function TestsList() {
                           <div className="relative min-h-14 pr-36">
                             <div className="min-w-0 space-y-1.5">
                               <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                                Gyra ID
+                                Jira ID
                               </p>
                               <p className="text-4xl font-bold leading-none text-slate-900">
-                                {gyraIdDisplay}
+                                {jiraIdDisplay}
                               </p>
                               <p className="text-xs font-medium text-slate-500">
                                 Test ID: {test.id}

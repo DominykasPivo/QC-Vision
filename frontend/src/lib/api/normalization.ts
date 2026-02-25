@@ -8,8 +8,8 @@ import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '../db
 
 export type ApiTest = {
   id: number | string;
-  gyraId?: string;
-  gyra_id?: string;
+  jiraId?: string;
+  jira_id?: string;
   productName?: string;
   product_name?: string;
   testType?: string;
@@ -76,7 +76,7 @@ export function formatDeadline(value?: string | null): string {
  * Convert API test response to frontend Test type
  */
 export function toFrontendTest(raw: ApiTest): Test {
-  const gyraId = raw.gyraId ?? raw.gyra_id ?? '';
+  const jiraId = raw.jiraId ?? raw.jira_id ?? '';
   const productName = raw.productName ?? raw.product_name ?? '';
   const testType = normalizeTestType(raw.testType ?? raw.test_type);
   const status = normalizeStatus(raw.status);
@@ -87,7 +87,7 @@ export function toFrontendTest(raw: ApiTest): Test {
 
   return {
     id: String(raw.id),
-    gyraId,
+    jiraId,
     productName,
     testType,
     requester: raw.requester ?? '',

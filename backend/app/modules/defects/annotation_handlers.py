@@ -13,7 +13,6 @@ from .models import Defect, DefectAnnotation
 def extract_annotation_fields(update_data: Dict[str, Any]) -> tuple:
     """
     Extract annotation-related fields from update payload.
-    
     Returns:
         tuple: (category_id, color, new_annotations)
     """
@@ -38,12 +37,6 @@ def add_new_annotations(
 ) -> None:
     """
     Add new annotations to an existing defect.
-    
-    Args:
-        db: Database session
-        defect_id: ID of the defect to add annotations to
-        new_annotations: List of annotation data dictionaries
-        default_color: Default color to use if annotation doesn't specify one
     """
     if new_annotations is not None:
         for ann_data in new_annotations:
@@ -66,12 +59,6 @@ def update_category_on_first_annotation(
     """
     Update category on the first annotation of a defect.
     Creates a new annotation if none exists.
-    
-    Args:
-        db: Database session
-        defect_id: ID of the defect
-        category_id: New category ID to set
-        color: Optional color to set
     """
     annotation = (
         db.query(DefectAnnotation)
@@ -105,19 +92,10 @@ def handle_annotation_updates(
 ) -> None:
     """
     Orchestrate all annotation updates for a defect.
-    
     Handles three scenarios:
     1. Update color on all existing annotations
     2. Add completely new annotations
     3. Update category on first annotation when only category_id is provided
-    
-    Args:
-        db: Database session
-        defect: The defect object being updated
-        defect_id: ID of the defect
-        category_id: Optional new category ID
-        color: Optional new color
-        new_annotations: Optional list of new annotations to add
     """
     # Update color on all existing annotations
     update_existing_annotation_colors(defect, color)

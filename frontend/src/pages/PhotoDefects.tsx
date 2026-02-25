@@ -134,6 +134,21 @@ export function PhotoDefects() {
     loadPhoto();
   }, [loadDefects, loadPhoto]);
 
+  // Poll for defect updates every 15 seconds when tab is visible
+  useEffect(() => {
+    if (!photoId) return;
+
+    const POLL_MS = 15_000; // 15 seconds
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        loadDefects();
+        loadPhoto();
+      }
+    }, POLL_MS);
+
+    return () => clearInterval(id);
+  }, [photoId, loadDefects, loadPhoto]);
+
   const handleVerification = async (status: string) => {
     if (!photoId || isSaving) return;
     setIsSaving(true);

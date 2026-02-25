@@ -20,7 +20,7 @@ from app.modules.tests.models import Tests
 def _seed(db):
     """Insert minimum required rows.  Returns (test_id, photo_id, category_id)."""
     t = Tests(
-        gyra_id="GY-101",
+        jira_id="GY-101",
         product_name="Test Product",
         test_type="incoming",
         requester="Alice",

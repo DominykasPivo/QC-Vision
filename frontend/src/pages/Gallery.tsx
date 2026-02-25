@@ -164,6 +164,18 @@ export function Gallery() {
     loadGallery();
   }, [loadGallery]);
 
+  // Poll for gallery updates every 30 seconds when tab is visible
+  useEffect(() => {
+    const POLL_MS = 30_000; // 30 seconds
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        loadGallery();
+      }
+    }, POLL_MS);
+
+    return () => clearInterval(id);
+  }, [loadGallery]);
+
   const totalPages = galleryData
     ? Math.max(1, Math.ceil(galleryData.total / PAGE_SIZE))
     : 1;

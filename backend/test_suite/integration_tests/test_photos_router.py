@@ -23,7 +23,7 @@ from app.modules.tests.models import Tests
 def _seed_test(db):
     """Insert a Tests row and return its id."""
     t = Tests(
-        gyra_id="GY-101",
+        jira_id="GY-101",
         product_name="Test Product",
         test_type="incoming",
         requester="Alice",
@@ -186,14 +186,14 @@ class TestGalleryRoute:
 
         # Create tests with different types and statuses
         test_incoming_open = Tests(
-            gyra_id="GY-100",
+            jira_id="GY-100",
             product_name="T-Shirt A",
             test_type="incoming",
             requester="Alice",
             status="open",
         )
         test_final_progress = Tests(
-            gyra_id="GY-101",
+            jira_id="GY-101",
             product_name="Hoodie B",
             test_type="final",
             requester="Bob",

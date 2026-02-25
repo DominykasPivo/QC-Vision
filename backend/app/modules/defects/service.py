@@ -14,7 +14,6 @@ from .annotation_handlers import (
 class DefectsService:
     """
     Service layer for defect management operations.
-
     Handles creation, retrieval, updating, and deletion of defects
     and their associated annotations.
     """
