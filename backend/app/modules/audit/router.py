@@ -3,11 +3,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from .service import list_test_activity_history
+
 from app.database import get_db
 
 from .schemas import AuditLogListOut, AuditLogOut
-from .service import get_log_by_id, list_logs
+from .service import get_log_by_id, list_logs, list_test_activity_history
 
 router = APIRouter()
 
