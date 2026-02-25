@@ -2,7 +2,8 @@
 Seed script to upload placeholder photos for gallery pagination testing.
  
 Generates simple colored JPEG images and uploads them to existing tests
-via the /api/v1/photos/upload endpoint.
+via the /api/v1/photos/upload endpoint. Each photo is assigned a random
+description from a predefined list.
  
 Requirements:
     pip install requests Pillow
@@ -25,6 +26,17 @@ COLORS = [
     "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6",
     "#1abc9c", "#e67e22", "#34495e", "#d35400", "#27ae60",
     "#2980b9", "#8e44ad", "#c0392b", "#16a085", "#f1c40f",
+]
+
+SAMPLE_DESCRIPTIONS = [
+    "High-quality product photo showing front view with clear details.",
+    "Close-up shot capturing texture and material quality.",
+    "Overview image showing complete product from multiple angles.",
+    "Detailed inspection photo highlighting key features and components.",
+    "Product photo taken under standard lighting conditions for quality assessment.",
+    "Reference image for color accuracy and print quality verification.",
+    "Documentation photo showing product in its final packaging state.",
+    "Quality control photo capturing product specifications and measurements.",
 ]
  
  
@@ -72,7 +84,7 @@ def get_test_ids(base_url: str) -> list[int]:
  
  
 def upload_photo(base_url: str, test_id: int, photo_index: int) -> dict:
-    """Upload a single placeholder photo for a test."""
+    """Upload a single placeholder photo for a test and add a description."""
     label = f"Test {test_id}\nPhoto {photo_index}"
     image_bytes = make_placeholder_image(label)
  
@@ -81,7 +93,21 @@ def upload_photo(base_url: str, test_id: int, photo_index: int) -> dict:
  
     response = requests.post(f"{base_url}/api/v1/photos/upload", files=files, params=params)
     response.raise_for_status()
-    return response.json()
+    photo = response.json()
+    
+    # Add a description to the photo
+    photo_id = photo.get("id")
+    if photo_id:
+        description = random.choice(SAMPLE_DESCRIPTIONS)
+        update_response = requests.patch(
+            f"{base_url}/api/v1/photos/{photo_id}",
+            json={"description": description},
+            headers={"Content-Type": "application/json"}
+        )
+        update_response.raise_for_status()
+        photo = update_response.json()
+    
+    return photo
  
  
 def main():
@@ -98,7 +124,7 @@ def main():
         return
  
     total = len(test_ids) * args.per_test
-    print(f"Found {len(test_ids)} tests. Uploading {args.per_test} photos each ({total} total) ...\n")
+    print(f"Found {len(test_ids)} tests. Uploading {args.per_test} photos each ({total} total) with descriptions ...\n")
  
     uploaded = 0
     failed = 0

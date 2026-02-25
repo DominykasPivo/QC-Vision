@@ -10,6 +10,7 @@ export type GalleryPhoto = {
   defect_count: number;
   highest_severity: string | null;
   category_ids: number[];
+  description?: string | null;
   verification_status: string;
 };
 
