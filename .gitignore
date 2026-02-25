@@ -46,3 +46,11 @@ htmlcov/
 # Temporary files
 temp_uploads/
 *.tmp
+
+# Python virtual environments
+.venv/
+backend/.venv/
+venv/
+
+# Node
+node_modules/

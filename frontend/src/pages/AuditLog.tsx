@@ -1,4 +1,3 @@
-// frontend/src/pages/AuditLog.tsx
 
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
