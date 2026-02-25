@@ -413,6 +413,10 @@ Backend tests include:
 - **Integration tests** - Router and API endpoint testing
 - **Coverage** - Automated coverage reporting in CI
 
+### Run automated tests before commit:
+pre-commit run --all-files
+
+
 
 ## Team
 
