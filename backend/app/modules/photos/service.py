@@ -272,7 +272,7 @@ class PhotoService:
 
     def update_verification_status(
         self, db: Session, photo_id: int, verification_status: str
-    ) -> Photo:
+    ) -> Optional[Photo]:
         """Update the verification status of a photo."""
         allowed = ("pending", "approved", "rejected")
         if verification_status not in allowed:
