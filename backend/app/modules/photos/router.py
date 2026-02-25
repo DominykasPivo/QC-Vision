@@ -183,9 +183,7 @@ async def update_verification_status(
     """Update the verification status of a photo (pending, approved, rejected)."""
     verification_status = payload.get("verification_status")
     if not verification_status:
-        raise HTTPException(
-            status_code=400, detail="verification_status is required"
-        )
+        raise HTTPException(status_code=400, detail="verification_status is required")
 
     try:
         photo = photo_service.update_verification_status(

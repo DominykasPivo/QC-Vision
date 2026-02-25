@@ -265,7 +265,10 @@ class PhotoService:
 
         offset = (page - 1) * page_size
         results = (
-            query.order_by(Photo.time_stamp.desc()).offset(offset).limit(page_size).all()
+            query.order_by(Photo.time_stamp.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
         )
 
         items = []
@@ -295,7 +298,7 @@ class PhotoService:
 
     def update_verification_status(
         self, db: Session, photo_id: int, verification_status: str
-    ) -> Photo:
+    ) -> Optional[Photo]:
         """Update the verification status of a photo."""
         allowed = ("pending", "approved", "rejected")
         if verification_status not in allowed:

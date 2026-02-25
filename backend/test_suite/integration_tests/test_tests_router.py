@@ -32,7 +32,12 @@ class TestCreateTestRoute:
     def test_201_with_minimal_fields(self, client):
         resp = client.post(
             "/api/v1/tests/",
-            files=_form_fields(gyraId="GY-101", productName="Test Product", testType="incoming", requester="Alice"),
+            files=_form_fields(
+                gyraId="GY-101",
+                productName="Test Product",
+                testType="incoming",
+                requester="Alice",
+            ),
         )
         assert resp.status_code == 201
 
@@ -68,7 +73,12 @@ class TestCreateTestRoute:
     def test_201_without_description(self, client):
         resp = client.post(
             "/api/v1/tests/",
-            files=_form_fields(gyraId="GY-105", productName="Test Product", testType="incoming", requester="Frank"),
+            files=_form_fields(
+                gyraId="GY-105",
+                productName="Test Product",
+                testType="incoming",
+                requester="Frank",
+            ),
         )
         assert resp.status_code == 201
         assert resp.json()["test"]["description"] is None
@@ -100,7 +110,12 @@ class TestGetTestRoute:
         # Returns created test
         created = client.post(
             "/api/v1/tests/",
-            files=_form_fields(gyraId="GY-102", productName="Test Product", testType="in_process", requester="Carol"),
+            files=_form_fields(
+                gyraId="GY-102",
+                productName="Test Product",
+                testType="in_process",
+                requester="Carol",
+            ),
         ).json()["test"]
 
         resp = client.get(f"/api/v1/tests/{created['id']}")
@@ -122,7 +137,10 @@ class TestListTestsRoute:
             client.post(
                 "/api/v1/tests/",
                 files=_form_fields(
-                    gyraId=f"GY-{101 + i}", productName="Test Product", testType="incoming", requester=requesters[i % 5]
+                    gyraId=f"GY-{101 + i}",
+                    productName="Test Product",
+                    testType="incoming",
+                    requester=requesters[i % 5],
                 ),
             )
 
@@ -205,7 +223,12 @@ class TestUpdateTestRoute:
     def test_update_test_fields(self, client):
         test_id = client.post(
             "/api/v1/tests/",
-            files=_form_fields(gyraId="GY-102", productName="Test Product", testType="incoming", requester="Carol"),
+            files=_form_fields(
+                gyraId="GY-102",
+                productName="Test Product",
+                testType="incoming",
+                requester="Carol",
+            ),
         ).json()["test"]["id"]
 
         # Update status
@@ -239,7 +262,12 @@ class TestDeleteTestRoute:
     def test_204_and_subsequent_get_is_404(self, client):
         test_id = client.post(
             "/api/v1/tests/",
-            files=_form_fields(gyraId="GY-104", productName="Test Product", testType="other", requester="Mona"),
+            files=_form_fields(
+                gyraId="GY-104",
+                productName="Test Product",
+                testType="other",
+                requester="Mona",
+            ),
         ).json()["test"]["id"]
 
         assert client.delete(f"/api/v1/tests/{test_id}").status_code == 204

@@ -22,7 +22,13 @@ from app.modules.tests.models import Tests
 
 def _seed_test(db):
     """Insert a Tests row and return its id."""
-    t = Tests(gyra_id="GY-101", product_name="Test Product", test_type="incoming", requester="Alice", status="open")
+    t = Tests(
+        gyra_id="GY-101",
+        product_name="Test Product",
+        test_type="incoming",
+        requester="Alice",
+        status="open",
+    )
     db.add(t)
     db.commit()
     db.refresh(t)

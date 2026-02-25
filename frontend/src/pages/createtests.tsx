@@ -131,8 +131,8 @@ export function CreateTestsScreen() {
 
       const haystack = [
         test.id,
-        test.externalOrderId,
-        test.productType,
+        test.gyraId,
+        test.productName,
         test.testType,
         test.requester,
         test.assignedTo || "",
@@ -602,12 +602,12 @@ export function CreateTestsScreen() {
             <>
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
                 {paginatedTests.map((test) => {
-                  const rawPrimaryId = (test.externalOrderId || test.id).trim();
+                  const rawPrimaryId = (test.gyraId || test.id).trim();
                   const primaryId = rawPrimaryId.startsWith("#")
                     ? rawPrimaryId
                     : `#${rawPrimaryId}`;
-                  const productLabel = test.productType?.trim()
-                    ? test.productType
+                  const productLabel = test.productName?.trim()
+                    ? test.productName
                     : formatEnumLabel(test.testType);
                   const requesterLabel = test.requester?.trim()
                     ? test.requester

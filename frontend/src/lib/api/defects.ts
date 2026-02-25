@@ -59,8 +59,8 @@ export async function updateVerificationStatus(
   verificationStatus: string,
 ) {
   return request<PhotoRecord>(`${API_BASE}/photos/${photoId}/verification`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ verification_status: verificationStatus }),
   });
 }

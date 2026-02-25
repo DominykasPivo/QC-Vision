@@ -19,7 +19,13 @@ from app.modules.tests.models import Tests
 
 def _seed(db):
     """Insert minimum required rows.  Returns (test_id, photo_id, category_id)."""
-    t = Tests(gyra_id="GY-101", product_name="Test Product", test_type="incoming", requester="Alice", status="open")
+    t = Tests(
+        gyra_id="GY-101",
+        product_name="Test Product",
+        test_type="incoming",
+        requester="Alice",
+        status="open",
+    )
     db.add(t)
     db.flush()
     p = Photo(test_id=t.id, file_path="/uploads/test1/photo1.jpg")
