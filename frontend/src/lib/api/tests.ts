@@ -9,8 +9,8 @@
 export async function createTest(formData: FormData): Promise<{
   test: { id: number | string };
 }> {
-  const response = await fetch('/api/v1/tests/', {
-    method: 'POST',
+  const response = await fetch("/api/v1/tests/", {
+    method: "POST",
     body: formData,
   });
 
@@ -31,9 +31,9 @@ export async function createTest(formData: FormData): Promise<{
 /**
  * Fetch all tests with optional limit
  */
-export async function fetchTests(limit: number = 100): Promise<any> {
+export async function fetchTests(limit: number = 100): Promise<unknown> {
   const response = await fetch(`/api/v1/tests/?limit=${limit}`);
-  
+
   if (!response.ok) {
     throw new Error(`Failed to load tests (${response.status})`);
   }
@@ -44,9 +44,9 @@ export async function fetchTests(limit: number = 100): Promise<any> {
 /**
  * Fetch a single test by ID
  */
-export async function fetchTestById(testId: string): Promise<any> {
+export async function fetchTestById(testId: string): Promise<unknown> {
   const response = await fetch(`/api/v1/tests/${testId}`);
-  
+
   if (!response.ok) {
     throw new Error(`Failed to load test (${response.status})`);
   }
@@ -59,7 +59,7 @@ export async function fetchTestById(testId: string): Promise<any> {
  */
 export async function deleteTest(testId: string): Promise<void> {
   const response = await fetch(`/api/v1/tests/${testId}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
 
   if (!response.ok) {

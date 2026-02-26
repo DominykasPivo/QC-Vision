@@ -7,7 +7,7 @@
  */
 export function formatTimestamp(value?: string | null): string {
   if (!value) {
-    return '—';
+    return "—";
   }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -20,7 +20,7 @@ export function formatTimestamp(value?: string | null): string {
  * Format ISO date to YYYY-MM-DD
  */
 export function formatDate(value?: string | null): string {
-  if (!value) return '—';
+  if (!value) return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toISOString().slice(0, 10);
@@ -30,7 +30,7 @@ export function formatDate(value?: string | null): string {
  * Format ISO date to relative time (e.g., "2 hours ago")
  */
 export function formatRelativeTime(value?: string | null): string {
-  if (!value) return '—';
+  if (!value) return "—";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
 
@@ -41,8 +41,8 @@ export function formatRelativeTime(value?: string | null): string {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  return 'just now';
+  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  return "just now";
 }

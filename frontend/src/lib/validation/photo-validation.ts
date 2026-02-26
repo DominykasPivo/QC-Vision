@@ -5,12 +5,12 @@
 
 export const PHOTO_VALIDATION = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-  ALLOWED_FORMATS: ['image/jpeg', 'image/png', 'image/webp'],
+  ALLOWED_FORMATS: ["image/jpeg", "image/png", "image/webp"],
   MAX_PHOTOS_PER_TEST: 6,
 } as const;
 
 export type PhotoValidationError = {
-  type: 'size' | 'format' | 'empty' | 'type' | 'count';
+  type: "size" | "format" | "empty" | "type" | "count";
   message: string;
 };
 
@@ -21,8 +21,8 @@ export function validatePhotoFile(file: File): PhotoValidationError | null {
   // Check if file is empty
   if (file.size === 0) {
     return {
-      type: 'empty',
-      message: 'File is empty',
+      type: "empty",
+      message: "File is empty",
     };
   }
 
@@ -30,24 +30,24 @@ export function validatePhotoFile(file: File): PhotoValidationError | null {
   if (file.size > PHOTO_VALIDATION.MAX_FILE_SIZE) {
     const maxSizeMB = PHOTO_VALIDATION.MAX_FILE_SIZE / 1024 / 1024;
     return {
-      type: 'size',
+      type: "size",
       message: `File too large (max ${maxSizeMB}MB)`,
     };
   }
 
   // Check if it's an image
-  if (!file.type.startsWith('image/')) {
+  if (!file.type.startsWith("image/")) {
     return {
-      type: 'type',
-      message: 'File must be an image',
+      type: "type",
+      message: "File must be an image",
     };
   }
 
   // Check specific format
   if (!PHOTO_VALIDATION.ALLOWED_FORMATS.includes(file.type)) {
     return {
-      type: 'format',
-      message: 'Unsupported format. Allowed: JPEG, PNG, WEBP',
+      type: "format",
+      message: "Unsupported format. Allowed: JPEG, PNG, WEBP",
     };
   }
 
@@ -72,12 +72,12 @@ export function validatePhotoFiles(files: File[]): PhotoValidationError | null {
  */
 export function validatePhotoCount(
   currentCount: number,
-  newFiles: File[]
+  newFiles: File[],
 ): PhotoValidationError | null {
   const totalCount = currentCount + newFiles.length;
   if (totalCount > PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST) {
     return {
-      type: 'count',
+      type: "count",
       message: `You can upload up to ${PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST} photos. Extra files were not added.`,
     };
   }
@@ -90,10 +90,10 @@ export function validatePhotoCount(
 export function mergePhotoFiles(
   existing: File[],
   newFiles: File[],
-  maxPhotos: number = PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST
+  maxPhotos: number = PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST,
 ): { photos: File[]; warning: string | null } {
   const combined = [...existing, ...newFiles];
-  
+
   if (combined.length > maxPhotos) {
     return {
       photos: combined.slice(0, maxPhotos),

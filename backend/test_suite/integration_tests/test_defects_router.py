@@ -348,4 +348,3 @@ class TestUpdateAnnotationRoute:
             json={"geometry": {"type": "circle", "cx": 0.5, "cy": 0.5, "r": 0.1}},
         )
         assert resp.status_code == 404
-

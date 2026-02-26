@@ -5,15 +5,13 @@ import {
   tests as initialTests,
 } from "../../mock/data";
 import type { AuditEvent, Photo, Test } from "../../mock/data";
-import {
-  TEST_STATUSES,
-  TEST_TYPES,
-  type TestStatus,
-  type TestType,
-} from "@/lib/db-constants";
 import { isReviewer, logoutUser } from "@/lib/auth";
 import { fetchAuditLogs } from "@/api/audit";
-import { toFrontendTest, type ApiTest, type ApiAuditLog } from "@/lib/api/normalization";
+import {
+  toFrontendTest,
+  type ApiTest,
+  type ApiAuditLog,
+} from "@/lib/api/normalization";
 import { processAuditLogs } from "@/lib/api/audit-formatting";
 
 export type AppDataContext = {

@@ -55,7 +55,7 @@ MVP Hardening & Visual Audit Trail Completion:
 
 ### Dominykas
 
-Action: Defect Annotation 
+Action: Defect Annotation
 Deadline: End of Week 17
 Success: Defects can be created, linked to photos, and stored with severity. Photos
 ### Ziad

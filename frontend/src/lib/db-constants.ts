@@ -9,6 +9,9 @@ export const TEST_STATUSES = [
 ] as const;
 export type TestStatus = (typeof TEST_STATUSES)[number];
 
+export const REVIEW_STATUSES = ["pending", "approved", "rejected"] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
 export const DEFECT_SEVERITIES = ["low", "medium", "high", "critical"] as const;
 export type DefectSeverity = (typeof DEFECT_SEVERITIES)[number];
 

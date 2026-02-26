@@ -256,27 +256,27 @@ Client → Login Page → Set X-User Header → All Requests Include Headers →
 
 ### Photo Upload Flow
 ```
-Client → React SPA → POST /api/v1/photos/upload 
-      → Validation (size, format) 
+Client → React SPA → POST /api/v1/photos/upload
+      → Validation (size, format)
       → Image Processing (resize, RGB convert)
-      → MinIO Storage 
-      → DB Metadata Save 
-      → Audit Log 
+      → MinIO Storage
+      → DB Metadata Save
+      → Audit Log
       → Response
 ```
 
 ### Photo Retrieval Flow
 ```
-Client → React SPA → GET /api/v1/photos/{id}/image 
-      → Backend Proxy 
-      → MinIO Object Fetch 
+Client → React SPA → GET /api/v1/photos/{id}/image
+      → Backend Proxy
+      → MinIO Object Fetch
       → Stream Response
 ```
 
 ### Defect Annotation Flow
 ```
-Client → Photo Viewer → Create Annotation 
-      → POST /api/v1/defects/photo/{photo_id} 
+Client → Photo Viewer → Create Annotation
+      → POST /api/v1/defects/photo/{photo_id}
       → Save Defect + Annotations (JSONB geometry)
       → Update Photo Metadata
       → Audit Log

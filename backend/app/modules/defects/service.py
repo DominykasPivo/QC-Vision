@@ -3,12 +3,9 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session, joinedload
 
+from .annotation_handlers import extract_annotation_fields, handle_annotation_updates
 from .models import Defect, DefectAnnotation, DefectCategory
 from .schemas import AnnotationCreate, DefectCreate, DefectUpdate
-from .annotation_handlers import (
-    extract_annotation_fields,
-    handle_annotation_updates,
-)
 
 
 class DefectsService:

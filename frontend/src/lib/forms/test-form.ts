@@ -3,7 +3,7 @@
  * Handles form data transformation for API requests
  */
 
-import type { TestStatus, TestType } from '../db-constants';
+import type { TestStatus, TestType } from "../db-constants";
 
 export type TestFormData = {
   jiraId: string;
@@ -21,42 +21,42 @@ export type TestFormData = {
  */
 export function buildTestSubmitFormData(
   formData: TestFormData,
-  photos: File[]
+  photos: File[],
 ): FormData {
   const submitFormData = new FormData();
 
   // Required fields
-  submitFormData.append('jiraId', formData.jiraId);
-  submitFormData.append('productName', formData.productName);
-  submitFormData.append('testType', formData.testType.trim());
-  submitFormData.append('requester', formData.requester.trim());
+  submitFormData.append("jiraId", formData.jiraId);
+  submitFormData.append("productName", formData.productName);
+  submitFormData.append("testType", formData.testType.trim());
+  submitFormData.append("requester", formData.requester.trim());
 
   // Optional fields
   if (formData.assignedTo.trim()) {
-    submitFormData.append('assignedTo', formData.assignedTo.trim());
+    submitFormData.append("assignedTo", formData.assignedTo.trim());
   }
 
   if (formData.description.trim()) {
-    submitFormData.append('description', formData.description.trim());
+    submitFormData.append("description", formData.description.trim());
   }
 
   // Status normalization
   submitFormData.append(
-    'status',
-    formData.status.toLowerCase().replace(' ', '_')
+    "status",
+    formData.status.toLowerCase().replace(" ", "_"),
   );
 
   // Deadline
   if (formData.deadline) {
     submitFormData.append(
-      'deadlineAt',
-      new Date(formData.deadline).toISOString()
+      "deadlineAt",
+      new Date(formData.deadline).toISOString(),
     );
   }
 
   // Add photos
   for (const photo of photos) {
-    submitFormData.append('photos', photo);
+    submitFormData.append("photos", photo);
   }
 
   return submitFormData;
@@ -67,14 +67,14 @@ export function buildTestSubmitFormData(
  */
 export function createEmptyTestForm(username: string): TestFormData {
   return {
-    jiraId: '',
-    productName: '',
-    testType: 'incoming',
+    jiraId: "",
+    productName: "",
+    testType: "incoming",
     requester: username,
-    assignedTo: '',
-    description: '',
-    deadline: '',
-    status: 'open',
+    assignedTo: "",
+    description: "",
+    deadline: "",
+    status: "open",
   };
 }
 

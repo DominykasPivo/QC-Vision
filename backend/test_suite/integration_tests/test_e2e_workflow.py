@@ -47,11 +47,13 @@ class TestEndToEndQualityInspectionWorkflow:
         """
 
         # Seed defect categories required for the workflow
-        db_session.add_all([
-            DefectCategory(name="Print Errors", is_active=True),
-            DefectCategory(name="Damage", is_active=True),
-            DefectCategory(name="Incorrect Colors", is_active=True),
-        ])
+        db_session.add_all(
+            [
+                DefectCategory(name="Print Errors", is_active=True),
+                DefectCategory(name="Damage", is_active=True),
+                DefectCategory(name="Incorrect Colors", is_active=True),
+            ]
+        )
         db_session.commit()
 
         # ===================================================================
@@ -187,7 +189,9 @@ class TestEndToEndQualityInspectionWorkflow:
         assert gallery_all["total"] >= 2
 
         # Filter gallery by test type
-        gallery_incoming = client.get("/api/v1/photos/gallery?test_type=incoming").json()
+        gallery_incoming = client.get(
+            "/api/v1/photos/gallery?test_type=incoming"
+        ).json()
         assert gallery_incoming["total"] >= 2
 
         # Filter gallery to show only high severity defects
@@ -200,7 +204,9 @@ class TestEndToEndQualityInspectionWorkflow:
         assert high_severity_photo["highest_severity"] == "high"
 
         # Filter to show only photos WITH defects
-        gallery_with_defects = client.get("/api/v1/photos/gallery?has_defects=true").json()
+        gallery_with_defects = client.get(
+            "/api/v1/photos/gallery?has_defects=true"
+        ).json()
         assert gallery_with_defects["total"] >= 2
 
         # ===================================================================
@@ -262,4 +268,3 @@ class TestEndToEndQualityInspectionWorkflow:
         )
         assert finalize.status_code == 200
         assert finalize.json()["status"] == "finalized"
-

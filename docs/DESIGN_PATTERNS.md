@@ -48,11 +48,11 @@ class TestsService:
         search: Optional[str] = None,
     ) -> Tuple[List[Tests], int]:
         query = db.query(Tests)
-        
+
         # Business logic: filtering
         if status:
             query = query.filter(Tests.status == status)
-        
+
         if search:
             pattern = f"%{search}%"
             query = query.filter(
@@ -62,7 +62,7 @@ class TestsService:
                     Tests.product_name.ilike(pattern),
                 )
             )
-        
+
         total = query.count()
         items = query.order_by(Tests.created_at.desc()).offset(offset).limit(limit).all()
         return items, total
@@ -83,7 +83,7 @@ async def get_tests(
     Router handles HTTP concerns only - delegates to service.
     """
     offset = (page - 1) * page_size
-    
+
     # Delegate to service layer
     items, total = await tests_service.get_tests_paginated(
         db=db,
@@ -92,7 +92,7 @@ async def get_tests(
         status=status_filter,
         search=search,
     )
-    
+
     # Router handles HTTP response format
     return TestListResponse(items=items, total=total, page=page, page_size=page_size)
 ```
@@ -119,16 +119,16 @@ async def get_tests(
 ```python
 class TestsService:
     """Service acts as repository for test data"""
-    
+
     async def get_test(self, db: Session, test_id: int) -> Optional[Tests]:
         # Repository method: abstract database query
         return db.query(Tests).filter(Tests.id == test_id).first()
-    
+
     async def delete_test(self, db: Session, test_id: int) -> bool:
         test = await self.get_test(db, test_id)
         if not test:
             raise HTTPException(status_code=404, detail="Test not found")
-        
+
         # Repository handles cascade deletion
         db.delete(test)
         db.commit()
@@ -185,7 +185,7 @@ def get_db():
 ```python
 @router.get("/test/{test_id}", response_model=List[PhotoResponse])
 async def get_photos_for_test(
-    test_id: int, 
+    test_id: int,
     db: Session = Depends(get_db)  # ✅ Injected dependency
 ):
     """
@@ -230,11 +230,11 @@ async def review_test(
     test = await tests_service.get_test(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
-    
+
     test.review_status = review_data.decision
     test.reviewed_by = actor["username"]
     test.reviewed_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(test)
     return test
@@ -260,27 +260,27 @@ class AuditMiddleware(BaseHTTPMiddleware):
     """
     Intercepts all requests to automatically log actions.
     """
-    
+
     async def dispatch(self, request: Request, call_next):
         # Skip documentation and health endpoints
         if request.url.path.startswith(EXCLUDED_PATH_PREFIXES):
             return await call_next(request)
-        
+
         # Infer action from HTTP method
         action = infer_action(request.method, request.url.path)
         entity_type = infer_entity_type(request.url.path)
-        
+
         # Execute the actual route handler
         response = await call_next(request)
-        
+
         # Log action after response (if successful)
         if 200 <= response.status_code < 300:
             body_bytes = b""
             async for chunk in response.body_iterator:
                 body_bytes += chunk
-            
+
             entity_id, test_id = try_extract_ids(body_bytes)
-            
+
             # Create audit log entry
             db = SessionLocal()
             try:
@@ -294,7 +294,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 )
             finally:
                 db.close()
-        
+
         return response
 ```
 
@@ -337,7 +337,7 @@ app.add_middleware(AuditMiddleware)
 def get_photo_storage() -> PhotoStorage:
     """
     Returns the same PhotoStorage instance every time.
-    
+
     @lru_cache with maxsize=1 implements Singleton pattern:
     - First call: Creates PhotoStorage instance, caches it
     - Subsequent calls: Returns cached instance
@@ -360,7 +360,7 @@ class PhotoStorage:
     Singleton instance handles all MinIO operations.
     Connection pooling managed by underlying MinIO client.
     """
-    
+
     def __init__(self):
         # Only called ONCE due to @lru_cache
         self.client = Minio(
@@ -369,13 +369,13 @@ class PhotoStorage:
             secret_key=os.getenv("MINIO_SECRET_KEY", "minioadmin"),
             secure=False,
         )
-        
+
         self.bucket_name = os.getenv("MINIO_BUCKET", "qc-vision-photos")
-        
+
         # Expensive operation: only happens once
         if not _is_testing():
             self._ensure_bucket_exists()
-    
+
     async def upload_photo(self, photo_bytes: bytes, photo_path: str, content_type: str):
         """All routes use the same client instance"""
         self.client.put_object(
@@ -408,7 +408,7 @@ assert storage1 is storage2 is storage3  # ✅ True!
 class PhotoStorage:
     _instance = None
     _lock = threading.Lock()
-    
+
     def __new__(cls):
         if cls._instance is None:
             with cls._lock:

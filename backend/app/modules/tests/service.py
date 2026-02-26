@@ -7,12 +7,9 @@ from sqlalchemy import String as SAString
 from sqlalchemy import cast, or_
 from sqlalchemy.orm import Session
 
-from app.modules.photos.models import Photo
-from app.modules.photos.storage import photo_storage  # ✅ conftest patches this name
-
+from .cleanup_utils import cleanup_test_photos
 from .models import Tests
 from .schemas import TestCreate
-from .cleanup_utils import cleanup_test_photos
 
 logger = logging.getLogger("backend_tests_service")
 
@@ -96,12 +93,12 @@ class TestsService:
     async def delete_test(self, db: Session, test_id: int) -> None:
         """
         Delete a test and all related photos (DB rows + MinIO objects).
-        
+
         This method ensures complete cleanup by:
         1. Deleting photos from MinIO storage
         2. Deleting photo database records
         3. Deleting the test record
-        
+
         The photo cleanup is delegated to cleanup_utils to maintain
         separation of concerns and improve testability.
         """
@@ -132,21 +129,31 @@ class TestsService:
 
         if decision_norm in ("approved", "approve"):
             if hasattr(test, "review_status"):
-                test.review_status = "approved"
+                test.review_status = "approved"  # type: ignore
             if hasattr(test, "reviewed_by"):
-                test.reviewed_by = reviewer
+                test.reviewed_by = reviewer  # type: ignore
             if hasattr(test, "reviewed_at"):
-                test.reviewed_at = datetime.utcnow()
+                test.reviewed_at = datetime.utcnow()  # type: ignore
             if hasattr(test, "review_comment"):
-                test.review_comment = comment
+                test.review_comment = comment  # type: ignore
 
             db.commit()
             db.refresh(test)
             return test
 
         if decision_norm in ("rejected", "reject"):
-            await self.delete_test(db, test_id)
-            return {"detail": "Test rejected and removed"}
+            if hasattr(test, "review_status"):
+                test.review_status = "rejected"  # type: ignore
+            if hasattr(test, "reviewed_by"):
+                test.reviewed_by = reviewer  # type: ignore
+            if hasattr(test, "reviewed_at"):
+                test.reviewed_at = datetime.utcnow()  # type: ignore
+            if hasattr(test, "review_comment"):
+                test.review_comment = comment  # type: ignore
+
+            db.commit()
+            db.refresh(test)
+            return test
 
         raise HTTPException(
             status_code=400,

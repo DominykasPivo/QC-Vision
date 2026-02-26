@@ -620,6 +620,54 @@ export function TestDetails() {
                     valueClassName="text-lg"
                   />
                 </div>
+
+                <Separator className="bg-slate-100" />
+
+                {/* Review Status Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold uppercase tracking-widest text-slate-500">
+                      Review Status
+                    </p>
+                    <Badge
+                      className={cn(
+                        "px-3 py-1 text-sm font-bold",
+                        test.review_status === "approved"
+                          ? "bg-green-100 text-green-800"
+                          : test.review_status === "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800",
+                      )}
+                    >
+                      {test.review_status
+                        ? formatEnumLabel(test.review_status)
+                        : "Pending"}
+                    </Badge>
+                  </div>
+
+                  {test.reviewed_by && (
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+                      <InfoItem label="Reviewed By" value={test.reviewed_by} />
+                      {test.reviewed_at && (
+                        <InfoItem
+                          label="Reviewed At"
+                          value={new Date(test.reviewed_at).toLocaleString()}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {test.review_comment && (
+                    <div>
+                      <p className="mb-2 text-sm font-bold uppercase tracking-widest text-slate-500">
+                        Review Comment
+                      </p>
+                      <p className="italic text-slate-700">
+                        "{test.review_comment}"
+                      </p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </section>

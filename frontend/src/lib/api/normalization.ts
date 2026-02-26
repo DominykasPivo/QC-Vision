@@ -3,8 +3,13 @@
  * Converts backend API responses to frontend types
  */
 
-import type { Test } from '../../mock/data';
-import { TEST_STATUSES, TEST_TYPES, type TestStatus, type TestType } from '../db-constants';
+import type { Test } from "../../mock/data";
+import {
+  TEST_STATUSES,
+  TEST_TYPES,
+  type TestStatus,
+  type TestType,
+} from "../db-constants";
 
 export type ApiTest = {
   id: number | string;
@@ -48,25 +53,25 @@ export type ApiAuditLog = {
  * Normalize status value to valid TestStatus
  */
 export function normalizeStatus(value: unknown): TestStatus {
-  if (typeof value !== 'string') return 'pending';
+  if (typeof value !== "string") return "pending";
   return TEST_STATUSES.includes(value as TestStatus)
     ? (value as TestStatus)
-    : 'pending';
+    : "pending";
 }
 
 /**
  * Normalize test type value to valid TestType
  */
 export function normalizeTestType(value: unknown): TestType {
-  if (typeof value !== 'string') return 'other';
-  return TEST_TYPES.includes(value as TestType) ? (value as TestType) : 'other';
+  if (typeof value !== "string") return "other";
+  return TEST_TYPES.includes(value as TestType) ? (value as TestType) : "other";
 }
 
 /**
  * Format deadline date to YYYY-MM-DD string
  */
 export function formatDeadline(value?: string | null): string {
-  if (!value) return 'None';
+  if (!value) return "None";
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toISOString().slice(0, 10);
@@ -76,8 +81,8 @@ export function formatDeadline(value?: string | null): string {
  * Convert API test response to frontend Test type
  */
 export function toFrontendTest(raw: ApiTest): Test {
-  const jiraId = raw.jiraId ?? raw.jira_id ?? '';
-  const productName = raw.productName ?? raw.product_name ?? '';
+  const jiraId = raw.jiraId ?? raw.jira_id ?? "";
+  const productName = raw.productName ?? raw.product_name ?? "";
   const testType = normalizeTestType(raw.testType ?? raw.test_type);
   const status = normalizeStatus(raw.status);
   const deadlineAt = raw.deadlineAt ?? raw.deadline_at ?? null;
@@ -90,7 +95,7 @@ export function toFrontendTest(raw: ApiTest): Test {
     jiraId,
     productName,
     testType,
-    requester: raw.requester ?? '',
+    requester: raw.requester ?? "",
     assignedTo: assignedTo || undefined,
     description: raw.description ?? null,
     deadline: formatDeadline(deadlineAt),
@@ -109,21 +114,25 @@ export function toFrontendAuditEvent(raw: ApiAuditLog): {
   event: string;
   timestamp: string;
 } {
-  const actionLabel = raw.action === 'CREATE' ? 'created' : 
-                      raw.action === 'UPDATE' ? 'updated' : 
-                      raw.action === 'DELETE' ? 'deleted' : 
-                      raw.action.toLowerCase();
+  const actionLabel =
+    raw.action === "CREATE"
+      ? "created"
+      : raw.action === "UPDATE"
+        ? "updated"
+        : raw.action === "DELETE"
+          ? "deleted"
+          : raw.action.toLowerCase();
 
-  const entity = raw.entity_type?.toLowerCase() ?? 'item';
-  const entityId = raw.entity_id ?? '?';
-  const username = raw.username ?? 'system';
+  const entity = raw.entity_type?.toLowerCase() ?? "item";
+  const entityId = raw.entity_id ?? "?";
+  const username = raw.username ?? "system";
 
   // Build event message
   let event = `${username} ${actionLabel} ${entity} #${entityId}`;
 
   // Add update details if available
-  if (raw.action === 'UPDATE' && raw.meta?.updated_fields) {
-    const fields = raw.meta.updated_fields.join(', ');
+  if (raw.action === "UPDATE" && raw.meta?.updated_fields) {
+    const fields = raw.meta.updated_fields.join(", ");
     event += ` (${fields})`;
   }
 

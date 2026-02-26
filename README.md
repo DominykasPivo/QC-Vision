@@ -381,7 +381,9 @@ npm run lint:spacing      # Custom spacing rules
 npx tsc --noEmit         # TypeScript type checking
 npm run build            # Build for production
 npm audit                # Security vulnerabilities
+#npm audit reports vulnerabilities, could be fixed by --focrce but could lead to more problems so ignored for now
 ```
+
 
 **All frontend checks in one command:**
 ```bash
@@ -410,6 +412,10 @@ Backend tests include:
 - **Unit tests** - Service logic testing
 - **Integration tests** - Router and API endpoint testing
 - **Coverage** - Automated coverage reporting in CI
+
+### Run automated tests before commit:
+pre-commit run --all-files
+
 
 
 ## Team

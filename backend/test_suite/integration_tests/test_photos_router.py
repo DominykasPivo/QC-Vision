@@ -235,7 +235,9 @@ class TestGalleryRoute:
         )
 
         # Photo 2: Critical damage defect
-        defect2 = Defect(photo_id=photo2.id, description="Torn fabric", severity="critical")
+        defect2 = Defect(
+            photo_id=photo2.id, description="Torn fabric", severity="critical"
+        )
         db_session.add(defect2)
         db_session.flush()
         db_session.add(
@@ -324,7 +326,9 @@ class TestPhotoVerificationRoute:
     def test_update_verification_status(self, client, db_session):
         """Test updating photo verification status."""
         test_id = _seed_test(db_session)
-        photo = Photo(test_id=test_id, file_path="/uploads/p1.jpg", verification_status="pending")
+        photo = Photo(
+            test_id=test_id, file_path="/uploads/p1.jpg", verification_status="pending"
+        )
         db_session.add(photo)
         db_session.commit()
         db_session.refresh(photo)
@@ -344,5 +348,3 @@ class TestPhotoVerificationRoute:
         )
         assert resp.status_code == 200
         assert resp.json()["verification_status"] == "rejected"
-
-

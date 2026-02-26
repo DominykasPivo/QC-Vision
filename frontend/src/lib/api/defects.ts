@@ -70,8 +70,8 @@ export async function updatePhoto(
   data: { description?: string | null },
 ) {
   return request<PhotoRecord>(`${API_BASE}/photos/${photoId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 }

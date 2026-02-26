@@ -1,0 +1,101 @@
+default_stages: [pre-commit]
+
+# IMPORTANT (Windows):
+# Your machine currently has Python 3.12 (py -3.12).
+# Pre-commit failed earlier because it couldn't find python3.11.
+# If you install Python 3.11 later, change python to python3.11 below.
+default_language_version:
+  python: python3.12
+
+repos:
+  # -----------------------
+  # Basic sanity checks + auto-fixes
+  # -----------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  # -----------------------
+  # Backend: black + isort + flake8
+  # -----------------------
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        files: ^backend/
+        args: ["--line-length=88"]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        files: ^backend/
+        args: ["--profile=black"]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.0
+    hooks:
+      - id: flake8
+        files: ^backend/
+
+  # Optional but CI-parity: mypy (run manually)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        files: ^backend/
+        args: ["app", "--ignore-missing-imports"]
+        stages: [manual]
+
+  # -----------------------
+  # Frontend: auto-fix + checks
+  # -----------------------
+  - repo: local
+    hooks:
+      - id: frontend-prettier-write
+        name: "Frontend: prettier (write)"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run format:write"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: frontend-eslint
+        name: "Frontend: eslint"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run lint"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # Manual parity checks (run when you want, same as CI jobs)
+      - id: frontend-prettier-check
+        name: "Frontend: prettier (check)"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run format:check"
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: frontend-tsc
+        name: "Frontend: TypeScript (tsc --noEmit)"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npx tsc --noEmit"
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: frontend-build
+        name: "Frontend: build"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run build"
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: frontend-spacing
+        name: "Frontend: spacing lint"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run lint:spacing"
+        language: system
+        pass_filenames: false
+        stages: [manual]

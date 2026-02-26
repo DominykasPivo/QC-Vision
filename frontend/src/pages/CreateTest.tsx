@@ -20,8 +20,16 @@ import type { AppDataContext } from "../components/layout/AppShell";
 import { getStoredUsername } from "@/lib/auth";
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
-import { validatePhotoFiles, mergePhotoFiles, PHOTO_VALIDATION } from "@/lib/validation/photo-validation";
-import { buildTestSubmitFormData, createEmptyTestForm, type TestFormData } from "@/lib/forms/test-form";
+import {
+  validatePhotoFiles,
+  mergePhotoFiles,
+  PHOTO_VALIDATION,
+} from "@/lib/validation/photo-validation";
+import {
+  buildTestSubmitFormData,
+  createEmptyTestForm,
+  type TestFormData,
+} from "@/lib/forms/test-form";
 import { createTest as createTestAPI } from "@/lib/api/tests";
 
 export function CreateTest() {
@@ -45,7 +53,7 @@ export function CreateTest() {
     ) || window.innerWidth < 768;
   const loggedInUser = getStoredUsername();
   const [formData, setFormData] = useState<TestFormData>(
-    createEmptyTestForm(loggedInUser)
+    createEmptyTestForm(loggedInUser),
   );
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +74,7 @@ export function CreateTest() {
     const { photos: mergedPhotos, warning } = mergePhotoFiles(
       selectedPhotos,
       files,
-      MAX_PHOTOS
+      MAX_PHOTOS,
     );
 
     setSelectedPhotos(mergedPhotos);

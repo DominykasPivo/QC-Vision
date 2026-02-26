@@ -1,7 +1,6 @@
 import logging
 import os
 from datetime import datetime, timezone
-from io import BytesIO
 from typing import BinaryIO, List, Optional, Tuple
 from uuid import uuid4
 
@@ -13,9 +12,9 @@ from app.modules.defects.models import Defect, DefectAnnotation
 from app.modules.tests.models import Tests
 
 from .models import Photo
+from .processing import image_to_bytes, process_image
 from .storage import PhotoStorage
-from .validation import validate_photo_file, MAX_FILE_SIZE, ALLOWED_FORMATS
-from .processing import process_image, image_to_bytes
+from .validation import ALLOWED_FORMATS, MAX_FILE_SIZE, validate_photo_file
 
 logger = logging.getLogger("backend_photos_service")
 
@@ -38,7 +37,7 @@ class PhotoService:
     async def validate_photo(self, file, filename) -> Image.Image:
         """
         Validate photo file (size, format, integrity).
-        
+
         Delegates to validation module for cleaner separation of concerns.
         """
         return validate_photo_file(file, filename)
@@ -48,7 +47,7 @@ class PhotoService:
     ) -> Image.Image:
         """
         Process image: resize if too large, convert to RGB.
-        
+
         Delegates to processing module.
         """
         return process_image(image, max_dimension)
@@ -58,23 +57,25 @@ class PhotoService:
     ) -> bytes:
         """
         Convert PIL Image to bytes.
-        
+
         Delegates to processing module.
         """
         return image_to_bytes(image, format, quality)
 
     async def upload_photo(
         self, db: Session, file: BinaryIO, filename: str, test_id: int
-    ):
+    ) -> Photo:
         """
         Upload and process a photo for a quality test.
 
         Validates the photo, processes it (resize, format conversion),
         uploads to MinIO storage, and saves metadata to database.
         """
-        img = await self.validate_photo(file, filename)
+        # FIX: validate_photo now correctly typed to return Image.Image
+        img: Image.Image = await self.validate_photo(file, filename)
 
-        processed = await self.process_image(img)
+        # FIX: process_image receives Image.Image (not tuple) — types now match
+        processed: Image.Image = await self.process_image(img)
 
         photo_id = str(uuid4())
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -112,7 +113,7 @@ class PhotoService:
         database_url = os.getenv("DATABASE_URL", "postgresql://")
         # Detect database type for SQL dialect compatibility
         is_sqlite = database_url.startswith("sqlite")
-        
+
         severity_order = case(
             (Defect.severity == "critical", 4),
             (Defect.severity == "high", 3),
@@ -131,9 +132,9 @@ class PhotoService:
 
         # Use SQLite-compatible group_concat or PostgreSQL array_agg
         if is_sqlite:
-            category_agg = func.group_concat(distinct(DefectAnnotation.category_id)).label(
-                "category_ids"
-            )
+            category_agg = func.group_concat(
+                distinct(DefectAnnotation.category_id)
+            ).label("category_ids")
         else:
             category_agg = func.array_agg(distinct(DefectAnnotation.category_id)).label(
                 "category_ids"

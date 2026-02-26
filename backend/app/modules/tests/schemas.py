@@ -7,8 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class TestCreate(BaseModel):
     """Schema for creating a new quality test."""
 
-    jira_id: str = Field(..., description="Jira ID for the test")
-    product_name: str = Field(..., description="Product name for the test")
+    product_id: int = Field(..., description="Product ID for the test")
     test_type: str = Field(..., description="Type of the test")
     requester: str = Field(..., description="Requester of the test")
     assigned_to: Optional[str] = Field(None, description="Person assigned to the test")
@@ -21,8 +20,7 @@ class TestResponse(BaseModel):
     """Schema for test retrieval."""
 
     id: int
-    jira_id: str
-    product_name: str
+    product_id: int
     test_type: str
     requester: str
     assigned_to: Optional[str] = None
@@ -31,11 +29,12 @@ class TestResponse(BaseModel):
     deadline_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-    review_status: str
+    review_status: Literal["pending", "approved", "rejected"] = Field(
+        ..., description="Review status: pending, approved, or rejected"
+    )
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None
     review_comment: Optional[str] = None
-
     model_config = ConfigDict(from_attributes=True)
 
 

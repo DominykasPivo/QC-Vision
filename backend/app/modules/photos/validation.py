@@ -4,8 +4,9 @@ Extracted validation logic from PhotoService
 """
 
 import logging
-from PIL import Image
 from typing import Tuple
+
+from PIL import Image
 
 logger = logging.getLogger("backend_photos_validation")
 
@@ -29,9 +30,7 @@ def validate_file_size(file) -> int:
         raise ValueError("File is empty")
 
     if file_size > MAX_FILE_SIZE:
-        raise ValueError(
-            f"File too large: {file_size} bytes (max {MAX_FILE_SIZE})"
-        )
+        raise ValueError(f"File too large: {file_size} bytes (max {MAX_FILE_SIZE})")
 
     return file_size
 
@@ -92,7 +91,7 @@ def validate_image_dimensions(img: Image.Image) -> Tuple[int, int]:
 def validate_photo_file(file, filename: str) -> Image.Image:
     """
     Complete photo validation pipeline.
-    
+
     Validates file size, opens and verifies the image,
     checks format and dimensions.
     """

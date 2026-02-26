@@ -175,11 +175,17 @@ export function PhotoDefects() {
     setIsSaving(true);
     setActionError(null);
     try {
-      const updated = await updatePhoto(photoId, { description: descriptionText });
+      const updated = await updatePhoto(photoId, {
+        description: descriptionText,
+      });
       setPhoto(updated);
       setIsEditingDescription(false);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Failed to update description.');
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update description.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -309,7 +315,7 @@ export function PhotoDefects() {
     if (!photoId || isSaving) {
       return;
     }
-    
+
     // Validate form
     const validationError = validateDefectForm(form);
     if (validationError) {
@@ -810,7 +816,9 @@ export function PhotoDefects() {
             {/* Photo Description Section */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
               <div className="flex items-start justify-between mb-2">
-                <label className="text-sm font-semibold text-slate-700">Photo Description</label>
+                <label className="text-sm font-semibold text-slate-700">
+                  Photo Description
+                </label>
                 {!isEditingDescription && (
                   <Button
                     type="button"

@@ -5,8 +5,10 @@ Handles the complex logic of updating, adding, and modifying
 annotations when a defect is updated.
 """
 
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
+
 from .models import Defect, DefectAnnotation
 
 
@@ -33,7 +35,7 @@ def add_new_annotations(
     db: Session,
     defect_id: int,
     new_annotations: List[Dict[str, Any]],
-    default_color: Optional[str] = None
+    default_color: Optional[str] = None,
 ) -> None:
     """
     Add new annotations to an existing defect.
@@ -51,10 +53,7 @@ def add_new_annotations(
 
 
 def update_category_on_first_annotation(
-    db: Session,
-    defect_id: int,
-    category_id: int,
-    color: Optional[str] = None
+    db: Session, defect_id: int, category_id: int, color: Optional[str] = None
 ) -> None:
     """
     Update category on the first annotation of a defect.
@@ -65,7 +64,7 @@ def update_category_on_first_annotation(
         .filter(DefectAnnotation.defect_id == defect_id)
         .first()
     )
-    
+
     if annotation is not None:
         annotation.category_id = category_id
         if color is not None:
@@ -88,7 +87,7 @@ def handle_annotation_updates(
     defect_id: int,
     category_id: Optional[int],
     color: Optional[str],
-    new_annotations: Optional[List[Dict[str, Any]]]
+    new_annotations: Optional[List[Dict[str, Any]]],
 ) -> None:
     """
     Orchestrate all annotation updates for a defect.
@@ -99,7 +98,7 @@ def handle_annotation_updates(
     """
     # Update color on all existing annotations
     update_existing_annotation_colors(defect, color)
-    
+
     # Add new annotations to existing ones
     if new_annotations is not None:
         add_new_annotations(db, defect_id, new_annotations, color)

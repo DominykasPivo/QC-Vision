@@ -3,9 +3,14 @@
  * Handles defect form state and initialization
  */
 
-import { DEFECT_CATEGORIES, DEFECT_COLORS, DEFECT_SEVERITIES, type DefectSeverity } from '../db-constants';
-import type { AnnotationGeometry } from '../annotation-types';
-import type { DefectRecord } from './defects';
+import {
+  DEFECT_CATEGORIES,
+  DEFECT_COLORS,
+  DEFECT_SEVERITIES,
+  type DefectSeverity,
+} from "../db-constants";
+import type { AnnotationGeometry } from "../annotation-types";
+import type { DefectRecord } from "./defects";
 
 export type DefectFormState = {
   category_id: number;
@@ -22,7 +27,7 @@ export function createEmptyDefectForm(): DefectFormState {
   return {
     category_id: DEFECT_CATEGORIES[0].id,
     severity: DEFECT_SEVERITIES[0],
-    description: '',
+    description: "",
     color: DEFECT_COLORS[0].value,
     annotations: [],
   };
@@ -44,7 +49,7 @@ export function initializeDefectForm(defect: DefectRecord): DefectFormState {
     severity: (DEFECT_SEVERITIES.includes(defect.severity as DefectSeverity)
       ? (defect.severity as DefectSeverity)
       : DEFECT_SEVERITIES[0]) as DefectSeverity,
-    description: defect.description ?? '',
+    description: defect.description ?? "",
     color: firstAnnotation?.color ?? DEFECT_COLORS[0].value,
     annotations: [],
   };
@@ -55,7 +60,7 @@ export function initializeDefectForm(defect: DefectRecord): DefectFormState {
  */
 export function addAnnotationToForm(
   form: DefectFormState,
-  geometry: AnnotationGeometry
+  geometry: AnnotationGeometry,
 ): DefectFormState {
   return {
     ...form,
@@ -68,7 +73,7 @@ export function addAnnotationToForm(
  */
 export function removeAnnotationFromForm(
   form: DefectFormState,
-  index: number
+  index: number,
 ): DefectFormState {
   return {
     ...form,
@@ -82,12 +87,12 @@ export function removeAnnotationFromForm(
 export function updateAnnotationInForm(
   form: DefectFormState,
   index: number,
-  geometry: AnnotationGeometry
+  geometry: AnnotationGeometry,
 ): DefectFormState {
   return {
     ...form,
     annotations: form.annotations.map((ann, i) =>
-      i === index ? geometry : ann
+      i === index ? geometry : ann,
     ),
   };
 }
@@ -97,7 +102,7 @@ export function updateAnnotationInForm(
  */
 export function validateDefectForm(form: DefectFormState): string | null {
   if (form.annotations.length === 0) {
-    return 'Please draw at least one annotation on the photo.';
+    return "Please draw at least one annotation on the photo.";
   }
   return null;
 }

@@ -49,7 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_quality_tests_created   ON quality_tests(created_
 CREATE INDEX IF NOT EXISTS idx_quality_tests_jira_id   ON quality_tests(jira_id);
 
 
---updates the updated_at field automatically 
+--updates the updated_at field automatically
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

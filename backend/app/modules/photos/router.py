@@ -12,7 +12,7 @@ from app.modules.audit.service import log_action
 from .models import Photo
 from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUpdate
 from .service import photo_service
-from .storage import photo_storage 
+from .storage import photo_storage
 
 logger = logging.getLogger("backend_photos_router")
 
@@ -64,12 +64,14 @@ async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Photo not found")
 
     try:
-        image_data = await photo_storage.get_photo(photo.file_path)
+        # FIX: Cast Column[str] to str to satisfy PhotoStorage.get_photo(str)
+        image_data = await photo_storage.get_photo(str(photo.file_path))
 
         content_type = "image/jpeg"
-        if photo.file_path.lower().endswith(".png"):
+        file_path_str = str(photo.file_path)
+        if file_path_str.lower().endswith(".png"):
             content_type = "image/png"
-        elif photo.file_path.lower().endswith(".webp"):
+        elif file_path_str.lower().endswith(".webp"):
             content_type = "image/webp"
 
         return StreamingResponse(
@@ -77,7 +79,7 @@ async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
             media_type=content_type,
             headers={
                 "Cache-Control": "public, max-age=3600",
-                "Content-Disposition": f'inline; filename="{photo.file_path.split("/")[-1]}"',
+                "Content-Disposition": f'inline; filename="{file_path_str.split("/")[-1]}"',
             },
         )
     except Exception as e:
@@ -120,7 +122,8 @@ async def upload_photo(
         photo = await photo_service.upload_photo(
             db=db,
             file=file.file,
-            filename=file.filename,
+            # FIX: file.filename is str | None — provide a fallback str to satisfy expected "str"
+            filename=file.filename or "",
             test_id=test_id,
         )
 
@@ -128,7 +131,7 @@ async def upload_photo(
             db,
             action="UPLOAD",
             entity_type="Photo",
-            entity_id=photo.id,
+            entity_id=int(photo.id),
             username=username,
             meta={
                 "filename": file.filename,
@@ -259,7 +262,8 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
 
         minio_deleted = False
         try:
-            await photo_storage.delete_photo(photo.file_path)
+            # FIX: Cast Column[str] to str to satisfy PhotoStorage.delete_photo(str)
+            await photo_storage.delete_photo(str(photo.file_path))
             minio_deleted = True
         except Exception as e:
             logger.error(f"Failed to delete MinIO object {photo.file_path}: {e}")

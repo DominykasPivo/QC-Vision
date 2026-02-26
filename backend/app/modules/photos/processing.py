@@ -4,13 +4,14 @@ Extracted processing logic from PhotoService
 """
 
 from io import BytesIO
+
 from PIL import Image
 
 
 def resize_if_needed(image: Image.Image, max_dimension: int = 2000) -> Image.Image:
     """
     Resize image if either dimension exceeds max_dimension.
-    
+
     Maintains aspect ratio when resizing.
     """
     width, height = image.size
@@ -21,14 +22,14 @@ def resize_if_needed(image: Image.Image, max_dimension: int = 2000) -> Image.Ima
     # Calculate resize ratio
     ratio = min(max_dimension / width, max_dimension / height)
     new_size = (int(width * ratio), int(height * ratio))
-    
+
     return image.resize(new_size, Image.Resampling.LANCZOS)
 
 
 def convert_to_rgb(image: Image.Image) -> Image.Image:
     """
     Convert image to RGB mode for JPEG compatibility.
-    
+
     Handles RGBA, LA, and P modes with proper alpha channel handling.
     """
     if image.mode not in ("RGBA", "LA", "P"):
@@ -51,7 +52,7 @@ def process_image(image: Image.Image, max_dimension: int = 2000) -> Image.Image:
     Process image: resize if too large, convert to RGB.
     Complete image processing pipeline combining resize and format conversion.
     """
-    
+
     image = resize_if_needed(image, max_dimension)
     image = convert_to_rgb(image)
 
@@ -63,12 +64,12 @@ def image_to_bytes(
 ) -> bytes:
     """
     Convert PIL Image to bytes.
-    
+
     Args:
         image: PIL Image object
         format: Output format (default: JPEG)
         quality: JPEG quality 1-100 (default: 85)
-        
+
     Returns:
         Image data as bytes
     """
