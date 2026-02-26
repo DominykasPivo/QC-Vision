@@ -32,31 +32,35 @@ export function TestDetailHeader({ test }: TestDetailHeaderProps) {
         </div>
       </div>
 
-      <div className="mb-10">
-        <h1 className="text-5xl font-black text-slate-900">Test #{test.id}</h1>
-        <div className="mt-3 flex flex-wrap items-center gap-4 text-lg text-slate-500">
-          <span className="flex items-center gap-1">
-            <MaterialIcon name="qr_code" className="text-sm" />
-            {jiraIdLabel}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <MaterialIcon name="inventory_2" className="text-sm" />
-            {productNameLabel}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            <MaterialIcon name="login" className="text-sm" />
-            {formatEnumLabel(test.testType)}
-          </span>
-          <Badge
-            className={cn(
-              "ml-2 rounded-full border-0 px-3 py-1 text-sm font-bold uppercase tracking-wider",
-              badgeClass,
-            )}
-          >
-            {formatEnumLabel(test.status)}
-          </Badge>
+      <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10 md:pt-10">
+        <div className="mb-10 md:pl-8">
+          <h1 className="text-5xl font-black text-slate-900">
+            Test #{test.id}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-lg text-slate-500">
+            <span className="flex items-center gap-1">
+              <MaterialIcon name="qr_code" className="text-sm" />
+              {jiraIdLabel}
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <MaterialIcon name="inventory_2" className="text-sm" />
+              {productNameLabel}
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <MaterialIcon name="login" className="text-sm" />
+              {formatEnumLabel(test.testType)}
+            </span>
+            <Badge
+              className={cn(
+                "ml-2 rounded-full border-0 px-3 py-1 text-sm font-bold uppercase tracking-wider",
+                badgeClass,
+              )}
+            >
+              {formatEnumLabel(test.status)}
+            </Badge>
+          </div>
         </div>
       </div>
     </>

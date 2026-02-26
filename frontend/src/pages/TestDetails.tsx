@@ -85,7 +85,7 @@ export function TestDetails() {
     >
       <TestDetailHeader test={test} />
 
-      <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10 md:pt-10">
+      <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <section>
             <TestInformationCard test={test} />
@@ -150,4 +150,3 @@ export function TestDetails() {
     </div>
   );
 }
-
