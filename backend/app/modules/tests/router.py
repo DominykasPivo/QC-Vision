@@ -20,6 +20,7 @@ from app.modules.photos.schemas import PhotoResponse
 from app.modules.photos.service import photo_service
 from app.security import require_reviewer
 
+from .models import Tests
 from .schemas import TestCreate, TestListResponse, TestResponse, TestReviewRequest
 from .service import tests_service
 
@@ -87,8 +88,7 @@ async def create_test(
             db,
             action="CREATE",
             entity_type="Test",
-            # FIX: Cast Column[int] to int to satisfy log_action's expected "int"
-            entity_id=int(test.id),
+            entity_id=test.id,
             username=username,
             meta={
                 "jiraId": jiraId,
@@ -137,10 +137,8 @@ async def create_test(
                     photo = await photo_service.upload_photo(
                         db=db,
                         file=photo_file.file,
-                        # FIX: photo_file.filename is str | None — provide fallback str
-                        filename=photo_file.filename or "",
-                        # FIX: Cast Column[int] to int to satisfy upload_photo's expected "int"
-                        test_id=int(test.id),
+                        filename=photo_file.filename,
+                        test_id=test.id,
                     )
 
                     uploaded_photos.append(PhotoResponse.model_validate(photo))
@@ -152,7 +150,7 @@ async def create_test(
                         db,
                         action="UPLOAD",
                         entity_type="Photo",
-                        entity_id=int(photo.id),
+                        entity_id=photo.id,
                         username=username,
                         meta={
                             "filename": photo_file.filename,
@@ -216,7 +214,7 @@ async def create_test(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{test_id}/review", response_model=TestResponse)
+@router.post("/{test_id}/review")
 async def review_test(
     test_id: int,
     payload: TestReviewRequest,
@@ -224,7 +222,7 @@ async def review_test(
     actor=Depends(require_reviewer),
 ):
     try:
-        test = await tests_service.review_test(
+        result = await tests_service.review_test(
             db=db,
             test_id=test_id,
             decision=payload.decision,
@@ -241,7 +239,10 @@ async def review_test(
             meta={"decision": payload.decision, "comment": payload.comment},
         )
 
-        return TestResponse.model_validate(test)
+        if isinstance(result, Tests):
+            return TestResponse.model_validate(result)
+
+        return result
 
     except HTTPException:
         raise
