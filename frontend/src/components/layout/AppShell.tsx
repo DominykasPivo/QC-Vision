@@ -123,7 +123,27 @@ export function AppShell() {
             ? payload.tests
             : [];
 
-      const mapped = rawTests.map((t: ApiTest) => toFrontendTest(t));
+      type ReviewPatch = {
+        review_status?: Test["review_status"];
+        reviewed_by?: Test["reviewed_by"];
+        reviewed_at?: Test["reviewed_at"];
+        review_comment?: Test["review_comment"];
+      };
+
+      const mapped = rawTests.map((t: ApiTest) => {
+        const base = toFrontendTest(t) as Test;
+
+        const raw = t as unknown as ReviewPatch;
+        const existing = base as unknown as ReviewPatch;
+
+        return {
+          ...base,
+          review_status: raw.review_status ?? existing.review_status,
+          reviewed_by: raw.reviewed_by ?? existing.reviewed_by,
+          reviewed_at: raw.reviewed_at ?? existing.reviewed_at,
+          review_comment: raw.review_comment ?? existing.review_comment,
+        } as Test;
+      });
 
       setTests(mapped);
       setTestsLoaded(true);
@@ -386,7 +406,9 @@ export function AppShell() {
         </header>
 
         <main
-          className={`app-content ${isTestDetailsRoute ? "app-content--test-details" : ""}`}
+          className={`app-content ${
+            isTestDetailsRoute ? "app-content--test-details" : ""
+          }`}
         >
           <Outlet context={contextValue} />
         </main>

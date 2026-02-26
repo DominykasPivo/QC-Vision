@@ -416,7 +416,13 @@ Backend tests include:
 ### Run automated tests before commit:
 pre-commit run --all-files
 
+### Set reviewer role:
 
+docker exec -it qc_vision_postgres psql -U qc_user -d qc_vision
+
+UPDATE users
+SET role = 'reviewer'
+WHERE username = 'abcde';
 
 ## Team
 
