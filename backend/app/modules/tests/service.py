@@ -47,7 +47,7 @@ class TestsService:
         self,
         db: Session,
         offset: int = 0,
-        limit: int = 20,
+        limit: int = 12,
         status: Optional[str] = None,
         search: Optional[str] = None,
     ) -> Tuple[List[Tests], int]:
