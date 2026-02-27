@@ -1,6 +1,4 @@
-// Mock data for QC Vision MVP
-
-import type { TestStatus, TestType, ReviewStatus } from "../lib/db-constants";
+import type { TestStatus, TestType, ReviewStatus } from "./db-constants";
 
 export interface Test {
   id: string;
@@ -39,9 +37,3 @@ export interface AuditEvent {
   meta?: Record<string, unknown>;
   event: string;
 }
-
-export const tests: Test[] = [];
-
-export const photos: Photo[] = [];
-
-export const auditEvents: AuditEvent[] = [];

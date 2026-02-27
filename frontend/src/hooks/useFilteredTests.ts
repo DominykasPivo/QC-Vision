@@ -5,23 +5,24 @@ import {
   matchesAllTokens,
   isInDateRange,
   sortTests,
+  type SortableTest,
   type SortOption,
   type DateRangeFilter,
 } from "@/lib/utils/tests";
 import { STATUS_LABELS } from "@/lib/constants";
 import type { TestStatus } from "@/lib/db-constants";
 
-export interface FilterableTest {
+export interface FilterableTest extends SortableTest {
   id: string | number;
-  jiraId: string | null;
-  productName: string | null;
+  jiraId?: string | null;
+  productName?: string | null;
   testType: string;
-  requester: string | null;
-  assignedTo: string | null;
-  deadline: string | null;
-  deadlineAt: string | null;
+  requester?: string | null;
+  assignedTo?: string | null;
+  deadline?: string | null;
+  deadlineAt?: string | null;
   status: TestStatus;
-  createdAt: string | null;
+  createdAt?: string | null;
 }
 
 export interface FilterOptions {
@@ -75,7 +76,7 @@ export function useFilteredTests<T extends FilterableTest>(
       }
 
       // Date range filter
-      if (!isInDateRange(test.deadlineAt || null, dateRangeFilter)) {
+      if (!isInDateRange(test.deadlineAt ?? null, dateRangeFilter)) {
         return false;
       }
 
@@ -83,12 +84,12 @@ export function useFilteredTests<T extends FilterableTest>(
       if (tokens.length > 0) {
         const haystack = createSearchableText([
           test.id,
-          test.jiraId,
-          test.productName,
+          test.jiraId ?? null,
+          test.productName ?? null,
           test.testType,
-          test.requester,
-          test.assignedTo,
-          test.deadline,
+          test.requester ?? null,
+          test.assignedTo ?? null,
+          test.deadline ?? null,
           test.status,
           STATUS_LABELS[test.status],
         ]);

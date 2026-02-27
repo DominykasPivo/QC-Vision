@@ -3,7 +3,7 @@
  */
 
 import type { ApiAuditLog } from "./normalization";
-import type { AuditEvent } from "../../mock/data";
+import type { AuditEvent } from "@/lib/types";
 
 /**
  * Format audit log with test-specific context

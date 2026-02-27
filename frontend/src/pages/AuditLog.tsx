@@ -3,7 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import type { AppDataContext } from "../components/layout/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { fetchAuditLogs } from "@/api/audit";
+import { fetchAuditLogs } from "@/lib/api/audit";
 
 function formatTimestamp(isoString: string): string {
   const date = new Date(isoString);

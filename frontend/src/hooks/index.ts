@@ -9,8 +9,6 @@ export * from "./useFilteredTests";
 export * from "./useGalleryData";
 export * from "./useGalleryFilters";
 export * from "./useCategories";
-export * from "./useTestsListFilters";
-export * from "./useFilteredTestsList";
 export * from "./useDeviceDetection";
 export * from "./usePhotoPreview";
 export * from "./usePhotoUpload";

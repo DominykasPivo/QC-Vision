@@ -3,7 +3,7 @@
  * Converts backend API responses to frontend types
  */
 
-import type { Test } from "../../mock/data";
+import type { Test } from "@/lib/types";
 import {
   TEST_STATUSES,
   TEST_TYPES,

@@ -15,27 +15,31 @@ import {
   type TestType,
 } from "@/lib/db-constants";
 import type { ApiPhoto } from "@/hooks/useTestDetailPhotos";
+import { ExistingPhotosGrid } from "./update-test-modal/ExistingPhotosGrid";
+import { NewPhotosGrid } from "./update-test-modal/NewPhotosGrid";
+
+interface UpdateDraft {
+  jiraId: string;
+  productName: string;
+  testType: TestType;
+  requester: string;
+  assignedTo: string;
+  description: string;
+  deadline: string;
+  status: TestStatus;
+}
 
 interface UpdateTestModalProps {
   show: boolean;
   isMobile: boolean;
-  draft: {
-    jiraId: string;
-    productName: string;
-    testType: TestType;
-    requester: string;
-    assignedTo: string;
-    description: string;
-    deadline: string;
-    status: TestStatus;
-  };
+  draft: UpdateDraft;
   apiPhotos: ApiPhoto[];
   photosToDelete: string[];
   newPhotoPreviews: { file: File; url: string }[];
   photoNotice: string | null;
   onClose: () => void;
   onSave: () => void;
-  onDraftChange: (updates: Partial<typeof draft>) => void;
+  onDraftChange: (updates: Partial<UpdateDraft>) => void;
   onOpenPhotoModal: () => void;
   onPhotoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveExistingPhoto: (photoId: string) => void;
@@ -248,86 +252,15 @@ export function UpdateTestModal({
 
               {(apiPhotos.length > 0 || newPhotoPreviews.length > 0) && (
                 <div className="mt-4 space-y-4">
-                  {apiPhotos.length > 0 && (
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-gray-700">
-                        Existing photos
-                      </p>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {apiPhotos
-                          .filter(
-                            (photo) =>
-                              !photosToDelete.includes(photo.id.toString()),
-                          )
-                          .map((photo) => (
-                            <div
-                              key={photo.id}
-                              className="overflow-hidden rounded-xl border border-gray-200 bg-white"
-                            >
-                              <div className="aspect-square bg-gray-100">
-                                {photo.url ? (
-                                  <img
-                                    src={photo.url}
-                                    alt="Photo"
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full items-center justify-center text-xs text-gray-500">
-                                    Loading...
-                                  </div>
-                                )}
-                              </div>
-                              <div className="border-t border-gray-100 px-2.5 py-2">
-                                <button
-                                  type="button"
-                                  className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
-                                  aria-label={`Remove photo ${photo.id}`}
-                                  onClick={() =>
-                                    onRemoveExistingPhoto(photo.id.toString())
-                                  }
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {newPhotoPreviews.length > 0 && (
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-gray-700">
-                        New photos
-                      </p>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {newPhotoPreviews.map((preview, index) => (
-                          <div
-                            key={`${preview.file.name}-${preview.file.lastModified}-${index}`}
-                            className="overflow-hidden rounded-xl border border-gray-200 bg-white"
-                          >
-                            <div className="aspect-square bg-gray-100">
-                              <img
-                                src={preview.url}
-                                alt={preview.file.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                            <div className="border-t border-gray-100 px-2.5 py-2">
-                              <button
-                                type="button"
-                                className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
-                                aria-label={`Remove ${preview.file.name}`}
-                                onClick={() => onRemoveNewPhoto(index)}
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <ExistingPhotosGrid
+                    apiPhotos={apiPhotos}
+                    photosToDelete={photosToDelete}
+                    onRemoveExistingPhoto={onRemoveExistingPhoto}
+                  />
+                  <NewPhotosGrid
+                    newPhotoPreviews={newPhotoPreviews}
+                    onRemoveNewPhoto={onRemoveNewPhoto}
+                  />
                 </div>
               )}
             </div>

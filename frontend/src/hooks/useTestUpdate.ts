@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { type ApiPhoto } from "./useTestDetailPhotos";
 import { usePhotoPreview } from "./usePhotoPreview";
-import { MAX_TOTAL_PHOTOS } from "@/lib/constants/testDetailsConstants";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import type { TestStatus, TestType, Test } from "@/lib/db-constants";
 import { TEST_STATUSES, TEST_TYPES } from "@/lib/db-constants";
+import { validateSelectedFiles } from "./test-update/photoValidation";
+import {
+  deletePhotoById,
+  updateTestById,
+  uploadPhotoForTest,
+  type UpdateTestPayload,
+} from "./test-update/api";
 
 interface UseTestUpdateParams {
   test: Test;
@@ -74,60 +80,17 @@ export function useTestUpdate({
       return;
     }
 
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
-    const ALLOWED_FORMATS = ["image/jpeg", "image/png", "image/webp"];
-
-    const invalidTypeFiles = files.filter(
-      (file) => !file.type.startsWith("image/"),
-    );
-    if (invalidTypeFiles.length > 0) {
-      setPhotoNotice(`File must be an image`);
-      e.target.value = "";
-      return;
-    }
-
-    const invalidFormatFiles = files.filter(
-      (file) => !ALLOWED_FORMATS.includes(file.type),
-    );
-    if (invalidFormatFiles.length > 0) {
-      setPhotoNotice(`Unsupported format. Allowed: JPEG, PNG, WEBP`);
-      e.target.value = "";
-      return;
-    }
-
-    const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
-    if (oversizedFiles.length > 0) {
-      setPhotoNotice(`File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`);
-      e.target.value = "";
-      return;
-    }
-
-    const emptyFiles = files.filter((file) => file.size === 0);
-    if (emptyFiles.length > 0) {
-      setPhotoNotice(`File is empty`);
-      e.target.value = "";
-      return;
-    }
-
     const currentPhotoCount = apiPhotos.length - photosToDelete.length;
-    const remaining = Math.max(
-      0,
-      MAX_TOTAL_PHOTOS - currentPhotoCount - newPhotos.length,
+    const validation = validateSelectedFiles(
+      files,
+      currentPhotoCount,
+      newPhotos.length,
     );
-    if (remaining <= 0) {
-      setPhotoNotice(`You can upload up to ${MAX_TOTAL_PHOTOS} photos total.`);
-      e.target.value = "";
-      return;
+
+    setPhotoNotice(validation.notice);
+    if (!validation.reject) {
+      setNewPhotos((prev) => [...prev, ...validation.acceptedFiles]);
     }
-    const nextFiles = files.slice(0, remaining);
-    if (files.length > remaining) {
-      setPhotoNotice(
-        `You can upload up to ${MAX_TOTAL_PHOTOS} photos total. Extra files were not added.`,
-      );
-    } else {
-      setPhotoNotice(null);
-    }
-    setNewPhotos((prev) => [...prev, ...nextFiles]);
     e.target.value = "";
   };
 
@@ -136,29 +99,15 @@ export function useTestUpdate({
   };
 
   const handleUpdateSave = async () => {
-    console.log("Update button clicked");
-    console.log("Photos to delete:", photosToDelete);
-    console.log("New photos:", newPhotos);
-    console.log("Draft data:", draft);
-
     try {
       if (photosToDelete.length > 0) {
-        console.log("Deleting photos...");
         for (const photoIdStr of photosToDelete) {
           const apiPhoto = apiPhotos.find(
             (p) => p.id.toString() === photoIdStr,
           );
           if (apiPhoto) {
             try {
-              console.log(`Deleting photo ${apiPhoto.id}`);
-              const response = await fetch(`/api/v1/photos/${apiPhoto.id}`, {
-                method: "DELETE",
-              });
-
-              console.log(
-                `Delete photo ${apiPhoto.id} response:`,
-                response.status,
-              );
+              const response = await deletePhotoById(apiPhoto.id);
               if (response.ok) {
                 setApiPhotos((prev) =>
                   prev.filter((p) => p.id !== apiPhoto.id),
@@ -177,8 +126,7 @@ export function useTestUpdate({
         }
       }
 
-      console.log("Updating test...");
-      const updateData = {
+      const updateData: UpdateTestPayload = {
         jira_id: draft.jiraId.trim(),
         product_name: draft.productName.trim(),
         test_type: draft.testType,
@@ -191,25 +139,14 @@ export function useTestUpdate({
           : null,
       };
 
-      console.log("Update data:", updateData);
-
-      const response = await fetch(`/api/v1/tests/${test.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      console.log("Update test response:", response.status);
+      const response = await updateTestById(test.id, updateData);
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Update error:", errorData);
         throw new Error(errorData.detail || "Failed to update test");
       }
 
-      const updatedTest = await response.json();
-      console.log("Updated test:", updatedTest);
+      await response.json();
 
       updateTest(test.id, {
         jiraId: draft.jiraId.trim(),
@@ -223,27 +160,10 @@ export function useTestUpdate({
       });
 
       if (newPhotos.length > 0) {
-        console.log("Uploading new photos...");
         for (const file of newPhotos) {
-          const formData = new FormData();
-          formData.append("file", file);
-
-          console.log(`Uploading ${file.name}`);
-          const photoResponse = await fetch(
-            `/api/v1/photos/upload?test_id=${test.id}`,
-            {
-              method: "POST",
-              body: formData,
-            },
-          );
-
-          console.log(
-            `Upload photo ${file.name} response:`,
-            photoResponse.status,
-          );
+          const photoResponse = await uploadPhotoForTest(test.id, file);
           if (photoResponse.ok) {
             const photoData = await photoResponse.json();
-            console.log("Photo uploaded:", photoData);
 
             setApiPhotos((prev) => [
               ...prev,
