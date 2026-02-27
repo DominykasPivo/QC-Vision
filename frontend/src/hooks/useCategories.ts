@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
+export type CategoryRecord = { id: number; name: string; is_active: boolean };
+
+/**
+ * Custom hook for fetching defect categories
+ */
 export function useCategories() {
-  const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true); // ✅ start true
-  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/defects/categories")
@@ -11,30 +16,22 @@ export function useCategories() {
         if (!res.ok) throw new Error("Failed to fetch categories");
         return res.json();
       })
-      .then((data: unknown) => {
-        if (cancelled) return;
-
-        const list = Array.isArray(data)
-          ? data.filter((x): x is string => typeof x === "string")
-          : [];
-
-        setCategories(list);
+      .then((data) => {
+        setCategories(data);
         setError(null);
       })
-      .catch(() => {
-        if (cancelled) return;
-        setError("Failed to fetch categories");
-        setCategories([]);
+      .catch((err) => {
+        console.error("Failed to fetch categories:", err);
+        setError(err);
       })
       .finally(() => {
-        if (cancelled) return;
         setLoading(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  return { categories, loading, error };
+  return {
+    categories,
+    loading,
+    error,
+  };
 }
