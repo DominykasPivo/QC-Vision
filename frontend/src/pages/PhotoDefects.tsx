@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageAnnotator } from "@/components/annotations/ImageAnnotator";
 import { AnnotationToolbar } from "@/components/annotations/AnnotationToolbar";
-import type { Annotation } from "@/lib/annotation-types";
+import type { Annotation, AnnotationGeometry } from "@/lib/annotation-types";
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
 import { BACK_LINK_CLASS } from "@/lib/constants/photoDefectsConstants";
@@ -39,7 +39,6 @@ export function PhotoDefects() {
   const {
     isSaving: photoSaving,
     actionError: photoActionError,
-    setActionError: setPhotoActionError,
     isEditingDescription,
     descriptionText,
     setDescriptionText,
@@ -76,7 +75,6 @@ export function PhotoDefects() {
   const {
     isSaving: defectSaving,
     actionError: defectActionError,
-    setActionError: setDefectActionError,
     deletingDefect,
     setDeletingDefect,
     handleCreate,
@@ -101,10 +99,6 @@ export function PhotoDefects() {
 
   const isSaving = photoSaving || defectSaving;
   const actionError = photoActionError || defectActionError;
-  const setActionError = (error: string | null) => {
-    setPhotoActionError(error);
-    setDefectActionError(error);
-  };
 
   const isApproved = photo?.verification_status === "approved";
   const isRejected = photo?.verification_status === "rejected";
@@ -143,7 +137,7 @@ export function PhotoDefects() {
 
   const handleAnnotationUpdateWrapper = async (
     annotationId: number,
-    geometry: any,
+    geometry: AnnotationGeometry,
   ) => {
     if (annotationId < 0) {
       const index = -annotationId - 1;

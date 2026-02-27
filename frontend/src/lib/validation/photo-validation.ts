@@ -44,7 +44,9 @@ export function validatePhotoFile(file: File): PhotoValidationError | null {
   }
 
   // Check specific format
-  if (!PHOTO_VALIDATION.ALLOWED_FORMATS.includes(file.type)) {
+  if (
+    !(PHOTO_VALIDATION.ALLOWED_FORMATS as readonly string[]).includes(file.type)
+  ) {
     return {
       type: "format",
       message: "Unsupported format. Allowed: JPEG, PNG, WEBP",

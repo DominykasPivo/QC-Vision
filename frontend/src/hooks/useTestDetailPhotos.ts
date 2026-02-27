@@ -45,7 +45,6 @@ export function useTestDetailPhotos(testId?: string) {
       fetch(`/api/v1/photos/test/${testId}`)
         .then((res) => res.json())
         .then(async (data: ApiPhoto[]) => {
-          console.log("Fetched photos from API:", data);
           const photosWithUrls = await Promise.all(
             data.map(async (photo: ApiPhoto) => {
               return {
@@ -54,7 +53,6 @@ export function useTestDetailPhotos(testId?: string) {
               };
             }),
           );
-          console.log("Photos with URLs:", photosWithUrls);
           setApiPhotos(photosWithUrls);
 
           const withDefects = await fetchDefectCounts(photosWithUrls);

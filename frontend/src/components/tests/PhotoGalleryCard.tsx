@@ -49,12 +49,6 @@ export function PhotoGalleryCard({ photos }: PhotoGalleryCardProps) {
                       src={photo.url}
                       alt={`Photo ${photo.id}`}
                       className="h-full w-full object-cover"
-                      onLoad={() =>
-                        console.log(
-                          `Image loaded: Photo ${photo.id}`,
-                          photo.url,
-                        )
-                      }
                       onError={(e) =>
                         console.error(
                           `Image failed to load: Photo ${photo.id}`,

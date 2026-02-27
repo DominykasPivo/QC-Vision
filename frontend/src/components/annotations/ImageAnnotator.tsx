@@ -3,12 +3,7 @@ import {
   Stage,
   Layer,
   Image as KonvaImage,
-  Circle,
-  Rect,
-  Line,
-  Arrow,
 } from "react-konva";
-import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import type Konva from "konva";
 import type {
   Annotation,
@@ -21,10 +16,14 @@ import type {
   ArrowGeometry,
   FreehandGeometry,
 } from "@/lib/annotation-types";
-
-const MIN_SCALE = 1;
-const MAX_SCALE = 5;
-const ZOOM_BY = 1.15;
+import { MIN_SCALE, MAX_SCALE, ZOOM_BY } from "./image-annotator/constants";
+import { ZoomControls } from "./image-annotator/ZoomControls";
+import { SelectedAnnotationBar } from "./image-annotator/SelectedAnnotationBar";
+import {
+  buildGeometryFromDrawing,
+  renderAnnotationShape,
+  renderTempShape,
+} from "./image-annotator/renderShapes";
 
 type ImageAnnotatorProps = {
   imageUrl: string;
@@ -287,62 +286,11 @@ export function ImageAnnotator({
       return;
     }
 
-    const endPoint = tempPoints[tempPoints.length - 1];
-    let geometry: AnnotationGeometry | null = null;
-
-    switch (currentTool) {
-      case "circle": {
-        const dx = endPoint.x - drawingStart.x;
-        const dy = endPoint.y - drawingStart.y;
-        const radius = Math.sqrt(dx * dx + dy * dy);
-        geometry = {
-          type: "circle",
-          center: drawingStart,
-          radius,
-        } as CircleGeometry;
-        break;
-      }
-      case "rect": {
-        const x = Math.min(drawingStart.x, endPoint.x);
-        const y = Math.min(drawingStart.y, endPoint.y);
-        const width = Math.abs(endPoint.x - drawingStart.x);
-        const height = Math.abs(endPoint.y - drawingStart.y);
-        geometry = {
-          type: "rect",
-          x,
-          y,
-          width,
-          height,
-        } as RectGeometry;
-        break;
-      }
-      case "arrow": {
-        geometry = {
-          type: "arrow",
-          from: drawingStart,
-          to: endPoint,
-        } as ArrowGeometry;
-        break;
-      }
-      case "freehand": {
-        if (tempPoints.length > 2) {
-          geometry = {
-            type: "freehand",
-            points: tempPoints,
-          } as FreehandGeometry;
-        }
-        break;
-      }
-      case "polygon": {
-        if (tempPoints.length > 2) {
-          geometry = {
-            type: "polygon",
-            points: tempPoints,
-          } as PolygonGeometry;
-        }
-        break;
-      }
-    }
+    const geometry = buildGeometryFromDrawing({
+      currentTool,
+      drawingStart,
+      tempPoints,
+    });
 
     if (geometry && onAnnotationCreate) {
       onAnnotationCreate(geometry);
@@ -529,224 +477,6 @@ export function ImageAnnotator({
     return "default";
   };
 
-  const renderAnnotation = (annotation: Annotation) => {
-    const { geometry } = annotation;
-    const isSelected = annotation.id === selectedAnnotationId;
-    const strokeColor = isSelected
-      ? "#3b82f6"
-      : (annotation.color ?? "#ef4444");
-    const strokeWidth = isSelected ? 3 : 2;
-    const isDraggable = !readonly && enableMove;
-
-    // Larger hit area for touch devices
-    const hitStrokeWidth = Math.max(strokeWidth, 20);
-
-    const handleSelect = () => onAnnotationSelect?.(annotation);
-
-    switch (geometry.type) {
-      case "circle": {
-        const g = geometry as CircleGeometry;
-        return (
-          <Circle
-            key={annotation.id}
-            x={g.center.x * dimensions.width}
-            y={g.center.y * dimensions.height}
-            radius={g.radius * dimensions.width}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            hitStrokeWidth={hitStrokeWidth}
-            draggable={isDraggable}
-            onClick={handleSelect}
-            onTap={handleSelect}
-            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
-            onMouseEnter={(e) => {
-              if (isDraggable) {
-                const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = "move";
-              }
-            }}
-            onMouseLeave={(e) => {
-              const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = getDefaultCursor();
-            }}
-          />
-        );
-      }
-      case "rect": {
-        const g = geometry as RectGeometry;
-        return (
-          <Rect
-            key={annotation.id}
-            x={g.x * dimensions.width}
-            y={g.y * dimensions.height}
-            width={g.width * dimensions.width}
-            height={g.height * dimensions.height}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            hitStrokeWidth={hitStrokeWidth}
-            draggable={isDraggable}
-            onClick={handleSelect}
-            onTap={handleSelect}
-            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
-            onMouseEnter={(e) => {
-              if (isDraggable) {
-                const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = "move";
-              }
-            }}
-            onMouseLeave={(e) => {
-              const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = getDefaultCursor();
-            }}
-          />
-        );
-      }
-      case "arrow": {
-        const g = geometry as ArrowGeometry;
-        return (
-          <Arrow
-            key={annotation.id}
-            points={[
-              g.from.x * dimensions.width,
-              g.from.y * dimensions.height,
-              g.to.x * dimensions.width,
-              g.to.y * dimensions.height,
-            ]}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            pointerLength={10}
-            pointerWidth={10}
-            hitStrokeWidth={hitStrokeWidth}
-            draggable={isDraggable}
-            onClick={handleSelect}
-            onTap={handleSelect}
-            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
-            onMouseEnter={(e) => {
-              if (isDraggable) {
-                const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = "move";
-              }
-            }}
-            onMouseLeave={(e) => {
-              const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = getDefaultCursor();
-            }}
-          />
-        );
-      }
-      case "freehand":
-      case "polygon": {
-        const g = geometry as FreehandGeometry | PolygonGeometry;
-        const points = g.points.flatMap((p) => [
-          p.x * dimensions.width,
-          p.y * dimensions.height,
-        ]);
-        return (
-          <Line
-            key={annotation.id}
-            points={points}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            hitStrokeWidth={hitStrokeWidth}
-            closed={geometry.type === "polygon"}
-            draggable={isDraggable}
-            onClick={handleSelect}
-            onTap={handleSelect}
-            onDragEnd={(e) => handleAnnotationDragEnd(annotation, e)}
-            onMouseEnter={(e) => {
-              if (isDraggable) {
-                const container = e.target.getStage()?.container();
-                if (container) container.style.cursor = "move";
-              }
-            }}
-            onMouseLeave={(e) => {
-              const container = e.target.getStage()?.container();
-              if (container) container.style.cursor = getDefaultCursor();
-            }}
-          />
-        );
-      }
-      default:
-        return null;
-    }
-  };
-
-  const renderTempShape = () => {
-    if (!isDrawing || tempPoints.length < 1 || !drawingStart) return null;
-
-    const endPoint = tempPoints[tempPoints.length - 1];
-    const strokeColor = "#3b82f6";
-    const strokeWidth = 2;
-
-    switch (currentTool) {
-      case "circle": {
-        const dx = endPoint.x - drawingStart.x;
-        const dy = endPoint.y - drawingStart.y;
-        const radius = Math.sqrt(dx * dx + dy * dy);
-        return (
-          <Circle
-            x={drawingStart.x * dimensions.width}
-            y={drawingStart.y * dimensions.height}
-            radius={radius * dimensions.width}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            dash={[5, 5]}
-          />
-        );
-      }
-      case "rect": {
-        const x = Math.min(drawingStart.x, endPoint.x);
-        const y = Math.min(drawingStart.y, endPoint.y);
-        const width = Math.abs(endPoint.x - drawingStart.x);
-        const height = Math.abs(endPoint.y - drawingStart.y);
-        return (
-          <Rect
-            x={x * dimensions.width}
-            y={y * dimensions.height}
-            width={width * dimensions.width}
-            height={height * dimensions.height}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            dash={[5, 5]}
-          />
-        );
-      }
-      case "arrow": {
-        return (
-          <Arrow
-            points={[
-              drawingStart.x * dimensions.width,
-              drawingStart.y * dimensions.height,
-              endPoint.x * dimensions.width,
-              endPoint.y * dimensions.height,
-            ]}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            dash={[5, 5]}
-            pointerLength={10}
-            pointerWidth={10}
-          />
-        );
-      }
-      case "freehand":
-      case "polygon": {
-        const points = tempPoints.flatMap((p) => [
-          p.x * dimensions.width,
-          p.y * dimensions.height,
-        ]);
-        return (
-          <Line
-            points={points}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            dash={[5, 5]}
-          />
-        );
-      }
-    }
-    return null;
-  };
-
   const getCursor = () => {
     if (isPanning) return "grabbing";
     return getDefaultCursor();
@@ -754,40 +484,14 @@ export function ImageAnnotator({
 
   return (
     <div ref={containerRef} className="w-full relative">
-      {/* Zoom controls */}
-      <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-1 py-0.5 shadow-sm">
-        <button
-          type="button"
-          onClick={handleZoomOut}
-          disabled={scale <= MIN_SCALE}
-          className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Zoom out"
-        >
-          <ZoomOut size={16} />
-        </button>
-        <span className="text-xs font-medium min-w-[40px] text-center select-none tabular-nums">
-          {Math.round(scale * 100)}%
-        </span>
-        <button
-          type="button"
-          onClick={handleZoomIn}
-          disabled={scale >= MAX_SCALE}
-          className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Zoom in"
-        >
-          <ZoomIn size={16} />
-        </button>
-        <div className="w-px h-4 bg-gray-300 mx-0.5" />
-        <button
-          type="button"
-          onClick={handleZoomReset}
-          disabled={scale === 1}
-          className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="Reset zoom"
-        >
-          <Maximize2 size={16} />
-        </button>
-      </div>
+      <ZoomControls
+        scale={scale}
+        minScale={MIN_SCALE}
+        maxScale={MAX_SCALE}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+      />
 
       <Stage
         ref={stageRef}
@@ -815,33 +519,34 @@ export function ImageAnnotator({
               height={dimensions.height}
             />
           )}
-          {annotations.map(renderAnnotation)}
-          {renderTempShape()}
+          {annotations.map((annotation) =>
+            renderAnnotationShape({
+              annotation,
+              dimensions,
+              selectedAnnotationId,
+              readonly,
+              enableMove,
+              onSelect: onAnnotationSelect,
+              onDragEnd: handleAnnotationDragEnd,
+              getDefaultCursor,
+            }),
+          )}
+          {renderTempShape({
+            isDrawing,
+            drawingStart,
+            tempPoints,
+            currentTool,
+            dimensions,
+          })}
         </Layer>
       </Stage>
-      {selectedAnnotationId && !readonly && (
-        <div className="mt-2 flex items-center gap-2">
-          {enableMove ? (
-            <div className="text-sm text-green-700 font-medium">
-              ✓ Selected - Drag to reposition
-            </div>
-          ) : (
-            <div className="text-sm text-gray-700 font-medium">
-              Selected annotation -{" "}
-              {annotations.find((a) => a.id === selectedAnnotationId)?.geometry
-                .type || "Unknown"}
-            </div>
-          )}
-          {onAnnotationDelete && (
-            <button
-              onClick={() => onAnnotationDelete(selectedAnnotationId)}
-              className="min-w-16 rounded bg-red-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-red-700"
-            >
-              Delete
-            </button>
-          )}
-        </div>
-      )}
+      <SelectedAnnotationBar
+        selectedAnnotationId={selectedAnnotationId}
+        readonly={readonly}
+        enableMove={enableMove}
+        annotations={annotations}
+        onDelete={onAnnotationDelete}
+      />
     </div>
   );
 }

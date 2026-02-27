@@ -61,7 +61,6 @@ export function useCreateTestForm({
 
       // Create test via API
       const result = await createTestAPI(submitFormData);
-      console.log("Test created:", result);
 
       const createdTestId = result?.test?.id
         ? String(result.test.id)
@@ -74,9 +73,7 @@ export function useCreateTestForm({
       });
 
       // Refresh tests from API to show the new test
-      console.log("Refreshing tests...");
       await refreshTests();
-      console.log("Tests refreshed successfully");
 
       // Show success toast
       setShowToast(true);

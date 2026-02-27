@@ -10,7 +10,7 @@ import {
   type DefectSeverity,
 } from "../db-constants";
 import type { AnnotationGeometry } from "../annotation-types";
-import type { DefectRecord } from "./defects";
+import type { DefectRecord } from "../api/defects";
 
 export type DefectFormState = {
   category_id: number;

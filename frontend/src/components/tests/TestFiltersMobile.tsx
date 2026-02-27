@@ -20,7 +20,7 @@ import {
   SORT_OPTIONS,
   DATE_RANGE_OPTIONS,
 } from "@/lib/constants";
-import type { SortOption } from "@/lib/utils/tests";
+import type { DateRangeFilter, SortOption } from "@/lib/utils/tests";
 
 interface TestFiltersMobileProps {
   isOpen: boolean;
@@ -28,13 +28,13 @@ interface TestFiltersMobileProps {
   statusFilter: string;
   testTypeFilter: string;
   assignedToFilter: string;
-  dateRangeFilter: string;
+  dateRangeFilter: DateRangeFilter;
   sortBy: SortOption;
   hasAdvancedFilters: boolean;
   onStatusChange: (value: string) => void;
   onTestTypeChange: (value: string) => void;
   onAssignedToChange: (value: string) => void;
-  onDateRangeChange: (value: string) => void;
+  onDateRangeChange: (value: DateRangeFilter) => void;
   onSortChange: (value: SortOption) => void;
   onPageReset: () => void;
 }
@@ -55,11 +55,11 @@ export function TestFiltersMobile({
   onSortChange,
   onPageReset,
 }: TestFiltersMobileProps) {
-  const handleFilterChange = (
-    filterSetter: (value: string) => void,
-    value: string
+  const handleFilterChange = <T extends string>(
+    filterSetter: (value: T) => void,
+    value: string,
   ): void => {
-    const actualValue = value === "all" ? "" : value;
+    const actualValue = (value === "all" ? "" : value) as T;
     filterSetter(actualValue);
     onPageReset();
   };

@@ -11,7 +11,6 @@ export function useCategories() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    setLoading(true);
     fetch("/api/v1/defects/categories")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch categories");

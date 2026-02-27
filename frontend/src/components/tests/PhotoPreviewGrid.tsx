@@ -1,3 +1,5 @@
+import { PhotoPreviewCard } from "./PhotoPreviewCard";
+
 interface PhotoPreview {
   file: File;
   url: string;
@@ -24,29 +26,18 @@ export function PhotoPreviewGrid({
       aria-live="polite"
     >
       {photoPreviews.map((preview, index) => (
-        <div
+        <PhotoPreviewCard
           key={`${preview.file.name}-${preview.file.lastModified}-${index}`}
-          className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
-        >
-          <div className="aspect-square bg-slate-100">
-            <img
-              src={preview.url}
-              alt={preview.file.name}
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div className="border-t border-slate-100 p-2">
-            <button
-              type="button"
-              className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200"
-              onClick={() => onRemove(index)}
-              aria-label={`Remove ${preview.file.name}`}
-              disabled={disabled}
-            >
-              Remove
-            </button>
-          </div>
-        </div>
+          imageUrl={preview.url}
+          alt={preview.file.name}
+          onRemove={() => onRemove(index)}
+          removeAriaLabel={`Remove ${preview.file.name}`}
+          removeDisabled={disabled}
+          cardClassName="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+          imageWrapClassName="aspect-square bg-slate-100"
+          footerClassName="border-t border-slate-100 p-2"
+          removeButtonClassName="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200"
+        />
       ))}
     </div>
   );

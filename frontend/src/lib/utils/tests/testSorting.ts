@@ -14,8 +14,8 @@ export type SortOption =
 export interface SortableTest {
   id: string | number;
   status: string;
-  createdAt: string | null;
-  deadlineAt: string | null;
+  createdAt?: string | null;
+  deadlineAt?: string | null;
 }
 
 /**
