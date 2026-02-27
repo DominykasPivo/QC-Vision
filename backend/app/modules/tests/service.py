@@ -6,6 +6,8 @@ from sqlalchemy import String as SAString
 from sqlalchemy import cast, or_
 from sqlalchemy.orm import Session
 
+from app.modules.photos.storage import photo_storage  # noqa: F401
+
 from .cleanup_utils import cleanup_test_photos
 from .models import Tests
 from .schemas import TestCreate

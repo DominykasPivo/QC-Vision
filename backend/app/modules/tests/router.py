@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from fastapi import (
     APIRouter,
@@ -26,9 +26,11 @@ from .service import tests_service
 
 logger = logging.getLogger("backend_tests_router")
 
-router = APIRouter(prefix="", tags=["tests"])
+# ✅ Correct prefix so tests hit /api/v1/tests/...
+router = APIRouter(prefix="/tests", tags=["tests"])
 
 
+@router.post("", status_code=status.HTTP_201_CREATED)
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_test(
     jiraId: str = Form(...),
@@ -82,13 +84,15 @@ async def create_test(
         )
 
         test = await tests_service.create_test(db, test_data)
-        logger.info(f"Created test with ID: {test.id}")
+        logger.info(f"Created test with ID: {cast(int, test.id)}")
+
+        test_id_int = cast(int, test.id)
 
         log_action(
             db,
             action="CREATE",
             entity_type="Test",
-            entity_id=test.id,
+            entity_id=test_id_int,
             username=username,
             meta={
                 "jiraId": jiraId,
@@ -129,33 +133,33 @@ async def create_test(
                                 "reason": "invalid_content_type",
                                 "filename": photo_file.filename,
                                 "content_type": photo_file.content_type,
-                                "test_id": test.id,
+                                "test_id": test_id_int,
                             },
                         )
                         continue
 
+                    filename_str = cast(str, photo_file.filename)
+
                     photo = await photo_service.upload_photo(
                         db=db,
                         file=photo_file.file,
-                        filename=photo_file.filename,
-                        test_id=test.id,
+                        filename=filename_str,
+                        test_id=test_id_int,
                     )
 
                     uploaded_photos.append(PhotoResponse.model_validate(photo))
-                    logger.info(
-                        f"Uploaded photo {photo_file.filename} for test {test.id}"
-                    )
+                    logger.info(f"Uploaded photo {filename_str} for test {test_id_int}")
 
                     log_action(
                         db,
                         action="UPLOAD",
                         entity_type="Photo",
-                        entity_id=photo.id,
+                        entity_id=cast(int, photo.id),
                         username=username,
                         meta={
-                            "filename": photo_file.filename,
+                            "filename": filename_str,
                             "content_type": photo_file.content_type,
-                            "test_id": test.id,
+                            "test_id": test_id_int,
                             "file_path": getattr(photo, "file_path", None),
                             "source": "tests.create_test",
                         },
@@ -177,7 +181,7 @@ async def create_test(
                         meta={
                             "reason": "server_error",
                             "filename": photo_file.filename,
-                            "test_id": test.id,
+                            "test_id": test_id_int,
                             "error": str(photo_error),
                             "source": "tests.create_test",
                         },
@@ -230,7 +234,6 @@ async def review_test(
             comment=payload.comment,
         )
 
-        # Best-effort audit logging (separate commit inside log_action)
         log_action(
             db,
             action="REVIEW",
@@ -248,7 +251,6 @@ async def review_test(
     except ValueError as e:
         msg = str(e)
 
-        # Map domain errors to HTTP status codes
         if msg.lower() == "test not found":
             raise HTTPException(status_code=404, detail=msg)
 
@@ -264,7 +266,6 @@ async def review_test(
         if msg.lower() == "test already reviewed":
             raise HTTPException(status_code=400, detail=msg)
 
-        # Default fallback for other domain errors
         raise HTTPException(status_code=400, detail=msg)
 
     except Exception as e:
@@ -274,13 +275,14 @@ async def review_test(
 
 @router.get("/{test_id}", response_model=TestResponse)
 async def get_test(test_id: int, db: Session = Depends(get_db)):
-    """Retrieve a specific quality test by ID."""
     test = await tests_service.get_test(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
     return test
 
 
+# ✅ Register BOTH "" and "/" so GET /api/v1/tests and /api/v1/tests/ work
+@router.get("", response_model=TestListResponse)
 @router.get("/", response_model=TestListResponse)
 async def list_tests(
     limit: int = Query(default=20, ge=1, le=100),

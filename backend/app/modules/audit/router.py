@@ -9,7 +9,8 @@ from app.database import get_db
 from .schemas import AuditLogListOut, AuditLogOut
 from .service import get_log_by_id, list_logs, list_test_activity_history
 
-router = APIRouter()
+# ✅ Correct prefix so tests hit /api/v1/audit/...
+router = APIRouter(prefix="/audit", tags=["audit"])
 
 
 @router.get("/logs", response_model=AuditLogListOut)
@@ -28,7 +29,7 @@ def get_audit_logs(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    if clear_filters:  # ✅ ADDED: minimal logic to drop all filters when requested
+    if clear_filters:
         action = None
         entity_type = None
         entity_id = None

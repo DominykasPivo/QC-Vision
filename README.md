@@ -49,14 +49,6 @@ docker compose up --build -d
 
 ### 3. Access the Application
 
-**Hosted (no setup required):**
-
-| Service | URL |
-|---------|-----|
-| **QC Vision App** | https://qcvision.dpdns.org/tests |
-
-**Local development:**
-
 | Service | URL | Description |
 |---------|-----|-------------|
 | **Frontend** | http://localhost:3000 | Main web application |
@@ -119,36 +111,23 @@ QC-Vision/
 │   └── src/
 │       ├── App.tsx         # React application
 │       ├── routes.tsx      # Route configuration
-│       ├── hooks/          # Custom React hooks
+│       ├── api/            # API client
 │       ├── components/     # React components
-│       │   ├── annotations/    # Defect annotation canvas
-│       │   ├── common/         # Shared UI components
-│       │   ├── gallery/        # Gallery-specific components
-│       │   ├── layout/         # AppShell, navigation
-│       │   ├── photo-defects/  # Photo defect components
-│       │   ├── tests/          # Test list/card components
-│       │   └── ui/             # Base Radix UI primitives
-│       ├── lib/            # Utilities and helpers
-│       │   ├── api/            # API client functions
-│       │   ├── constants/      # App-wide constants
-│       │   ├── forms/          # Form helpers
-│       │   ├── utils/          # General utilities
-│       │   └── validation/     # Form validation
-│       └── pages/          # Route-level page components
+│       │   ├── annotations/
+│       │   ├── layout/
+│       │   └── ui/
+│       ├── lib/            # Utilities and types
+│       ├── mock/           # Mock data
+│       └── pages/          # Page components
 ├── database/
 │   ├── init.sql            # Database schema
 │   ├── demo.sql            # Demo data
 │   └── tests.sql           # Test data
-├── scripts/
-│   ├── seed_tests.py       # API seed: create test records
-│   ├── seed_photos.py      # API seed: upload placeholder photos
-│   └── seed_defects.py     # API seed: create defects + annotations
 └── docs/
     ├── API-spec.md
     ├── detailed_architecture.md
-    ├── DESIGN_PATTERNS.md
-    ├── diagrams/
-    └── sprints-info/
+    ├── sprint-1-plan.md
+    └── diagrams/
 ```
 
 ## Architecture
@@ -174,7 +153,7 @@ QC-Vision/
 | Container | Port | Purpose |
 |-----------|------|---------|
 | `qc_vision_frontend` | 3000 | Vite dev server (React SPA) |
-| `qc_vision_backend` | 8000 | FastAPI REST API |
+| `qc_vision_backend` | 8000 | FastAPI REST + WebSocket |
 | `qc_vision_postgres` | 5432 | PostgreSQL database |
 | `qc_vision_minio` | 9000, 9001 | Object storage (photos) |
 | `qc_vision_nocodb` | 8080 | Database admin UI |
@@ -288,26 +267,6 @@ docker compose exec postgres psql -U qc_user -d qc_vision
 \q
 ```
 
-### Database Seeding
-
-Seed scripts call the running backend API. Run them in order — tests → photos → defects.
-
-**Requirements:** `pip install requests Pillow`
-
-**Windows (PowerShell):**
-```powershell
-python scripts\seed_tests.py
-python scripts\seed_photos.py
-python scripts\seed_defects.py
-```
-
-**Linux / macOS:**
-```bash
-python scripts/seed_tests.py
-python scripts/seed_photos.py
-python scripts/seed_defects.py
-```
-
 ## Environment Variables
 
 See [example_env.env](example_env.env) for all available configuration options.
@@ -384,6 +343,7 @@ pytest -v               # Verbose output
 pytest -q               # Quiet output
 pytest test_suite/unit_tests/  # Unit tests only
 pytest test_suite/integration_tests/  # Integration tests only
+pytest test_suite/E2E_tests/
 ```
 
 ### Local Code Quality Checks (Backend)
@@ -400,7 +360,7 @@ isort backend            # Auto-fix imports
 
 flake8 backend           # Lint code
 
-mypy app --ignore-missing-imports  # Type checking
+mypy backend/app --ignore-missing-imports  # Type checking
 ```
 
 **All backend checks in one command:**
@@ -422,6 +382,7 @@ npm run lint:spacing      # Custom spacing rules
 npx tsc --noEmit         # TypeScript type checking
 npm run build            # Build for production
 npm audit                # Security vulnerabilities
+npm audit fix            #fix vulnerabilities
 #npm audit reports vulnerabilities, could be fixed by --focrce but could lead to more problems so ignored for now
 ```
 
@@ -455,15 +416,20 @@ Backend tests include:
 - **Coverage** - Automated coverage reporting in CI
 
 ### Run automated tests before commit:
+pre-commit install
 pre-commit run --all-files
 
 ### Set reviewer role:
 
 docker exec -it qc_vision_postgres psql -U qc_user -d qc_vision
 
+## If user exists
 UPDATE users
 SET role = 'reviewer'
 WHERE username = 'abcde';
+
+## If user doesnt exist
+INSERT INTO users (username, role) VALUES ('abcde', 'reviewer');
 
 ## Team
 

@@ -5,30 +5,38 @@ Handles the complex logic of updating, adding, and modifying
 annotations when a defect is updated.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from sqlalchemy.orm import Session
 
 from .models import Defect, DefectAnnotation
 
 
-def extract_annotation_fields(update_data: Dict[str, Any]) -> tuple:
+def extract_annotation_fields(
+    update_data: Dict[str, Any],
+) -> Tuple[Optional[int], Optional[str], Optional[List[Dict[str, Any]]]]:
     """
     Extract annotation-related fields from update payload.
+
     Returns:
-        tuple: (category_id, color, new_annotations)
+        (category_id, color, new_annotations)
     """
-    category_id = update_data.pop("category_id", None)
-    color = update_data.pop("color", None)
-    new_annotations = update_data.pop("annotations", None)
+    category_id = cast(Optional[int], update_data.pop("category_id", None))
+    color = cast(Optional[str], update_data.pop("color", None))
+    new_annotations = cast(
+        Optional[List[Dict[str, Any]]], update_data.pop("annotations", None)
+    )
     return category_id, color, new_annotations
 
 
-def update_existing_annotation_colors(defect: Defect, color: str) -> None:
+def update_existing_annotation_colors(defect: Defect, color: Optional[str]) -> None:
     """Update color on all existing annotations of a defect."""
-    if color is not None:
-        for ann in defect.annotations:
-            ann.color = color
+    if color is None:
+        return
+
+    # mypy may think ORM attributes are Column[...] instead of runtime values
+    for ann in defect.annotations:
+        cast(Any, ann).color = color
 
 
 def add_new_annotations(
@@ -40,20 +48,22 @@ def add_new_annotations(
     """
     Add new annotations to an existing defect.
     """
-    if new_annotations is not None:
-        for ann_data in new_annotations:
-            db.add(
-                DefectAnnotation(
-                    defect_id=defect_id,
-                    category_id=ann_data["category_id"],
-                    geometry=ann_data["geometry"],
-                    color=ann_data.get("color") or default_color,
-                )
+    for ann_data in new_annotations:
+        db.add(
+            DefectAnnotation(
+                defect_id=defect_id,
+                category_id=cast(int, ann_data["category_id"]),
+                geometry=ann_data["geometry"],
+                color=cast(Optional[str], ann_data.get("color")) or default_color,
             )
+        )
 
 
 def update_category_on_first_annotation(
-    db: Session, defect_id: int, category_id: int, color: Optional[str] = None
+    db: Session,
+    defect_id: int,
+    category_id: int,
+    color: Optional[str] = None,
 ) -> None:
     """
     Update category on the first annotation of a defect.
@@ -66,9 +76,10 @@ def update_category_on_first_annotation(
     )
 
     if annotation is not None:
-        annotation.category_id = category_id
+        # mypy may think ORM attributes are Column[...] instead of runtime values
+        cast(Any, annotation).category_id = category_id
         if color is not None:
-            annotation.color = color
+            cast(Any, annotation).color = color
     else:
         # Create new annotation if none exists
         db.add(

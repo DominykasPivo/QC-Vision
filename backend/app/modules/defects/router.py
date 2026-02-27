@@ -22,7 +22,8 @@ from .service import defects_service
 
 logger = logging.getLogger("backend_defects_router")
 
-router = APIRouter(prefix="", tags=["defects"])
+# ✅ Correct prefix so tests hit /api/v1/defects/...
+router = APIRouter(prefix="/defects", tags=["defects"])
 
 
 @router.get("/categories", response_model=List[CategoryResponse])
@@ -55,9 +56,7 @@ async def list_defects(photo_id: int, db: Session = Depends(get_db)):
     return await defects_service.list_defects_for_photo(db, photo_id)
 
 
-@router.post(
-    "/{defect_id}/review", response_model=DefectResponse
-)  # use your actual response model name
+@router.post("/{defect_id}/review", response_model=DefectResponse)
 async def review_defect(
     defect_id: int,
     payload: DefectReviewRequest,

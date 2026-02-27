@@ -1,7 +1,8 @@
+# backend/app/modules/photos/service.py
 import logging
 import os
 from datetime import datetime, timezone
-from typing import BinaryIO, List, Optional, Tuple
+from typing import Any, BinaryIO, List, Optional, Tuple, cast
 from uuid import uuid4
 
 from PIL import Image
@@ -31,50 +32,30 @@ class PhotoService:
     ALLOWED_FORMATS = ALLOWED_FORMATS
     THUMBNAIL_SIZE = (300, 300)
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.storage = PhotoStorage()
 
-    async def validate_photo(self, file, filename) -> Image.Image:
-        """
-        Validate photo file (size, format, integrity).
-
-        Delegates to validation module for cleaner separation of concerns.
-        """
+    async def validate_photo(self, file: BinaryIO, filename: str) -> Image.Image:
+        """Validate photo file (size, format, integrity)."""
         return validate_photo_file(file, filename)
 
     async def process_image(
         self, image: Image.Image, max_dimension: int = 2000
     ) -> Image.Image:
-        """
-        Process image: resize if too large, convert to RGB.
-
-        Delegates to processing module.
-        """
+        """Process image: resize if too large, convert to RGB."""
         return process_image(image, max_dimension)
 
     def image_to_bytes(
         self, image: Image.Image, format: str = "JPEG", quality: int = 85
     ) -> bytes:
-        """
-        Convert PIL Image to bytes.
-
-        Delegates to processing module.
-        """
+        """Convert PIL Image to bytes."""
         return image_to_bytes(image, format, quality)
 
     async def upload_photo(
         self, db: Session, file: BinaryIO, filename: str, test_id: int
     ) -> Photo:
-        """
-        Upload and process a photo for a quality test.
-
-        Validates the photo, processes it (resize, format conversion),
-        uploads to MinIO storage, and saves metadata to database.
-        """
-        # FIX: validate_photo now correctly typed to return Image.Image
+        """Upload and process a photo for a quality test."""
         img: Image.Image = await self.validate_photo(file, filename)
-
-        # FIX: process_image receives Image.Image (not tuple) — types now match
         processed: Image.Image = await self.process_image(img)
 
         photo_id = str(uuid4())
@@ -82,7 +63,6 @@ class PhotoService:
         photo_path = f"photos/{timestamp}/{photo_id}.jpg"
 
         photo_bytes = self.image_to_bytes(processed, quality=85)
-
         await self.storage.upload_photo(photo_bytes, photo_path, "image/jpeg")
 
         photo = Photo(
@@ -94,7 +74,36 @@ class PhotoService:
         db.add(photo)
         db.commit()
         db.refresh(photo)
+        return photo
 
+    async def get_photo(self, db: Session, photo_id: int) -> Optional[Photo]:
+        """Retrieve a photo by ID."""
+        return db.query(Photo).filter(Photo.id == photo_id).first()
+
+    async def delete_photo(self, db: Session, photo_id: int) -> None:
+        """Delete a photo by ID. Raises ValueError if not found."""
+        photo = db.query(Photo).filter(Photo.id == photo_id).first()
+        if not photo:
+            raise ValueError("Photo not found")
+        db.delete(photo)
+        db.commit()
+
+    async def update_photo(self, db: Session, photo_id: int, payload: dict) -> Photo:
+        """
+        Update photo fields by payload keys.
+        Keeps patch semantics: set provided fields only, then commit+refresh.
+        """
+        photo = db.query(Photo).filter(Photo.id == photo_id).first()
+        if not photo:
+            raise ValueError("Photo not found")
+
+        for k, v in payload.items():
+            # mypy + SQLAlchemy stubs can see ORM attrs as Column[...] on assignment.
+            # Casting the instance to Any keeps runtime identical.
+            setattr(cast(Any, photo), k, v)
+
+        db.commit()
+        db.refresh(photo)
         return photo
 
     def get_gallery_photos(
@@ -111,7 +120,6 @@ class PhotoService:
     ) -> Tuple[List[dict], int]:
         """Get photos with aggregated defect data for the gallery view."""
         database_url = os.getenv("DATABASE_URL", "postgresql://")
-        # Detect database type for SQL dialect compatibility
         is_sqlite = database_url.startswith("sqlite")
 
         severity_order = case(
@@ -130,7 +138,6 @@ class PhotoService:
             else_=None,
         )
 
-        # Use SQLite-compatible group_concat or PostgreSQL array_agg
         if is_sqlite:
             category_agg = func.group_concat(
                 distinct(DefectAnnotation.category_id)
@@ -185,8 +192,6 @@ class PhotoService:
             query = query.having(func.count(distinct(Defect.id)) == 0)
         if category_id is not None:
             if is_sqlite:
-                # For SQLite: check if category_id appears in comma-separated string
-                # We use LIKE pattern matching instead of bool_or
                 query = query.having(
                     func.group_concat(distinct(DefectAnnotation.category_id)).like(
                         f"%{category_id}%"
@@ -208,14 +213,14 @@ class PhotoService:
             .all()
         )
 
-        items = []
+        items: List[dict] = []
         for row in results:
-            # Handle both PostgreSQL array and SQLite comma-separated string
             if is_sqlite and isinstance(row.category_ids, str):
                 cat_ids = [int(c) for c in row.category_ids.split(",") if c]
             else:
                 cat_ids = row.category_ids or []
             cat_ids = [c for c in cat_ids if c is not None]
+
             items.append(
                 {
                     "id": row.id,
@@ -247,10 +252,14 @@ class PhotoService:
         if not photo:
             return None
 
-        photo.verification_status = verification_status
+        # mypy sees ORM attrs as Column[str] in non-Mapped models, so cast instance.
+        cast(Any, photo).verification_status = verification_status
+
         db.commit()
         db.refresh(photo)
         return photo
 
 
-photo_service = PhotoService()
+__all__ = ["PhotoService", "photo_service"]
+
+photo_service: PhotoService = PhotoService()

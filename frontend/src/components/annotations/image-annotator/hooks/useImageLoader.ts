@@ -22,24 +22,41 @@ export function useImageLoader({
 }: UseImageLoaderParams): UseImageLoaderReturn {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const onLoadRef = useRef(onLoad);
-  onLoadRef.current = onLoad;
+
+  const onLoadRef = useRef<UseImageLoaderParams["onLoad"]>(onLoad);
+
+  // Keep the latest onLoad in a ref, but update it in an effect (not during render)
+  useEffect(() => {
+    onLoadRef.current = onLoad;
+  }, [onLoad]);
 
   useEffect(() => {
     const img = new window.Image();
     img.crossOrigin = "anonymous";
+
     img.onload = () => {
       setImage(img);
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
+
+      const el = containerRef.current;
+      if (el) {
+        const containerWidth = el.clientWidth;
         const aspectRatio = img.height / img.width;
+
         const width = Math.min(containerWidth, 1200);
         const height = width * aspectRatio;
+
         setDimensions({ width, height });
       }
+
       onLoadRef.current?.();
     };
+
     img.src = imageUrl;
+
+    // Cleanup in case imageUrl changes quickly
+    return () => {
+      img.onload = null;
+    };
   }, [imageUrl, containerRef]);
 
   return { image, dimensions };

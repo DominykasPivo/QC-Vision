@@ -6,8 +6,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from app.database import SessionLocal
-from app.modules.audit.schemas import AuditLogCreate  # adjust path if different
-from app.modules.audit.service import log_action
+from app.modules.audit.schemas import AuditLogCreate
+from app.modules.audit.service import log_audit_event  # ✅ use this, not log_action
 
 EXCLUDED_PATH_PREFIXES = ("/docs", "/redoc", "/openapi.json", "/health")
 
@@ -96,7 +96,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
             success = status_code < 400
 
-            # Read body only if we need to audit and response is JSON-ish
             if should_audit:
                 raw_body = b""
                 async for chunk in response.body_iterator:  # type: ignore[attr-defined]
@@ -111,7 +110,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     media_type=response.media_type,
                 )
 
-                entity_id, test_id = (None, None)
+                entity_id: int = 0
                 after_data = None
 
                 if (
@@ -119,8 +118,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     and "application/json" in response.media_type
                     and success
                 ):
-                    entity_id, test_id = try_extract_ids(body_bytes)
-                    # Optional: keep raw JSON for after_data if your schema expects it
+                    extracted_entity_id, _test_id = try_extract_ids(body_bytes)
+                    entity_id = extracted_entity_id or 0
                     try:
                         after_data = json.loads(body_bytes.decode("utf-8"))
                     except Exception:
@@ -128,13 +127,14 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
                 db = SessionLocal()
 
-                log_action(
+                # ✅ Correct: middleware logs via log_audit_event(AuditLogCreate)
+                log_audit_event(
                     db,
                     AuditLogCreate(
                         actor_user_id=extract_actor_user_id(request),
                         action=infer_action(method, path),
                         entity_type=infer_entity_type(path),
-                        entity_id=entity_id or 0,  # ensure int
+                        entity_id=entity_id,
                         success=success,
                         status_code=status_code,
                         method=method,
@@ -153,7 +153,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             if should_audit:
                 try:
                     db = SessionLocal()
-                    log_action(
+                    log_audit_event(
                         db,
                         AuditLogCreate(
                             actor_user_id=extract_actor_user_id(request),
