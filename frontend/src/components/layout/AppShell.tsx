@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  photos as initialPhotos,
-  tests as initialTests,
-} from "../../mock/data";
-import type { AuditEvent, Photo, Test } from "../../mock/data";
+import type { AuditEvent, Photo, Test } from "@/lib/types";
 import { isReviewer, logoutUser } from "@/lib/auth";
-import { fetchAuditLogs } from "@/api/audit";
+import { fetchAuditLogs } from "@/lib/api/audit";
 import {
   toFrontendTest,
   type ApiTest,
@@ -42,9 +38,9 @@ export function AppShell() {
 
   const canReview = isReviewer();
 
-  const [tests, setTests] = useState<Test[]>(initialTests);
+  const [tests, setTests] = useState<Test[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
-  const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [testsLoaded, setTestsLoaded] = useState(false);
   const [storageHydrated, setStorageHydrated] = useState(false);
   const [deletedTestIds, setDeletedTestIds] = useState<string[]>([]);

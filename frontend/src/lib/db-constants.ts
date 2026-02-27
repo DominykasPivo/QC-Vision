@@ -36,7 +36,7 @@ export const DEFECT_COLORS = [
 
 export type DefectCategoryRecord = (typeof DEFECT_CATEGORIES)[number];
 export type DefectCategory = DefectCategoryRecord["id"];
-export type { Test } from "@/mock/data";
+export type { Test } from "@/lib/types";
 
 export function formatEnumLabel(value: string): string {
   const normalized = value.replace(/_/g, " ");
