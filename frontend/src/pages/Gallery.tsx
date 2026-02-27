@@ -1,80 +1,157 @@
-import { useEffect, useState } from 'react';
-import { Link, useOutletContext } from 'react-router-dom';
-import type { AppDataContext } from '../components/layout/AppShell';
+import { useState } from "react";
+import { Pagination } from "@/components/ui/pagination";
+import {
+  GalleryCard,
+  GalleryFilters,
+  GalleryFiltersMobile,
+  ActiveFilterChips,
+} from "@/components/gallery";
+import {
+  useGalleryData,
+  useGalleryFilters,
+  useCategories,
+  usePagination,
+} from "@/hooks";
+import { PAGE_SIZE } from "@/lib/constants";
+import { spacing } from "@/lib/ui/spacing";
+import { cn } from "@/lib/utils";
 
 export function Gallery() {
-    const { tests } = useOutletContext<AppDataContext>();
-    const [photos, setPhotos] = useState<Array<{ id: number; test_id: number; file_path: string; url?: string }>>([]);
-    const [loading, setLoading] = useState(true);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchAllPhotos = async () => {
-            try {
-                setLoading(true);
-                const allPhotos: Array<{ id: number; test_id: number; file_path: string; url?: string }> = [];
-                
-                // Fetch photos for each test
-                for (const test of tests) {
-                    const response = await fetch(`/api/v1/photos/test/${test.id}`);
-                    if (response.ok) {
-                        const testPhotos = await response.json();
-                        
-                        // Fetch presigned URLs for each photo
-                        const photosWithUrls = await Promise.all(
-                            testPhotos.map(async (photo: any) => {
-                                // Use direct image endpoint with timestamp to prevent caching
-                                return { ...photo, url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}` };
-                            })
-                        );
-                        
-                        allPhotos.push(...photosWithUrls);
-                    }
-                }
-                
-                setPhotos(allPhotos);
-            } catch (error) {
-                console.error('Failed to fetch photos:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+  // Fetch categories
+  const { categories } = useCategories();
 
-        fetchAllPhotos();
-    }, [tests]);
+  // Filter management
+  const {
+    filters,
+    apiFilters,
+    hasActiveFilters,
+    hasAdvancedFilters,
+    clearAllFilters,
+    setSeverityFilter,
+    setCategoryFilter,
+    setTestTypeFilter,
+    setTestStatusFilter,
+    setHasDefectsFilter,
+    setVerificationFilter,
+  } = useGalleryFilters();
 
-    return (
-        <div className="page">
-            <div className="flex flex-col gap-1">
-                <h2 className="page-title">Gallery</h2>
-                <p className="page-description">Browse all test photos</p>
-            </div>
+  // Pagination
+  const { currentPage, setCurrentPage } = usePagination([], PAGE_SIZE);
 
-            {loading ? (
-                <p className="page-description">Loading photos...</p>
-            ) : (
-                <div className="gallery-grid">
-                    {photos.length === 0 ? (
-                        <p className="page-description">No photos yet. Upload photos when creating a test.</p>
-                    ) : (
-                        photos.map((photo) => (
-                            <Link
-                                key={photo.id}
-                                className="gallery-item"
-                                style={{ backgroundColor: '#1f2937' }}
-                                to={`/photos/${photo.id}`}
-                            >
-                                {photo.url ? (
-                                    <img src={photo.url} alt={`Photo ${photo.id}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    <span style={{ color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                                        Loading...
-                                    </span>
-                                )}
-                            </Link>
-                        ))
-                    )}
-                </div>
-            )}
+  // Fetch gallery data
+  const { photos, loading, totalPages } = useGalleryData(
+    apiFilters,
+    currentPage,
+    PAGE_SIZE,
+  );
+
+  const handlePageReset = () => setCurrentPage(1);
+
+  const handleClearFilters = () => {
+    clearAllFilters();
+    handlePageReset();
+  };
+
+  return (
+    <div
+      className={cn(
+        spacing.pageContainer,
+        spacing.pageStack,
+        "max-w-none pb-24 md:pb-8",
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-slate-900 md:text-4xl">
+            Gallery
+          </h2>
+          <p className="text-base font-medium text-slate-500 md:text-lg">
+            Browse all test photos
+          </p>
         </div>
-    );
+      </div>
+
+      {/* Mobile Filters */}
+      <GalleryFiltersMobile
+        isOpen={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen((prev) => !prev)}
+        severityFilter={filters.severity}
+        categoryFilter={filters.category}
+        testTypeFilter={filters.testType}
+        testStatusFilter={filters.testStatus}
+        hasDefectsFilter={filters.hasDefects}
+        verificationFilter={filters.verification}
+        hasAdvancedFilters={hasAdvancedFilters}
+        categories={categories}
+        onSeverityChange={setSeverityFilter}
+        onCategoryChange={setCategoryFilter}
+        onTestTypeChange={setTestTypeFilter}
+        onTestStatusChange={setTestStatusFilter}
+        onHasDefectsChange={setHasDefectsFilter}
+        onVerificationChange={setVerificationFilter}
+        onPageReset={handlePageReset}
+      />
+
+      {/* Desktop Filters */}
+      <GalleryFilters
+        severityFilter={filters.severity}
+        categoryFilter={filters.category}
+        testTypeFilter={filters.testType}
+        testStatusFilter={filters.testStatus}
+        hasDefectsFilter={filters.hasDefects}
+        verificationFilter={filters.verification}
+        categories={categories}
+        onSeverityChange={setSeverityFilter}
+        onCategoryChange={setCategoryFilter}
+        onTestTypeChange={setTestTypeFilter}
+        onTestStatusChange={setTestStatusFilter}
+        onHasDefectsChange={setHasDefectsFilter}
+        onVerificationChange={setVerificationFilter}
+        onPageReset={handlePageReset}
+      />
+
+      {/* Active Filter Chips */}
+      {hasActiveFilters && (
+        <ActiveFilterChips
+          severityFilter={filters.severity}
+          categoryFilter={filters.category}
+          testTypeFilter={filters.testType}
+          testStatusFilter={filters.testStatus}
+          hasDefectsFilter={filters.hasDefects}
+          verificationFilter={filters.verification}
+          categories={categories}
+          onClearAll={handleClearFilters}
+        />
+      )}
+
+      {/* Gallery Content */}
+      {loading ? (
+        <p className="mt-6 text-base font-medium text-slate-500">
+          Loading photos...
+        </p>
+      ) : photos.length === 0 ? (
+        <p className="mt-6 text-base font-medium text-slate-500">
+          {hasActiveFilters
+            ? "No photos match the selected filters."
+            : "No photos yet. Upload photos when creating a test."}
+        </p>
+      ) : (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {photos.map((photo) => (
+              <GalleryCard key={photo.id} photo={photo} />
+            ))}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
+    </div>
+  );
 }

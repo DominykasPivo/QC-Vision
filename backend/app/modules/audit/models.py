@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Integer, Text, DateTime, JSON
+from sqlalchemy import JSON, Column, DateTime, Integer, Text, text
 from sqlalchemy.sql import func
-from sqlalchemy import text
 
 from app.database import Base
 
@@ -16,6 +15,8 @@ class AuditLog(Base):
 
     meta = Column(JSON, nullable=False, server_default=text("'{}'"))
 
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
 
     username = Column(Text, nullable=False)

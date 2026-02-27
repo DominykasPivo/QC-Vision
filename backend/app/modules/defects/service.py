@@ -1,24 +1,27 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select
+from datetime import datetime
 from typing import List, Optional
 
+from sqlalchemy.orm import Session, joinedload
+
+from .annotation_handlers import extract_annotation_fields, handle_annotation_updates
 from .models import Defect, DefectAnnotation, DefectCategory
-from .schemas import DefectCreate, DefectUpdate, AnnotationCreate
+from .schemas import AnnotationCreate, DefectCreate, DefectUpdate
 
 
 class DefectsService:
     """
     Service layer for defect management operations.
-    
     Handles creation, retrieval, updating, and deletion of defects
     and their associated annotations.
     """
-    
+
     async def list_categories(self, db: Session) -> List[DefectCategory]:
         """Get all defect categories ordered by name."""
         return db.query(DefectCategory).order_by(DefectCategory.name.asc()).all()
 
-    async def create_defect_for_photo(self, db: Session, photo_id: int, payload: DefectCreate) -> Defect:
+    async def create_defect_for_photo(
+        self, db: Session, photo_id: int, payload: DefectCreate
+    ) -> Defect:
         """Create a defect with annotations for a photo."""
         defect = Defect(
             photo_id=photo_id,
@@ -30,11 +33,14 @@ class DefectsService:
 
         # create annotations from payload
         for ann in payload.annotations:
-            db.add(DefectAnnotation(
-                defect_id=defect.id,
-                category_id=ann.category_id,
-                geometry=ann.geometry
-            ))
+            db.add(
+                DefectAnnotation(
+                    defect_id=defect.id,
+                    category_id=ann.category_id,
+                    geometry=ann.geometry,
+                    color=ann.color,
+                )
+            )
 
         db.commit()
         db.refresh(defect)
@@ -42,56 +48,57 @@ class DefectsService:
 
     async def list_defects_for_photo(self, db: Session, photo_id: int) -> List[Defect]:
         """Get all defects for a photo with annotations, ordered by creation date (newest first)."""
-        return db.query(Defect).options(joinedload(Defect.annotations)).filter(Defect.photo_id == photo_id).order_by(Defect.created_at.desc()).all()
+        return (
+            db.query(Defect)
+            .options(joinedload(Defect.annotations))
+            .filter(Defect.photo_id == photo_id)
+            .order_by(Defect.created_at.desc())
+            .all()
+        )
 
     async def get_defect(self, db: Session, defect_id: int) -> Optional[Defect]:
         """Get a single defect by ID."""
         return db.query(Defect).filter(Defect.id == defect_id).first()
 
-    async def add_annotation(self, db: Session, defect_id: int, ann: AnnotationCreate) -> DefectAnnotation:
+    async def add_annotation(
+        self, db: Session, defect_id: int, ann: AnnotationCreate
+    ) -> DefectAnnotation:
         """Add an annotation to an existing defect."""
         row = DefectAnnotation(
             defect_id=defect_id,
             category_id=ann.category_id,
-            geometry=ann.geometry
+            geometry=ann.geometry,
+            color=ann.color,
         )
         db.add(row)
         db.commit()
         db.refresh(row)
         return row
 
-    async def update_defect(self, db: Session, defect_id: int, payload: DefectUpdate) -> Optional[Defect]:
-        """
-        Update a defect's properties.
-        
-        Supports partial updates. Only updates fields that are explicitly provided.
-        Can update defect description, severity, and category (via first annotation).
-        """
-        defect = db.query(Defect).filter(Defect.id == defect_id).first()
-        if not defect:
+    async def update_defect(self, db, defect_id: int, payload: DefectUpdate):
+        defect = (
+            db.query(Defect)
+            .options(joinedload(Defect.annotations))
+            .filter(Defect.id == defect_id)
+            .first()
+        )
+        if defect is None:
             return None
-        
+
         update_data = payload.model_dump(exclude_unset=True)
-        
-        if 'description' in update_data:
-            defect.description = payload.description
-        if 'severity' in update_data:
-            defect.severity = payload.severity
-        
-        if 'category_id' in update_data and payload.category_id is not None:
-            first_annotation = db.query(DefectAnnotation).filter(
-                DefectAnnotation.defect_id == defect_id
-            ).first()
-            
-            if first_annotation:
-                first_annotation.category_id = payload.category_id
-            else:
-                db.add(DefectAnnotation(
-                    defect_id=defect_id,
-                    category_id=payload.category_id,
-                    geometry={}
-                ))
-        
+
+        # Extract annotation-related fields
+        category_id, color, new_annotations = extract_annotation_fields(update_data)
+
+        # Apply scalar fields (severity, description)
+        for field, value in update_data.items():
+            setattr(defect, field, value)
+
+        # Handle all annotation updates
+        handle_annotation_updates(
+            db, defect, defect_id, category_id, color, new_annotations
+        )
+
         db.commit()
         db.refresh(defect)
         return defect
@@ -101,9 +108,73 @@ class DefectsService:
         defect = db.query(Defect).filter(Defect.id == defect_id).first()
         if not defect:
             return False
-        
+
         db.delete(defect)
         db.commit()
-        return True     
+        return True
+
+    async def update_annotation(
+        self, db: Session, annotation_id: int, payload
+    ) -> Optional[DefectAnnotation]:
+        """Update an annotation's geometry, category, or color."""
+        annotation = (
+            db.query(DefectAnnotation)
+            .filter(DefectAnnotation.id == annotation_id)
+            .first()
+        )
+        if not annotation:
+            return None
+
+        update_data = payload.model_dump(exclude_unset=True)
+
+        if "geometry" in update_data:
+            annotation.geometry = payload.geometry
+        if "category_id" in update_data:
+            annotation.category_id = payload.category_id
+        if "color" in update_data:
+            annotation.color = payload.color
+
+        db.commit()
+        db.refresh(annotation)
+        return annotation
+
+    async def delete_annotation(self, db: Session, annotation_id: int) -> bool:
+        """Delete a specific annotation. Returns True if deleted, False if not found."""
+        annotation = (
+            db.query(DefectAnnotation)
+            .filter(DefectAnnotation.id == annotation_id)
+            .first()
+        )
+        if not annotation:
+            return False
+
+        db.delete(annotation)
+        db.commit()
+        return True
+
+    async def review_defect(
+        self,
+        db: Session,
+        defect_id: int,
+        decision: str,
+        reviewer: str,
+        comment: Optional[str] = None,
+    ):
+        defect = db.query(Defect).filter(Defect.id == defect_id).first()
+        if not defect:
+            raise ValueError("Defect not found")
+
+        if defect.review_status in ("approved", "rejected"):
+            raise ValueError("Defect already reviewed")
+
+        defect.review_status = decision
+        defect.reviewed_by = reviewer
+        defect.reviewed_at = datetime.utcnow()
+        defect.review_comment = comment
+
+        db.commit()
+        db.refresh(defect)
+        return defect
+
 
 defects_service = DefectsService()

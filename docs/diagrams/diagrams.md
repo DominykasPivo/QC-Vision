@@ -29,8 +29,3 @@
 ## The following diagram shows the sequence of actions when viewing audit logs.
 ## It shows the communications between the WebApp, the API and the Database.
 ![Sequence Diagram(audit logs)](/docs/diagrams/Sequencce%20Diagram(view%20audit%20logs).drawio.png)
-
-
-
-
-

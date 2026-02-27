@@ -6,15 +6,15 @@ Every test asserts on *what the service tells the session to do* (add, delete,
 commit, attribute mutations, storage calls) rather than on DB state.
 """
 
-import pytest
-from unittest.mock import MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock
 
+import pytest
+
+from app.modules.photos.models import Photo
 from app.modules.tests.models import Tests
 from app.modules.tests.schemas import TestCreate
 from app.modules.tests.service import tests_service
-from app.modules.photos.models import Photo
-
 
 # ---------------------------------------------------------------------------
 # create_test
@@ -24,7 +24,8 @@ from app.modules.photos.models import Photo
 class TestCreateTest:
     async def test_all_fields_persisted(self, mock_db):
         data = TestCreate(
-            product_id=103,
+            jira_id="GY-103",
+            product_name="Test Product",
             test_type="final",
             requester="Dave",
             assigned_to="Eve",
@@ -37,7 +38,8 @@ class TestCreateTest:
         mock_db.add.assert_called_once()
         added = mock_db.add.call_args[0][0]
         assert isinstance(added, Tests)
-        assert added.product_id == 103
+        assert added.jira_id == "GY-103"
+        assert added.product_name == "Test Product"
         assert added.test_type == "final"
         assert added.requester == "Dave"
         assert added.assigned_to == "Eve"
@@ -46,7 +48,12 @@ class TestCreateTest:
         mock_db.commit.assert_called_once()
 
     async def test_optional_fields_use_defaults(self, mock_db):
-        data = TestCreate(product_id=104, test_type="incoming", requester="Mona")
+        data = TestCreate(
+            jira_id="GY-104",
+            product_name="Test Product",
+            test_type="incoming",
+            requester="Mona",
+        )
 
         await tests_service.create_test(mock_db, data)
 
@@ -83,10 +90,7 @@ class TestGetAllTests:
     async def test_pagination(self, mock_db):
         tests = [MagicMock(), MagicMock()]
         (
-            mock_db.query.return_value
-            .offset.return_value
-            .limit.return_value
-            .all.return_value
+            mock_db.query.return_value.offset.return_value.limit.return_value.all.return_value
         ) = tests
 
         result = await tests_service.get_all_tests(mock_db, skip=2, limit=3)
@@ -98,10 +102,7 @@ class TestGetAllTests:
 
     async def test_empty_database_returns_empty_list(self, mock_db):
         (
-            mock_db.query.return_value
-            .offset.return_value
-            .limit.return_value
-            .all.return_value
+            mock_db.query.return_value.offset.return_value.limit.return_value.all.return_value
         ) = []
 
         assert await tests_service.get_all_tests(mock_db) == []

@@ -5,14 +5,20 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from .schemas import AuditLogOut, AuditLogListOut
-from .service import get_log_by_id, list_logs
 
-router = APIRouter()
+from .schemas import AuditLogListOut, AuditLogOut
+from .service import get_log_by_id, list_logs, list_test_activity_history
+
+# ✅ Correct prefix so tests hit /api/v1/audit/...
+router = APIRouter(prefix="/audit", tags=["audit"])
 
 
 @router.get("/logs", response_model=AuditLogListOut)
 def get_audit_logs(
+    clear_filters: bool = Query(
+        default=False,
+        description="If true, ignores all filter params and returns unfiltered results.",
+    ),
     action: Optional[str] = Query(default=None),
     entity_type: Optional[str] = Query(default=None),
     entity_id: Optional[int] = Query(default=None),
@@ -21,8 +27,16 @@ def get_audit_logs(
     created_to: Optional[datetime] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
- db: Session = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
+    if clear_filters:
+        action = None
+        entity_type = None
+        entity_id = None
+        username = None
+        created_from = None
+        created_to = None
+
     items, total = list_logs(
         db,
         action=action,
@@ -43,3 +57,21 @@ def get_audit_log(log_id: int, db: Session = Depends(get_db)):
     if not log:
         raise HTTPException(status_code=404, detail="Audit log not found")
     return log
+
+
+@router.get("/tests/{test_id}/activity", response_model=AuditLogListOut)
+def get_test_activity(
+    test_id: int,
+    user_actions_only: bool = Query(default=True),
+    limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    items, total = list_test_activity_history(
+        db,
+        test_id=test_id,
+        user_actions_only=user_actions_only,
+        limit=limit,
+        offset=offset,
+    )
+    return {"items": items, "total": total, "limit": limit, "offset": offset}

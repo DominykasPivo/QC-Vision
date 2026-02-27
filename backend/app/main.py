@@ -2,20 +2,21 @@
 QC Vision - Main FastAPI Application
 Visual Quality Tests Tracking for Modern Manufacturing
 """
-import logging 
-import sys
+
+import logging
 import os
+import sys
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+
+from app.database import create_tables
+from app.modules.audit.router import router as audit_router
+from app.modules.defects.router import router as defects_router
 from app.modules.photos.router import router as photos_router
 from app.modules.tests.router import router as tests_router
-from app.modules.audit.router import router as audit_router
-from app.database import create_tables
-from app.modules.defects.router import router as defects_router
-
-
+from app.routers import users  # adjust if your structure differs
 
 # Application metadata
 APP_NAME = "QC Vision API"
@@ -43,13 +44,11 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
-    # Startup
     print(f"🚀 Starting {APP_NAME} v{APP_VERSION}")
     print("📊 Creating database tables...")
     create_tables()
     print("✅ Database tables ready")
     yield
-    # Shutdown
     print(f"👋 Shutting down {APP_NAME}")
 
 
@@ -110,8 +109,12 @@ async def api_status():
     }
 
 
+# ✅ Mount all module routers under /api/v1
+# Each module router is responsible for its own sub-prefix (/tests, /photos, /defects, /audit)
+app.include_router(tests_router, prefix="/api/v1")
+app.include_router(photos_router, prefix="/api/v1")
+app.include_router(defects_router, prefix="/api/v1")
+app.include_router(audit_router, prefix="/api/v1")
 
-app.include_router(tests_router, prefix="/api/v1/tests", tags=["Tests"])
-app.include_router(photos_router, prefix="/api/v1/photos", tags=["Photos"])
-app.include_router(audit_router, prefix="/api/v1/audit", tags=["Audit"])
-app.include_router(defects_router, prefix="/api/v1/defects", tags=["Defects"])
+# keep users router if you have it
+app.include_router(users.router, prefix="/api/v1")

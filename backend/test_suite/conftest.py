@@ -59,15 +59,16 @@ import os as _os  # noqa: E402
 
 _os.environ.setdefault("DATABASE_URL", "sqlite://")
 
+from unittest.mock import patch  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # 3.  App imports – now safe
 # ---------------------------------------------------------------------------
 import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine, event  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
-from unittest.mock import patch  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
 
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
@@ -80,6 +81,7 @@ _storage_mod = sys.modules["app.modules.photos.storage"]
 _photos_router_mod = sys.modules["app.modules.photos.router"]
 _photos_service_mod = sys.modules["app.modules.photos.service"]
 _tests_service_mod = sys.modules["app.modules.tests.service"]
+_tests_cleanup_utils_mod = sys.modules["app.modules.tests.cleanup_utils"]
 
 
 # ---------------------------------------------------------------------------
@@ -121,14 +123,12 @@ def mock_photo_storage(monkeypatch):
     mock.upload_photo = AsyncMock(return_value="photos/20250101/test-uuid.jpg")
     mock.get_photo = AsyncMock(return_value=b"\xff\xd8\xff\xe0fake-jpeg-data")
     mock.delete_photo = AsyncMock(return_value=True)
-    mock.generate_presigned_url = MagicMock(
-        return_value="http://localhost:9000/qc-vision-photos/photos/20250101/test-uuid.jpg"
-    )
 
     # Patch every module that imported photo_storage as a module-level name
     monkeypatch.setattr(_storage_mod, "photo_storage", mock)
     monkeypatch.setattr(_photos_router_mod, "photo_storage", mock)
     monkeypatch.setattr(_tests_service_mod, "photo_storage", mock)
+    monkeypatch.setattr(_tests_cleanup_utils_mod, "photo_storage", mock)
     # photo_service holds its own PhotoStorage instance – replace directly
     _photos_service_mod.photo_service.storage = mock
     return mock

@@ -4,7 +4,7 @@ export class ApiError extends Error {
 
   constructor(message: string, status?: number, data?: unknown) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.data = data;
   }
@@ -13,7 +13,7 @@ export class ApiError extends Error {
 async function parseBody(response: Response) {
   const text = await response.text();
   if (!text) {
-    return { data: null, text: '' };
+    return { data: null, text: "" };
   }
 
   try {
@@ -33,15 +33,15 @@ export async function request<T>(
   if (!response.ok) {
     const message =
       (data &&
-        typeof data === 'object' &&
-        'detail' in data &&
+        typeof data === "object" &&
+        "detail" in data &&
         String((data as { detail: unknown }).detail)) ||
       (data &&
-        typeof data === 'object' &&
-        'message' in data &&
+        typeof data === "object" &&
+        "message" in data &&
         String((data as { message: unknown }).message)) ||
       text ||
-      'Unexpected response from server. Please try again.';
+      "Unexpected response from server. Please try again.";
     throw new ApiError(message, response.status, data ?? text);
   }
 

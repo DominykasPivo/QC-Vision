@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from datetime import datetime
+
+from sqlalchemy import Column, DateTime, Integer, String, Text
 
 from app.database import Base
 
@@ -8,12 +9,26 @@ class Tests(Base):
     __tablename__ = "quality_tests"
 
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column("product_id", Integer, nullable=False, index=True)
+    jira_id = Column("jira_id", String(100), nullable=False, index=True)
+    product_name = Column("product_name", String(255), nullable=False)
 
     test_type = Column("test_type", String(50), nullable=False)
     requester = Column(String(100), nullable=False)
     assigned_to = Column("assigned_to", String(100), nullable=True)
+    description = Column(Text, nullable=True)
     status = Column(String(50), nullable=False, default="pending")
     deadline_at = Column("deadline_at", DateTime(timezone=True), nullable=True)
-    created_at = Column("created_at", DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at = Column("updated_at", DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(
+        "created_at", DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+    review_status = Column(String(20), nullable=False, default="pending")
+    reviewed_by = Column(String(100), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    review_comment = Column(Text, nullable=True)
+    updated_at = Column(
+        "updated_at",
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )

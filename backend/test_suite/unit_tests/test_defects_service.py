@@ -8,13 +8,11 @@ relationship loading are database concerns and remain covered by the
 integration tests.
 """
 
-import pytest
 from unittest.mock import MagicMock
 
 from app.modules.defects.models import Defect, DefectAnnotation
-from app.modules.defects.schemas import DefectCreate, DefectUpdate, AnnotationCreate
+from app.modules.defects.schemas import AnnotationCreate, DefectCreate, DefectUpdate
 from app.modules.defects.service import defects_service
-
 
 # ---------------------------------------------------------------------------
 # create_defect_for_photo
@@ -39,7 +37,13 @@ class TestCreateDefect:
             annotations=[
                 AnnotationCreate(
                     category_id=10,
-                    geometry={"type": "rectangle", "x": 0.42, "y": 0.55, "w": 0.15, "h": 0.12},
+                    geometry={
+                        "type": "rectangle",
+                        "x": 0.42,
+                        "y": 0.55,
+                        "w": 0.15,
+                        "h": 0.12,
+                    },
                 ),
                 AnnotationCreate(
                     category_id=10,
@@ -87,11 +91,7 @@ class TestListDefects:
     async def test_returns_only_defects_belonging_to_given_photo(self, mock_db):
         defects = [MagicMock(), MagicMock()]
         (
-            mock_db.query.return_value
-            .options.return_value
-            .filter.return_value
-            .order_by.return_value
-            .all.return_value
+            mock_db.query.return_value.options.return_value.filter.return_value.order_by.return_value.all.return_value
         ) = defects
 
         result = await defects_service.list_defects_for_photo(mock_db, 7)
@@ -108,11 +108,7 @@ class TestListDefects:
 
     async def test_empty_for_photo_with_no_defects(self, mock_db):
         (
-            mock_db.query.return_value
-            .options.return_value
-            .filter.return_value
-            .order_by.return_value
-            .all.return_value
+            mock_db.query.return_value.options.return_value.filter.return_value.order_by.return_value.all.return_value
         ) = []
 
         assert await defects_service.list_defects_for_photo(mock_db, 99) == []
@@ -174,8 +170,10 @@ class TestAddAnnotation:
 
 class TestUpdateDefect:
     async def test_update_severity_only(self, mock_db):
-        defect = MagicMock()
-        mock_db.query.return_value.filter.return_value.first.return_value = defect
+        defect = MagicMock(severity="low")
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = (
+            defect
+        )
 
         updated = await defects_service.update_defect(
             mock_db, 1, DefectUpdate(severity="critical")
@@ -186,7 +184,9 @@ class TestUpdateDefect:
         assert updated is defect
 
     async def test_returns_none_for_missing_defect(self, mock_db):
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = (
+            None
+        )
 
         result = await defects_service.update_defect(
             mock_db, 9999, DefectUpdate(severity="low")
@@ -214,9 +214,7 @@ class TestUpdateDefect:
         assert annotation.category_id == 5
         mock_db.add.assert_not_called()  # existing annotation updated, none created
 
-    async def test_update_category_id_creates_annotation_when_none_exist(
-        self, mock_db
-    ):
+    async def test_update_category_id_creates_annotation_when_none_exist(self, mock_db):
         """When no annotation exists yet, one is created with empty geometry."""
         defect = MagicMock()
 

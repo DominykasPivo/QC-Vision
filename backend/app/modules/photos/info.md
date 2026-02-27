@@ -7,7 +7,7 @@ backend/app/modules/photos/
 └── storage.py          # MinIO/S3 integration
 
 
-[Client Request] 
+[Client Request]
     ↓
 [router.py] - Uses schemas for API validation/response
     ↓

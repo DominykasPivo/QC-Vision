@@ -1,13 +1,16 @@
 import logging
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional, Tuple
 
-from .schemas import TestCreate, TestResponse
-from sqlalchemy.orm import Session  
+from sqlalchemy import String as SAString
+from sqlalchemy import cast, or_
+from sqlalchemy.orm import Session
+
+from app.modules.photos.storage import photo_storage  # noqa: F401
+
+from .cleanup_utils import cleanup_test_photos
 from .models import Tests
-from app.modules.photos.models import Photo
-from app.modules.photos.storage import photo_storage
-
+from .schemas import TestCreate
 
 logger = logging.getLogger("backend_tests_service")
 
@@ -15,18 +18,16 @@ logger = logging.getLogger("backend_tests_service")
 class TestsService:
     """
     Service layer for quality test management.
-    
-    Handles CRUD operations for quality tests including creation,
-    retrieval, updates, and deletion with associated photos.
     """
-    
-    async def create_test(self, db: Session, test_data: TestCreate) -> TestResponse:
-        """Create a new quality test."""
+
+    async def create_test(self, db: Session, test_data: TestCreate) -> Tests:
         test = Tests(
-            product_id=test_data.product_id,
+            jira_id=test_data.jira_id,
+            product_name=test_data.product_name,
             test_type=test_data.test_type,
             requester=test_data.requester,
             assigned_to=test_data.assigned_to,
+            description=test_data.description,
             status=test_data.status,
             deadline_at=test_data.deadline_at,
         )
@@ -34,53 +35,120 @@ class TestsService:
         db.commit()
         db.refresh(test)
         return test
-    
+
     async def get_test(self, db: Session, test_id: int) -> Optional[Tests]:
-        """Get a single test by ID."""
         return db.query(Tests).filter(Tests.id == test_id).first()
-    
-    async def get_all_tests(self, db: Session, skip: int = 0, limit: int = 100) -> List[Tests]:
-        """Get all tests with pagination."""
+
+    async def get_all_tests(
+        self, db: Session, skip: int = 0, limit: int = 100
+    ) -> List[Tests]:
         return db.query(Tests).offset(skip).limit(limit).all()
-    
+
+    async def get_tests_paginated(
+        self,
+        db: Session,
+        offset: int = 0,
+        limit: int = 12,
+        status: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> Tuple[List[Tests], int]:
+        query = db.query(Tests)
+
+        if status:
+            query = query.filter(Tests.status == status)
+
+        if search:
+            pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Tests.requester.ilike(pattern),
+                    Tests.test_type.ilike(pattern),
+                    Tests.assigned_to.ilike(pattern),
+                    Tests.description.ilike(pattern),
+                    cast(Tests.id, SAString).ilike(pattern),
+                    Tests.jira_id.ilike(pattern),
+                    Tests.product_name.ilike(pattern),
+                )
+            )
+
+        total = query.count()
+        items = (
+            query.order_by(Tests.created_at.desc()).offset(offset).limit(limit).all()
+        )
+        return items, total
+
     async def update_test(self, db: Session, test_id: int, test_data: dict) -> Tests:
-        """Update a test's properties."""
         test = db.query(Tests).filter(Tests.id == test_id).first()
         if not test:
+            # ✅ unit tests expect ValueError
             raise ValueError("Test not found")
-        
+
         for key, value in test_data.items():
             if hasattr(test, key):
                 setattr(test, key, value)
-        
+
         db.commit()
         db.refresh(test)
         return test
-    
-    async def delete_test(self, db: Session, test_id: int):
+
+    async def delete_test(self, db: Session, test_id: int) -> None:
         """
-        Delete a test and all associated photos. 
-        
-        Deletes photos from MinIO storage and database, then deletes the test.
+        Delete a test and all related photos (DB rows + MinIO objects).
+
+        This method ensures complete cleanup by:
+        1. Deleting photos from MinIO storage
+        2. Deleting photo database records
+        3. Deleting the test record
+
+        The photo cleanup is delegated to cleanup_utils to maintain
+        separation of concerns and improve testability.
         """
         test = db.query(Tests).filter(Tests.id == test_id).first()
         if not test:
             raise ValueError("Test not found")
-        
-        photos = db.query(Photo).filter(Photo.test_id == test_id).all()
-        for photo in photos:
-            try:
-                await photo_storage.delete_photo(photo.file_path)
-                logger.info(f"Deleted photo from MinIO: {photo.file_path}")
-            except Exception as e:
-                logger.error(f"Failed to delete photo from MinIO: {photo.file_path}, Error: {str(e)}")
-        
-        db.query(Photo).filter(Photo.test_id == test_id).delete()
-        
+
+        # Delete all photos (storage + database)
+        await cleanup_test_photos(db, test_id)
+
+        # Delete test record
         db.delete(test)
         db.commit()
-        
-        logger.info(f"Deleted test {test_id} with {len(photos)} photo(s)")
+
+    async def review_test(
+        self,
+        db: Session,
+        test_id: int,
+        decision: str,
+        reviewer: str,
+        comment: Optional[str] = None,
+    ):
+        test = db.query(Tests).filter(Tests.id == test_id).first()
+        if not test:
+            raise ValueError("Test not found")
+
+        if getattr(test, "review_status", None) in ("approved", "rejected"):
+            raise ValueError("Test already reviewed")
+
+        decision_norm = (decision or "").lower().strip()
+
+        if decision_norm in ("approved", "approve"):
+            test.review_status = "approved"  # type: ignore
+        elif decision_norm in ("rejected", "reject"):
+            test.review_status = "rejected"  # type: ignore
+        else:
+            raise ValueError("Invalid decision")
+
+        # common fields
+        if hasattr(test, "reviewed_by"):
+            test.reviewed_by = reviewer  # type: ignore
+        if hasattr(test, "reviewed_at"):
+            test.reviewed_at = datetime.utcnow()  # type: ignore
+        if hasattr(test, "review_comment"):
+            test.review_comment = comment  # type: ignore
+
+        db.commit()
+        db.refresh(test)
+        return test
 
 
 tests_service = TestsService()

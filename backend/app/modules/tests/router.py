@@ -1,33 +1,49 @@
-from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form
-from typing import List, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import List, Optional, cast
 
-from .schemas import TestCreate, TestResponse
-from .service import tests_service
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.modules.photos.service import photo_service
-from app.modules.photos.schemas import PhotoResponse
 from app.modules.audit.service import log_action
+from app.modules.photos.schemas import PhotoResponse
+from app.modules.photos.service import photo_service
+from app.security import require_reviewer
+
+from .models import Tests
+from .schemas import TestCreate, TestListResponse, TestResponse, TestReviewRequest
+from .service import tests_service
 
 logger = logging.getLogger("backend_tests_router")
 
-router = APIRouter(prefix="", tags=["tests"])
+# ✅ Correct prefix so tests hit /api/v1/tests/...
+router = APIRouter(prefix="/tests", tags=["tests"])
 
 
+@router.post("", status_code=status.HTTP_201_CREATED)
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_test(
-    productId: int = Form(...),
+    jiraId: str = Form(...),
+    productName: str = Form(...),
     testType: str = Form(...),
     requester: str = Form(...),
     assignedTo: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
     status_field: str = Form("pending", alias="status"),
-    deadlineAt: str = Form(None),
+    deadlineAt: Optional[str] = Form(None),
     photos: List[UploadFile] = File(default=[]),
     db: Session = Depends(get_db),
 ):
-    """Create a new quality control test with optional photo uploads."""
     username = "system"
 
     try:
@@ -45,7 +61,8 @@ async def create_test(
                     meta={
                         "reason": "invalid_deadline_format",
                         "deadlineAt": deadlineAt,
-                        "productId": productId,
+                        "jiraId": jiraId,
+                        "productName": productName,
                         "testType": testType,
                         "requester": requester,
                     },
@@ -56,47 +73,56 @@ async def create_test(
                 )
 
         test_data = TestCreate(
-            product_id=productId,
+            jira_id=jiraId,
+            product_name=productName,
             test_type=testType,
             requester=requester,
             assigned_to=assignedTo,
+            description=description,
             status=status_field,
             deadline_at=deadline,
         )
 
         test = await tests_service.create_test(db, test_data)
-        logger.info(f"Created test with ID: {test.id}")
+        logger.info(f"Created test with ID: {cast(int, test.id)}")
+
+        test_id_int = cast(int, test.id)
 
         log_action(
             db,
             action="CREATE",
             entity_type="Test",
-            entity_id=test.id,
+            entity_id=test_id_int,
             username=username,
             meta={
-                "productId": productId,
+                "jiraId": jiraId,
+                "productName": productName,
                 "testType": testType,
                 "requester": requester,
                 "assignedTo": assignedTo,
+                "description": description,
                 "status": status_field,
                 "deadlineAt": deadlineAt,
                 "photo_count": len(photos) if photos else 0,
             },
         )
 
-        uploaded_photos = []
-        failed_photos = []
+        uploaded_photos: List[PhotoResponse] = []
+        failed_photos: List[dict] = []
 
         if photos:
             for photo_file in photos:
                 try:
-                    if not photo_file.content_type or not photo_file.content_type.startswith(
-                        "image/"
+                    if (
+                        not photo_file.content_type
+                        or not photo_file.content_type.startswith("image/")
                     ):
                         failed_photos.append(
-                            {"filename": photo_file.filename, "error": "Not an image file"}
+                            {
+                                "filename": photo_file.filename,
+                                "error": "Not an image file",
+                            }
                         )
-
                         log_action(
                             db,
                             action="UPLOAD_FAILED",
@@ -107,32 +133,33 @@ async def create_test(
                                 "reason": "invalid_content_type",
                                 "filename": photo_file.filename,
                                 "content_type": photo_file.content_type,
-                                "test_id": test.id,
+                                "test_id": test_id_int,
                             },
                         )
                         continue
 
+                    filename_str = cast(str, photo_file.filename)
+
                     photo = await photo_service.upload_photo(
                         db=db,
                         file=photo_file.file,
-                        filename=photo_file.filename,
-                        test_id=test.id,
+                        filename=filename_str,
+                        test_id=test_id_int,
                     )
+
                     uploaded_photos.append(PhotoResponse.model_validate(photo))
-                    logger.info(
-                        f"Uploaded photo {photo_file.filename} for test {test.id}"
-                    )
+                    logger.info(f"Uploaded photo {filename_str} for test {test_id_int}")
 
                     log_action(
                         db,
                         action="UPLOAD",
                         entity_type="Photo",
-                        entity_id=photo.id,
+                        entity_id=cast(int, photo.id),
                         username=username,
                         meta={
-                            "filename": photo_file.filename,
+                            "filename": filename_str,
                             "content_type": photo_file.content_type,
-                            "test_id": test.id,
+                            "test_id": test_id_int,
                             "file_path": getattr(photo, "file_path", None),
                             "source": "tests.create_test",
                         },
@@ -145,7 +172,6 @@ async def create_test(
                     failed_photos.append(
                         {"filename": photo_file.filename, "error": str(photo_error)}
                     )
-
                     log_action(
                         db,
                         action="UPLOAD_FAILED",
@@ -155,7 +181,7 @@ async def create_test(
                         meta={
                             "reason": "server_error",
                             "filename": photo_file.filename,
-                            "test_id": test.id,
+                            "test_id": test_id_int,
                             "error": str(photo_error),
                             "source": "tests.create_test",
                         },
@@ -172,10 +198,8 @@ async def create_test(
 
     except HTTPException:
         raise
-
     except Exception as e:
         logger.error(f"Error creating test: {str(e)}", exc_info=True)
-
         log_action(
             db,
             action="CREATE_FAILED",
@@ -185,38 +209,148 @@ async def create_test(
             meta={
                 "reason": "server_error",
                 "error": str(e),
-                "productId": productId,
+                "jiraId": jiraId,
+                "productName": productName,
                 "testType": testType,
                 "requester": requester,
             },
         )
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post("/{test_id}/review")
+async def review_test(
+    test_id: int,
+    payload: TestReviewRequest,
+    db: Session = Depends(get_db),
+    actor=Depends(require_reviewer),
+):
+    try:
+        result = await tests_service.review_test(
+            db=db,
+            test_id=test_id,
+            decision=payload.decision,
+            reviewer=actor["username"],
+            comment=payload.comment,
+        )
+
+        log_action(
+            db,
+            action="REVIEW",
+            entity_type="Test",
+            entity_id=test_id,
+            username=actor["username"],
+            meta={"decision": payload.decision, "comment": payload.comment},
+        )
+
+        if isinstance(result, Tests):
+            return TestResponse.model_validate(result)
+
+        return result
+
+    except ValueError as e:
+        msg = str(e)
+
+        if msg.lower() == "test not found":
+            raise HTTPException(status_code=404, detail=msg)
+
+        if msg.lower() in {
+            "invalid decision",
+            "decision must be approve/approved or reject/rejected",
+        }:
+            raise HTTPException(
+                status_code=400,
+                detail="Decision must be approve/approved or reject/rejected",
+            )
+
+        if msg.lower() == "test already reviewed":
+            raise HTTPException(status_code=400, detail=msg)
+
+        raise HTTPException(status_code=400, detail=msg)
+
+    except Exception as e:
+        logger.exception("Review failed")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{test_id}", response_model=TestResponse)
 async def get_test(test_id: int, db: Session = Depends(get_db)):
-    """Retrieve a specific quality test by ID."""
-
     test = await tests_service.get_test(db, test_id)
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
     return test
 
 
-@router.get("/", response_model=List[TestResponse])
-async def list_tests(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """List all quality tests with pagination."""
-    return await tests_service.get_all_tests(db, skip=skip, limit=limit)
+# ✅ Register BOTH "" and "/" so GET /api/v1/tests and /api/v1/tests/ work
+@router.get("", response_model=TestListResponse)
+@router.get("/", response_model=TestListResponse)
+async def list_tests(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    status_filter: Optional[str] = Query(default=None, alias="status"),
+    search: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    items, total = await tests_service.get_tests_paginated(
+        db, offset=offset, limit=limit, status=status_filter, search=search
+    )
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 @router.patch("/{test_id}", response_model=TestResponse)
 async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_db)):
-    """Update an existing quality test (partial update)."""
     username = "system"
-
     try:
+        current = await tests_service.get_test(db, test_id)
+        if not current:
+            raise HTTPException(status_code=404, detail="Test not found")
+
+        before_status = getattr(current, "status", None)
+        before_assigned_to = getattr(current, "assigned_to", None)
+        before_test_type = getattr(current, "test_type", None)
+
         updated = await tests_service.update_test(db, test_id, test_data)
+
+        after_status = getattr(updated, "status", None)
+        after_assigned_to = getattr(updated, "assigned_to", None)
+        after_test_type = getattr(updated, "test_type", None)
+
+        if "status" in test_data and before_status != after_status:
+            log_action(
+                db,
+                action="STATUS_CHANGE",
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_status, "to": after_status},
+            )
+
+        if "assigned_to" in test_data and before_assigned_to != after_assigned_to:
+            if after_assigned_to and not before_assigned_to:
+                action = "ASSIGN"
+            elif not after_assigned_to and before_assigned_to:
+                action = "UNASSIGN"
+            else:
+                action = "ASSIGN"
+
+            log_action(
+                db,
+                action=action,
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_assigned_to, "to": after_assigned_to},
+            )
+
+        if "test_type" in test_data and before_test_type != after_test_type:
+            log_action(
+                db,
+                action="TEST_TYPE_CHANGE",
+                entity_type="Test",
+                entity_id=test_id,
+                username=username,
+                meta={"from": before_test_type, "to": after_test_type},
+            )
 
         log_action(
             db,
@@ -229,9 +363,10 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
 
         return updated
 
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-
     except Exception as e:
         log_action(
             db,
@@ -239,19 +374,14 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
             entity_type="Test",
             entity_id=test_id,
             username=username,
-            meta={
-                "reason": "server_error",
-                "error": str(e),
-            },
+            meta={"reason": "server_error", "error": str(e)},
         )
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/{test_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_test(test_id: int, db: Session = Depends(get_db)):
-    """Delete a quality test and all associated photos."""
     username = "system"
-
     try:
         await tests_service.delete_test(db, test_id)
 
@@ -263,10 +393,10 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
             username=username,
             meta={},
         )
+        return
 
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Test not found")
     except Exception as e:
         log_action(
             db,
@@ -274,9 +404,6 @@ async def delete_test(test_id: int, db: Session = Depends(get_db)):
             entity_type="Test",
             entity_id=test_id,
             username=username,
-            meta={
-                "reason": "server_error",
-                "error": str(e),
-            },
+            meta={"reason": "server_error", "error": str(e)},
         )
         raise HTTPException(status_code=500, detail=str(e))

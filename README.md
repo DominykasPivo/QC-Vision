@@ -1,3 +1,4 @@
+![CI](https://github.com/DominykasPivo/QC-Vision/actions/workflows/ci.yaml/badge.svg)
 # QC Vision 🔍
 
 **Visual Quality Tests Tracking for Modern Manufacturing**
@@ -325,6 +326,111 @@ cat ./database/init.sql  | docker compose exec -T postgres psql -U qc_user -d qc
 cat ./database/demo.sql  | docker compose exec -T postgres psql -U qc_user -d qc_vision
 cat ./database/tests.sql | docker compose exec -T postgres psql -U qc_user -d qc_vision
 ```
+
+
+## Tests & CI
+
+This project uses a GitHub Actions CI pipeline to enforce code quality and run automated tests on every push and pull request.
+
+### Local Backend Testing
+
+From the `backend/` directory:
+
+**Run all tests:**
+```bash
+cd backend
+pytest                    # Run all tests
+pytest -v               # Verbose output
+pytest -q               # Quiet output
+pytest test_suite/unit_tests/  # Unit tests only
+pytest test_suite/integration_tests/  # Integration tests only
+pytest test_suite/E2E_tests/
+```
+
+### Local Code Quality Checks (Backend)
+
+From the project root:
+
+```bash
+# Format / lint (backend)
+black --check backend     # Check formatting
+black backend             # Auto-format code
+
+isort --check-only backend  # Check import ordering
+isort backend            # Auto-fix imports
+
+flake8 backend           # Lint code
+
+mypy backend/app --ignore-missing-imports  # Type checking
+```
+
+**All backend checks in one command:**
+```bash
+cd backend && pytest && black --check . && isort --check-only . && flake8 .
+```
+
+### Local Frontend Testing
+
+From the `frontend/` directory:
+
+**Linting & Code Quality:**
+```bash
+cd frontend
+npm run lint              # ESLint
+npm run format:check      # Prettier format check
+npm run format            # Auto-format with Prettier
+npm run lint:spacing      # Custom spacing rules
+npx tsc --noEmit         # TypeScript type checking
+npm run build            # Build for production
+npm audit                # Security vulnerabilities
+npm audit fix            #fix vulnerabilities
+#npm audit reports vulnerabilities, could be fixed by --focrce but could lead to more problems so ignored for now
+```
+
+
+**All frontend checks in one command:**
+```bash
+cd frontend && npm run lint && npm run format:check && npx tsc --noEmit && npm run build
+```
+
+### CI Pipeline
+
+The GitHub Actions CI pipeline runs automatically on:
+- Push to any branch
+- Pull requests
+- Manual trigger (workflow dispatch)
+
+**Pipeline jobs:**
+1. **lint-format** - Backend formatting, linting, type checking, and security checks
+2. **frontend-quality** - Frontend linting, type checking, formatting, build, and security checks
+3. **unit-tests** - Backend tests with coverage reporting (requires MinIO)
+4. **smoke** - End-to-end health checks with docker-compose
+
+View results in the **Actions** tab on GitHub.
+
+### Test Coverage
+
+Backend tests include:
+- **62 total tests** (unit + integration)
+- **Unit tests** - Service logic testing
+- **Integration tests** - Router and API endpoint testing
+- **Coverage** - Automated coverage reporting in CI
+
+### Run automated tests before commit:
+pre-commit install
+pre-commit run --all-files
+
+### Set reviewer role:
+
+docker exec -it qc_vision_postgres psql -U qc_user -d qc_vision
+
+## If user exists
+UPDATE users
+SET role = 'reviewer'
+WHERE username = 'abcde';
+
+## If user doesnt exist
+INSERT INTO users (username, role) VALUES ('abcde', 'reviewer');
 
 ## Team
 
