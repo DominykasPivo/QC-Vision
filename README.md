@@ -1,4 +1,4 @@
-![CI](https://github.com/DominykasPivo/QC-Vision/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/DominykasPivo/QC-Vision/actions/workflows/ci.yaml/badge.svg)
 # QC Vision 🔍
 
 **Visual Quality Tests Tracking for Modern Manufacturing**
