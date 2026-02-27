@@ -10,25 +10,33 @@ sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.9
 alembic>=1.12.0
 
-# MinIO/S3 Storage
+# Storage (S3-compatible)
 minio>=7.2.0
 
 # Image Processing
 Pillow>=10.1.0
 
-# Validation & Serialization
+# Validation & Settings
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
-
-# WebSockets
-websockets>=12.0
 
 # Utilities
 python-dateutil>=2.8.2
 aiofiles>=23.2.1
+requests>=2.31.0
+
+# WebSockets (usually pulled by uvicorn/fastapi, but OK explicit)
+websockets>=12.0
 
 # Development & Testing
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
 httpx>=0.25.0
+pre-commit>=3.6.0
+
+# Code quality (if you run these locally / in CI)
+black>=25.1.0
+isort>=5.13.2
+flake8>=7.1.0
+mypy>=v1.8.0
