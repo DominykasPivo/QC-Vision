@@ -41,7 +41,7 @@ export interface FilterOptions {
  */
 export function useFilteredTests<T extends FilterableTest>(
   tests: T[],
-  options: FilterOptions
+  options: FilterOptions,
 ): T[] {
   const {
     searchQuery,

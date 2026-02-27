@@ -28,8 +28,8 @@ export function SelectedAnnotationBar({
       ) : (
         <div className="text-sm font-medium text-gray-700">
           Selected annotation -{" "}
-          {annotations.find((a) => a.id === selectedAnnotationId)?.geometry.type ||
-            "Unknown"}
+          {annotations.find((a) => a.id === selectedAnnotationId)?.geometry
+            .type || "Unknown"}
         </div>
       )}
       {onDelete && (

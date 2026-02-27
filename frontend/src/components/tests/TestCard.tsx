@@ -41,7 +41,7 @@ export function TestCard({ test }: TestCardProps) {
         <p
           className={cn(
             "text-base font-semibold md:text-base xl:text-[16px]",
-            STATUS_TEXT_COLORS[test.status]
+            STATUS_TEXT_COLORS[test.status],
           )}
         >
           {STATUS_LABELS[test.status]}

@@ -6,13 +6,21 @@ export function sortTests(tests: Test[], sortBy: string): Test[] {
   sorted.sort((a, b) => {
     switch (sortBy) {
       case "deadline_asc": {
-        const dateA = a.deadlineAt ? new Date(a.deadlineAt).getTime() : Infinity;
-        const dateB = b.deadlineAt ? new Date(b.deadlineAt).getTime() : Infinity;
+        const dateA = a.deadlineAt
+          ? new Date(a.deadlineAt).getTime()
+          : Infinity;
+        const dateB = b.deadlineAt
+          ? new Date(b.deadlineAt).getTime()
+          : Infinity;
         return dateA - dateB;
       }
       case "deadline_desc": {
-        const dateA = a.deadlineAt ? new Date(a.deadlineAt).getTime() : -Infinity;
-        const dateB = b.deadlineAt ? new Date(b.deadlineAt).getTime() : -Infinity;
+        const dateA = a.deadlineAt
+          ? new Date(a.deadlineAt).getTime()
+          : -Infinity;
+        const dateB = b.deadlineAt
+          ? new Date(b.deadlineAt).getTime()
+          : -Infinity;
         return dateB - dateA;
       }
       case "created_asc": {

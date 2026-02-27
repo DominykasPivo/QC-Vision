@@ -23,8 +23,13 @@ export function CreateTestsScreen() {
   const { tests, testsLoaded } = useOutletContext<AppDataContext>();
 
   // Custom hooks for state management
-  const { searchInput, searchQuery, setSearchInput, setSearchQuery, handleSearchSubmit } =
-    useTestSearch();
+  const {
+    searchInput,
+    searchQuery,
+    setSearchInput,
+    setSearchQuery,
+    handleSearchSubmit,
+  } = useTestSearch();
 
   const {
     filters,
@@ -58,9 +63,9 @@ export function CreateTestsScreen() {
 
   const hasAdvancedFilters = Boolean(
     filters.testType ||
-      filters.assignedTo ||
-      filters.dateRange ||
-      sortBy !== "created_desc"
+    filters.assignedTo ||
+    filters.dateRange ||
+    sortBy !== "created_desc",
   );
 
   const handlePageReset = () => setCurrentPage(1);

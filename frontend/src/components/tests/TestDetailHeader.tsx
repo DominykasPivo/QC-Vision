@@ -13,7 +13,8 @@ interface TestDetailHeaderProps {
 export function TestDetailHeader({ test }: TestDetailHeaderProps) {
   const jiraIdLabel = formatFieldValue(test.jiraId);
   const productNameLabel = formatFieldValue(test.productName);
-  const badgeClass = STATUS_COLORS[test.status] ?? "bg-slate-100 text-slate-700";
+  const badgeClass =
+    STATUS_COLORS[test.status] ?? "bg-slate-100 text-slate-700";
 
   return (
     <>

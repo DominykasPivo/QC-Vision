@@ -17,9 +17,7 @@ export function VerificationStatusBar({
   return (
     <div className="mb-4 flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-600">
-          Verification:
-        </span>
+        <span className="text-sm font-medium text-gray-600">Verification:</span>
 
         <span
           className={cn(

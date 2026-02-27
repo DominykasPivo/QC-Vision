@@ -49,7 +49,7 @@ export function useTestFilters() {
   };
 
   const hasActiveFilters = Boolean(
-    statusFilter || testTypeFilter || assignedToFilter || dateRangeFilter
+    statusFilter || testTypeFilter || assignedToFilter || dateRangeFilter,
   );
 
   return {

@@ -18,7 +18,9 @@ export function ExistingPhotosGrid({
 
   return (
     <div>
-      <p className="mb-2 text-sm font-semibold text-gray-700">Existing photos</p>
+      <p className="mb-2 text-sm font-semibold text-gray-700">
+        Existing photos
+      </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {apiPhotos
           .filter((photo) => !photosToDelete.includes(photo.id.toString()))

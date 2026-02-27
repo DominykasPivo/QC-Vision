@@ -40,30 +40,40 @@ export function useGalleryFilters() {
 
   const hasActiveFilters = Boolean(
     severityFilter ||
-      categoryFilter ||
-      testTypeFilter ||
-      testStatusFilter ||
-      hasDefectsFilter ||
-      verificationFilter
+    categoryFilter ||
+    testTypeFilter ||
+    testStatusFilter ||
+    hasDefectsFilter ||
+    verificationFilter,
   );
 
   const hasAdvancedFilters = Boolean(
     severityFilter ||
-      categoryFilter ||
-      testTypeFilter ||
-      hasDefectsFilter ||
-      verificationFilter
+    categoryFilter ||
+    testTypeFilter ||
+    hasDefectsFilter ||
+    verificationFilter,
   );
 
   // Convert to API filter format - memoized to prevent unnecessary re-renders
-  const apiFilters = useMemo(() => ({
-    severity: severityFilter || undefined,
-    category_id: categoryFilter ? Number(categoryFilter) : undefined,
-    test_type: testTypeFilter || undefined,
-    test_status: testStatusFilter || undefined,
-    has_defects: hasDefectsFilter ? hasDefectsFilter === "true" : undefined,
-    verification_status: verificationFilter || undefined,
-  }), [severityFilter, categoryFilter, testTypeFilter, testStatusFilter, hasDefectsFilter, verificationFilter]);
+  const apiFilters = useMemo(
+    () => ({
+      severity: severityFilter || undefined,
+      category_id: categoryFilter ? Number(categoryFilter) : undefined,
+      test_type: testTypeFilter || undefined,
+      test_status: testStatusFilter || undefined,
+      has_defects: hasDefectsFilter ? hasDefectsFilter === "true" : undefined,
+      verification_status: verificationFilter || undefined,
+    }),
+    [
+      severityFilter,
+      categoryFilter,
+      testTypeFilter,
+      testStatusFilter,
+      hasDefectsFilter,
+      verificationFilter,
+    ],
+  );
 
   return {
     filters,

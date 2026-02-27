@@ -14,7 +14,9 @@ export function validateSelectedFiles(
   currentVisibleCount: number,
   pendingNewCount: number,
 ): ValidateResult {
-  const invalidTypeFiles = files.filter((file) => !file.type.startsWith("image/"));
+  const invalidTypeFiles = files.filter(
+    (file) => !file.type.startsWith("image/"),
+  );
   if (invalidTypeFiles.length > 0) {
     return { acceptedFiles: [], notice: "File must be an image", reject: true };
   }

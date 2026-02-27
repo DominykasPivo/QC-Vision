@@ -18,7 +18,7 @@ export interface PaginationResult<T> {
  */
 export function usePagination<T>(
   items: T[],
-  pageSize: number
+  pageSize: number,
 ): PaginationResult<T> {
   const [currentPage, setCurrentPage] = useState(1);
 

@@ -80,7 +80,7 @@ export function sortByIdDesc(a: SortableTest, b: SortableTest): number {
  */
 export function sortTests<T extends SortableTest>(
   tests: T[],
-  sortBy: SortOption
+  sortBy: SortOption,
 ): T[] {
   const sorted = [...tests];
 

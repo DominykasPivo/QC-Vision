@@ -27,7 +27,11 @@ export function PhotoPreviewCard({
     <div className={cardClassName}>
       <div className={imageWrapClassName}>
         {imageUrl ? (
-          <img src={imageUrl} alt={alt} className="h-full w-full object-cover" />
+          <img
+            src={imageUrl}
+            alt={alt}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-gray-500">
             {loadingText}

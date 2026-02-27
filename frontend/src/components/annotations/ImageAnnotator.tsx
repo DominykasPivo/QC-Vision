@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Stage,
-  Layer,
-  Image as KonvaImage,
-} from "react-konva";
+import { Stage, Layer, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
 import type {
   Annotation,

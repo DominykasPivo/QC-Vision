@@ -44,7 +44,7 @@ export function Gallery() {
   const { photos, loading, totalPages } = useGalleryData(
     apiFilters,
     currentPage,
-    PAGE_SIZE
+    PAGE_SIZE,
   );
 
   const handlePageReset = () => setCurrentPage(1);
@@ -59,7 +59,7 @@ export function Gallery() {
       className={cn(
         spacing.pageContainer,
         spacing.pageStack,
-        "max-w-none pb-24 md:pb-8"
+        "max-w-none pb-24 md:pb-8",
       )}
     >
       {/* Header */}

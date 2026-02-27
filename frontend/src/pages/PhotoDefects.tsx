@@ -282,9 +282,7 @@ export function PhotoDefects() {
               annotations={annotationsForImageAnnotator}
               currentTool={showCreate || isDrawingMode ? currentTool : "select"}
               onAnnotationCreate={
-                showCreate || isDrawingMode
-                  ? handleAnnotationCreate
-                  : undefined
+                showCreate || isDrawingMode ? handleAnnotationCreate : undefined
               }
               onAnnotationSelect={setSelectedAnnotation}
               onAnnotationUpdate={handleAnnotationUpdateWrapper}

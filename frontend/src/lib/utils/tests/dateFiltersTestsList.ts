@@ -1,6 +1,6 @@
 export function isInDateRange(
   deadlineAt: string | null,
-  dateRangeFilter: string
+  dateRangeFilter: string,
 ): boolean {
   if (!dateRangeFilter || !deadlineAt) return true;
 
@@ -25,11 +25,7 @@ export function isInDateRange(
     }
 
     case "this_month": {
-      const monthEnd = new Date(
-        today.getFullYear(),
-        today.getMonth() + 1,
-        0
-      );
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       return deadline >= today && deadline <= monthEnd;
     }
 
@@ -37,12 +33,12 @@ export function isInDateRange(
       const nextMonthStart = new Date(
         today.getFullYear(),
         today.getMonth() + 1,
-        1
+        1,
       );
       const nextMonthEnd = new Date(
         today.getFullYear(),
         today.getMonth() + 2,
-        0
+        0,
       );
       return deadline >= nextMonthStart && deadline <= nextMonthEnd;
     }

@@ -6,7 +6,11 @@ export const PAGE_SIZE = 20;
 
 export const NO_DEFECT_BORDER = "border-emerald-400 border";
 
-export const VERIFICATION_STATUSES = ["pending", "approved", "rejected"] as const;
+export const VERIFICATION_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+] as const;
 
 export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 
@@ -22,7 +26,10 @@ export const VERIFICATION_DOT: Record<string, { bg: string; title: string }> = {
 /**
  * Severity border and badge styles
  */
-export const SEVERITY_STYLES: Record<string, { border: string; badge: string }> = {
+export const SEVERITY_STYLES: Record<
+  string,
+  { border: string; badge: string }
+> = {
   critical: {
     border: "border-red-600 border-2",
     badge: "bg-red-200 text-red-900",

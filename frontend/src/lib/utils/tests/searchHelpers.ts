@@ -6,16 +6,15 @@
  * Tokenizes a search query into individual search terms
  */
 export function tokenizeSearchQuery(query: string): string[] {
-  return query
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  return query.toLowerCase().split(/\s+/).filter(Boolean);
 }
 
 /**
  * Creates a searchable string from test properties
  */
-export function createSearchableText(fields: (string | number | null)[]): string {
+export function createSearchableText(
+  fields: (string | number | null)[],
+): string {
   return fields
     .map((field) => (field != null ? String(field) : ""))
     .join(" ")
