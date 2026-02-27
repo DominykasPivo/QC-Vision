@@ -230,6 +230,7 @@ async def review_test(
             comment=payload.comment,
         )
 
+        # Best-effort audit logging (separate commit inside log_action)
         log_action(
             db,
             action="REVIEW",
@@ -244,10 +245,28 @@ async def review_test(
 
         return result
 
-    except HTTPException:
-        raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        msg = str(e)
+
+        # Map domain errors to HTTP status codes
+        if msg.lower() == "test not found":
+            raise HTTPException(status_code=404, detail=msg)
+
+        if msg.lower() in {
+            "invalid decision",
+            "decision must be approve/approved or reject/rejected",
+        }:
+            raise HTTPException(
+                status_code=400,
+                detail="Decision must be approve/approved or reject/rejected",
+            )
+
+        if msg.lower() == "test already reviewed":
+            raise HTTPException(status_code=400, detail=msg)
+
+        # Default fallback for other domain errors
+        raise HTTPException(status_code=400, detail=msg)
+
     except Exception as e:
         logger.exception("Review failed")
         raise HTTPException(status_code=500, detail=str(e))

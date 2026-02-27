@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import List, Optional, Tuple
 
-from fastapi import HTTPException
 from sqlalchemy import String as SAString
 from sqlalchemy import cast, or_
 from sqlalchemy.orm import Session
@@ -123,42 +122,31 @@ class TestsService:
     ):
         test = db.query(Tests).filter(Tests.id == test_id).first()
         if not test:
-            raise HTTPException(status_code=404, detail="Test not found")
+            raise ValueError("Test not found")
+
+        if getattr(test, "review_status", None) in ("approved", "rejected"):
+            raise ValueError("Test already reviewed")
 
         decision_norm = (decision or "").lower().strip()
 
         if decision_norm in ("approved", "approve"):
-            if hasattr(test, "review_status"):
-                test.review_status = "approved"  # type: ignore
-            if hasattr(test, "reviewed_by"):
-                test.reviewed_by = reviewer  # type: ignore
-            if hasattr(test, "reviewed_at"):
-                test.reviewed_at = datetime.utcnow()  # type: ignore
-            if hasattr(test, "review_comment"):
-                test.review_comment = comment  # type: ignore
+            test.review_status = "approved"  # type: ignore
+        elif decision_norm in ("rejected", "reject"):
+            test.review_status = "rejected"  # type: ignore
+        else:
+            raise ValueError("Invalid decision")
 
-            db.commit()
-            db.refresh(test)
-            return test
+        # common fields
+        if hasattr(test, "reviewed_by"):
+            test.reviewed_by = reviewer  # type: ignore
+        if hasattr(test, "reviewed_at"):
+            test.reviewed_at = datetime.utcnow()  # type: ignore
+        if hasattr(test, "review_comment"):
+            test.review_comment = comment  # type: ignore
 
-        if decision_norm in ("rejected", "reject"):
-            if hasattr(test, "review_status"):
-                test.review_status = "rejected"  # type: ignore
-            if hasattr(test, "reviewed_by"):
-                test.reviewed_by = reviewer  # type: ignore
-            if hasattr(test, "reviewed_at"):
-                test.reviewed_at = datetime.utcnow()  # type: ignore
-            if hasattr(test, "review_comment"):
-                test.review_comment = comment  # type: ignore
-
-            db.commit()
-            db.refresh(test)
-            return test
-
-        raise HTTPException(
-            status_code=400,
-            detail="Decision must be approve/approved or reject/rejected",
-        )
+        db.commit()
+        db.refresh(test)
+        return test
 
 
 tests_service = TestsService()
