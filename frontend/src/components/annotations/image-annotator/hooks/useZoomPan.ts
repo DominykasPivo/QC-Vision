@@ -31,9 +31,7 @@ type UseZoomPanReturn = {
 /**
  * Hook to manage zoom and pan state for the image annotator.
  */
-export function useZoomPan({
-  dimensions,
-}: UseZoomPanParams): UseZoomPanReturn {
+export function useZoomPan({ dimensions }: UseZoomPanParams): UseZoomPanReturn {
   const [scale, setScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);

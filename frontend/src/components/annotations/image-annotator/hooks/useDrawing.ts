@@ -1,5 +1,9 @@
 import { useState } from "react";
-import type { AnnotationGeometry, DrawingTool, Point } from "@/lib/annotation-types";
+import type {
+  AnnotationGeometry,
+  DrawingTool,
+  Point,
+} from "@/lib/annotation-types";
 import { buildGeometryFromDrawing } from "../renderShapes";
 
 type UseDrawingParams = {
