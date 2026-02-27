@@ -117,6 +117,10 @@ jobs:
           python-version: "3.13"
           cache: "pip"
 
+      - name: Clean up any existing MinIO container
+        run: |
+          docker rm -f minio || true
+
       - name: Start MinIO
         run: |
           docker run -d --name minio \
@@ -187,6 +191,10 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
+      - name: Clean up any existing MinIO container
+        run: |
+          docker rm -f minio || true
+
       - name: Start MinIO
         run: |
           docker run -d --name minio \
@@ -251,6 +259,10 @@ jobs:
           python-version: "3.13"
           cache: "pip"
 
+      - name: Clean up any existing MinIO container
+        run: |
+          docker rm -f minio || true
+
       - name: Start MinIO
         run: |
           docker run -d --name minio \
@@ -308,6 +320,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Clean up any existing containers
+        run: |
+          docker compose down -v || true
 
       - name: Create .env for CI (optional)
         run: |
