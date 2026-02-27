@@ -78,7 +78,7 @@ This phase focused on breaking down large page components (500-1,300 lines) into
 - `components/gallery/GalleryFiltersMobile.tsx` - Mobile filter controls
 - `components/gallery/ActiveFilterChips.tsx` - Active filter chips display
 
-### 3. TestsList.tsx
+### 3. TestsList.tsx _(subsequently consolidated — see Phase 3)_
 **Before:** 783 lines
 **After:** 153 lines
 **Reduction:** 80% (630 lines removed)
@@ -124,8 +124,8 @@ Same infrastructure as createtests.tsx - consolidated duplicates.
 
 ### 6. PhotoDefects.tsx
 **Before:** 1,353 lines
-**After:** 398 lines
-**Reduction:** 71% (955 lines removed)
+**After:** 421 lines
+**Reduction:** 69% (932 lines removed)
 
 **Created Files:**
 - `hooks/usePhotoDefects.ts` - Photo/defects loading with polling
@@ -167,6 +167,62 @@ Same infrastructure as createtests.tsx - consolidated duplicates.
 - ✅ Removed validation logic
 - ✅ Better separation of concerns
 
+
+## Frontend Refactoring — Phase 3: Deduplication & Annotation Extraction
+
+This phase resolved duplication from Phase 2, extracted the complex ImageAnnotator into a proper module, and cleaned up dead code.
+
+### 1. ImageAnnotator.tsx
+**Before:** 847 lines (monolithic) → **After:** 320 lines → **Reduction:** 62%
+
+Extracted into \:
+
+**Hooks (\):**
+- \ — Zoom & pan state, wheel handler, button zoom, constrain logic
+- \ — Touch pinch-to-zoom for mobile devices
+- \ — Drawing state machine (start/update/finish for all shape types)
+- \ — Image loading, aspect-ratio sizing, onLoad callback
+- \ — Delete/Backspace shortcut for selected annotation
+- \ — Barrel export
+
+**Components & utilities:**
+- \ — Zoom in / out / reset button bar
+- \ — Delete bar shown when an annotation is selected
+- \ — Pure render functions for all annotation geometry types
+- \ — Drag-end geometry recalculation per shape type
+- \ — getCursor() / getDefaultCursor() helpers
+- \ — MIN_SCALE, MAX_SCALE, ZOOM_BY
+
+**Bug fixed during extraction:**
+\ originally listed \ in its \ dependency array. Because \ is an inline arrow function in \, its reference changed on every render — causing the effect to re-run, reload the image from cache, call \, and silently reset zoom after every scroll interaction. Fixed by storing \ in a ref and removing it from the dependency array.
+
+### 2. AppShell.tsx
+**Before:** 431 lines → **After:** 304 lines → **Reduction:** 29%
+
+Extracted into \:
+- \ — Route definitions and nav link data
+- \ — Active-route detection helpers
+- \ — Sidebar collapse persistence (localStorage)
+
+### 3. UpdateTestModal & useTestUpdate Decomposition
+Broke apart the large UpdateTestModal and hook into focused sub-modules:
+
+**Created:**
+- \ — Shared base for photo-source selection modals
+- \ — Individual photo preview card with remove action
+- \ — Grid of already-saved test photos
+- \ — Grid of newly staged photos
+- \ — API calls isolated from hook state logic
+- \ — Photo validation logic for the update flow
+
+### 4. TestsList Consolidation & Cleanup
+Phase 2 TestsList created components and hooks that duplicated functionality already covered by generic hooks (\, \, \). These were consolidated and removed:
+
+**Deleted:**
+- - - - - - - - - - 
+### 5. Dead File Cleanup
+- \ — 1,352-line backup removed
+- \ — Moved from root \ into - \ — Consolidated from 
 ## Backend Refactoring
 
 ### 1. Photo Validation Module
@@ -323,21 +379,31 @@ Same infrastructure as createtests.tsx - consolidated duplicates.
 25. `components/photo-defects/PhotoDescriptionSection.tsx`
 ## Impact Summary
 
-### Phase 1 - Utility Extraction
+### Phase 1 — Utility Extraction
 - **Lines Extracted:** ~500 lines
-- **Modules Created:** 12 (8 frontend, 4 backend)
+- **Modules Created:** 8 frontend utility files, 4 backend modules
 
-### Phase 2 - Component Refactoring
-- **Total Lines Before:** 5,353 lines (across 6 page components)
-- **Total Lines After:** 1,186 lines
-- **Total Reduction:** 73% (4,167 lines removed)
-- **Modules Created:** 48 (16 hooks, 30 components, 2 constants)
+### Phase 2 — Component Breakdown
+| File | Before | After | Reduction |
+|---|---|---|---|
+| createtests.tsx | 623 | 182 | 71% |
+| Gallery.tsx | 648 | 145 | 78% |
+| TestDetails.tsx | 1,357 | 137 | 90% |
+| PhotoDefects.tsx | 1,353 | 421 | 69% |
+
+### Phase 3 — Deduplication & Annotation Module
+| File | Before | After | Reduction |
+|---|---|---|---|
+| ImageAnnotator.tsx | 847 | 320 | 62% |
+| AppShell.tsx | 431 | 304 | 29% |
+| TestsList + duplicates | ~1,200 | 0 (deleted) | 100% |
+| PhotoDefects-backup.tsx | 1,352 | 0 (deleted) | 100% |
 
 ### Combined Results
-- **Total New Files Created:** 60 files
-- **Total Lines Refactored:** ~5,800+ lines
-- **All Changes:** ✅ Maintain backward compatibility and existing functionality
-- **Compilation Status:** ✅ All files compile without errors
+- **Total Files Changed:** 86 files across all phases
+- **Net New Files Created:** ~60 files (accounting for 11 deletions)
+- **Dead Code Removed:** ~2,000 lines (backup file, duplicate components/hooks)
+- **Compilation Status:** ✅ All files compile without TypeScript errors
 
 ---
 

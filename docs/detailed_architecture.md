@@ -21,7 +21,6 @@ flowchart LR
         PHOTO["Photo Management"]
         DEFECT["Defect Documentation"]
         AUDIT["Audit & Review"]
-        USER["User Management"]
         AI["AI Recognition<br/>(Planned)"]
     end
 
@@ -38,7 +37,6 @@ flowchart LR
     REACT -->|"REST API Calls"| PHOTO
     REACT -->|"REST API Calls"| DEFECT
     REACT -->|"REST API Calls"| AUDIT
-    REACT -->|"REST API Calls"| USER
     REACT -.->|"Polling<br/>15-30s intervals"| TEST
     REACT -.->|"Polling<br/>30s intervals"| PHOTO
     REACT -.->|"Polling<br/>15s intervals"| DEFECT
@@ -49,13 +47,12 @@ flowchart LR
     PHOTO -->|"Photo Metadata"| DB
     DEFECT -->|"CRUD Defects"| DB
     AUDIT -->|"Store Logs"| DB
-    USER -->|"CRUD Users"| DB
     AI -.->|"(Planned)"| DB
 
     NOCODB -->|"Admin Access"| DB
 ```
 
-For a clearer architecture diagram, use draw.io [here](https://drive.google.com/file/d/15YkJcZwWqBhIJU4S3FyBjxDVHXOc-Kmm/view?usp=sharing)
+For a clearer architecture diagram, use draw.io [here](https://drive.google.com/file/d/1yf6ZdC9EsYAq-5z0M07F4YPJVQh-IzYI/view?usp=sharing)
 
 ## Overview
 
@@ -161,12 +158,10 @@ All modules run within a single FastAPI application, providing:
 **Security & Middleware:**
 - `require_reviewer()` dependency for protected endpoints
 - Custom audit middleware for automatic logging
-- CORS middlewaacross multiple pages (15-30 second intervals when tab is visible)
-- Window focus event refresh for defects (TestDetails page)
-- Page-specific polling implementation
+- CORS middleware for cross-origin requests
 
 **Real-Time Updates:**
-- HTTP polling for tests only (30-second intervals when tab is visible)
+- HTTP polling across multiple pages (15-30 second intervals when tab is visible)
 - Window focus event refresh for defects (TestDetails page)
 - See "Real-Time Updates" section for details
 
@@ -321,7 +316,7 @@ Any API Request → Custom Middleware Intercepts
 - `GET /{photo_id}/image` - Stream photo image
 - `PATCH /{photo_id}` - Update photo details
 - `DELETE /{photo_id}` - Delete photo
-- `POST /{photo_id}/verify` - Verify photo (reviewer only)
+- `PATCH /{photo_id}/verification` - Update photo verification status (reviewer only)
 - `GET /gallery` - Get paginated gallery with filters
   - Query params: page, page_size, severity, category_id, test_type, test_status, has_defects, verification_status
 
@@ -335,13 +330,13 @@ Any API Request → Custom Middleware Intercepts
 - `DELETE /{defect_id}` - Delete defect
 - `POST /{defect_id}/review` - Submit defect review (reviewer only)
 - `POST /{defect_id}/annotations` - Add annotation to defect
-- `PATCH /annotations/{annotation_id}` - Update annotation
+- `PUT /annotations/{annotation_id}` - Update annotation
 - `DELETE /annotations/{annotation_id}` - Delete annotation
 
 ### Audit Log (`/api/v1/audit`)
 
 - `GET /logs` - Get audit logs (paginated)
-  - Query params: page, page_size, action, entity_type, entity_id, username, created_from, created_to, clear_filters
+  - Query params: limit, offset, action, entity_type, entity_id, username, created_from, created_to, clear_filters
 - `GET /logs/{log_id}` - Get specific audit log entry
 - `GET /tests/{test_id}/activity` - Get activity history for a test
   - Query params: user_actions_only, limit, offset
@@ -528,63 +523,13 @@ useEffect(() => {
 
 ## Docker Containers
 
-| Implemented Polling Patterns:**
-
-1. **Global Test Polling (AppShell.tsx):**
-   ```typescript
-   const POLL_MS = 30_000;
-   const id = setInterval(() => {
-     if (!document.hidden) {
-       refreshTests(); // Fetches /api/v1/tests/?limit=100
-     }
-   }, POLL_MS);
-   ```
-
-2. **Page-Specific Polling:**
-   - **PhotoDefects.tsx**: 15-second interval for defects and photo data
-   - **Gallery.tsx**: 30-second interval for gallery photos
-   - **AuditLog.tsx**: 30-second interval for audit events (respects filters)
-   - **Review.tsx**: 30-second interval for pending tests
-
-3. **Focus-Based Refresh (TestDetails.tsx):**
-   ```typescript
-   window.addEventListener('focus', refetchDefects);
-   // Refreshes defects when tab gains focus
-   ```
-
-**Design Decisions:**
-- **15s interval** for active work (defect annotation) - prioritizes collaboration
-- **30s interval** for monitoring (tests, gallery, audit, review) - balances freshness with load
-- Polling only occurs when browser tab is visible
-- Prevents unnecessary network traffic from background tabs
-- All intervals properly cleaned up on component unmount
-- Audit log polling re-initializes when filters change to respect new filter state
-
-**Server Load Optimization:**
-- Only visible tabs poll data
-- Longer intervals (30s) for less critical data
-- Shorter intervals (15s) only where real-time collaboration matters most
-- Focus events provide instant updates without continuous polling
-
-**Future Improvements:**
-- Implement WebSocket for push-based updates
-- Add optimistic UI updates for better UX
-- Consider server-sent events (SSE) as middle ground
-window.addEventListener('focus', refetchDefects);
-// Refetches defects for current photo when tab gains focus
-```
-
-**Design Decisions:**
-- Test polling only occurs when browser tab is visible
-- Prevents unnecessary network traffic from background tabs
-- 30-second interval balances freshness with server load
-- Window focus events provide instant defect updates on tab switch
-- Photos, gallery, and audit logs require manual refresh
-
-**Future Improvements:**
-- Extend polling to photos and audit logs
-- Implement WebSocket for true real-time updates across all entities
-- Add optimistic UI updates for better UX
+| Container | Image | Port(s) | Purpose |
+|-----------|-------|---------|---------|
+| postgres | postgres:15 | 5432 | PostgreSQL database |
+| minio | minio/minio | 9000, 9001 | Object storage (S3-compatible) |
+| backend | (custom build) | 8000 | FastAPI application server |
+| frontend | (custom build) | 3000 | Vite dev server / React SPA |
+| nocodb | nocodb/nocodb | 8080 | Database admin UI |
 
 ## Key Features & Implementation Details
 

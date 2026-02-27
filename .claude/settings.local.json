@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log --oneline develop --not codex/frontend-refactor-dup-cleanup)",
+      "Bash(\"C:\\\\Users\\\\Dominykas\\\\OneDrive\\\\Documents\\\\GitHub\\\\QC-Vision\\\\REFACTORING_SUMMARY.md\":*)",
+      "Bash(python3 -:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python3 /dev/stdin:*)"
+    ]
+  }
+}

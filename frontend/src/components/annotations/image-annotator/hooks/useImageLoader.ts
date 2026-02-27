@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type UseImageLoaderParams = {
   imageUrl: string;
@@ -22,6 +22,8 @@ export function useImageLoader({
 }: UseImageLoaderParams): UseImageLoaderReturn {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const onLoadRef = useRef(onLoad);
+  onLoadRef.current = onLoad;
 
   useEffect(() => {
     const img = new window.Image();
@@ -35,10 +37,10 @@ export function useImageLoader({
         const height = width * aspectRatio;
         setDimensions({ width, height });
       }
-      onLoad?.();
+      onLoadRef.current?.();
     };
     img.src = imageUrl;
-  }, [imageUrl, containerRef, onLoad]);
+  }, [imageUrl, containerRef]);
 
   return { image, dimensions };
 }

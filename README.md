@@ -49,6 +49,14 @@ docker compose up --build -d
 
 ### 3. Access the Application
 
+**Hosted (no setup required):**
+
+| Service | URL |
+|---------|-----|
+| **QC Vision App** | https://qcvision.dpdns.org/tests |
+
+**Local development:**
+
 | Service | URL | Description |
 |---------|-----|-------------|
 | **Frontend** | http://localhost:3000 | Main web application |
@@ -111,23 +119,36 @@ QC-Vision/
 │   └── src/
 │       ├── App.tsx         # React application
 │       ├── routes.tsx      # Route configuration
-│       ├── api/            # API client
+│       ├── hooks/          # Custom React hooks
 │       ├── components/     # React components
-│       │   ├── annotations/
-│       │   ├── layout/
-│       │   └── ui/
-│       ├── lib/            # Utilities and types
-│       ├── mock/           # Mock data
-│       └── pages/          # Page components
+│       │   ├── annotations/    # Defect annotation canvas
+│       │   ├── common/         # Shared UI components
+│       │   ├── gallery/        # Gallery-specific components
+│       │   ├── layout/         # AppShell, navigation
+│       │   ├── photo-defects/  # Photo defect components
+│       │   ├── tests/          # Test list/card components
+│       │   └── ui/             # Base Radix UI primitives
+│       ├── lib/            # Utilities and helpers
+│       │   ├── api/            # API client functions
+│       │   ├── constants/      # App-wide constants
+│       │   ├── forms/          # Form helpers
+│       │   ├── utils/          # General utilities
+│       │   └── validation/     # Form validation
+│       └── pages/          # Route-level page components
 ├── database/
 │   ├── init.sql            # Database schema
 │   ├── demo.sql            # Demo data
 │   └── tests.sql           # Test data
+├── scripts/
+│   ├── seed_tests.py       # API seed: create test records
+│   ├── seed_photos.py      # API seed: upload placeholder photos
+│   └── seed_defects.py     # API seed: create defects + annotations
 └── docs/
     ├── API-spec.md
     ├── detailed_architecture.md
-    ├── sprint-1-plan.md
-    └── diagrams/
+    ├── DESIGN_PATTERNS.md
+    ├── diagrams/
+    └── sprints-info/
 ```
 
 ## Architecture
@@ -153,7 +174,7 @@ QC-Vision/
 | Container | Port | Purpose |
 |-----------|------|---------|
 | `qc_vision_frontend` | 3000 | Vite dev server (React SPA) |
-| `qc_vision_backend` | 8000 | FastAPI REST + WebSocket |
+| `qc_vision_backend` | 8000 | FastAPI REST API |
 | `qc_vision_postgres` | 5432 | PostgreSQL database |
 | `qc_vision_minio` | 9000, 9001 | Object storage (photos) |
 | `qc_vision_nocodb` | 8080 | Database admin UI |
@@ -265,6 +286,26 @@ docker compose exec postgres psql -U qc_user -d qc_vision
 
 # Exit
 \q
+```
+
+### Database Seeding
+
+Seed scripts call the running backend API. Run them in order — tests → photos → defects.
+
+**Requirements:** `pip install requests Pillow`
+
+**Windows (PowerShell):**
+```powershell
+python scripts\seed_tests.py
+python scripts\seed_photos.py
+python scripts\seed_defects.py
+```
+
+**Linux / macOS:**
+```bash
+python scripts/seed_tests.py
+python scripts/seed_photos.py
+python scripts/seed_defects.py
 ```
 
 ## Environment Variables
