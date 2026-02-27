@@ -10,7 +10,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app
+      - ./frontend:/app:Z
       - /app/node_modules
     networks:
       - qc-network
@@ -74,7 +74,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:Z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qc_user} -d ${POSTGRES_DB:-qc_vision}"]
       interval: 10s
