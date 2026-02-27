@@ -54,19 +54,20 @@ repos:
 
   # -----------------------
   # Frontend: auto-fix + checks
+  # Universal: works with local npm OR Docker
   # -----------------------
   - repo: local
     hooks:
       - id: frontend-prettier-write
         name: "Frontend: prettier (write)"
-        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run format:write"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { cd frontend; npm run format:write } else { docker compose exec -T frontend npm run format:write }"
         language: system
         pass_filenames: false
         stages: [pre-commit]
 
       - id: frontend-eslint
         name: "Frontend: eslint"
-        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run lint"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { cd frontend; npm run lint } else { docker compose exec -T frontend npm run lint }"
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -74,28 +75,28 @@ repos:
       # Manual parity checks (run when you want, same as CI jobs)
       - id: frontend-prettier-check
         name: "Frontend: prettier (check)"
-        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run format:check"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { cd frontend; npm run format:check } else { docker compose exec -T frontend npm run format:check }"
         language: system
         pass_filenames: false
         stages: [manual]
 
       - id: frontend-tsc
         name: "Frontend: TypeScript (tsc --noEmit)"
-        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npx tsc --noEmit"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { cd frontend; npx tsc --noEmit } else { docker compose exec -T frontend npx tsc --noEmit }"
         language: system
         pass_filenames: false
         stages: [manual]
 
       - id: frontend-build
         name: "Frontend: build"
-        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run build"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { cd frontend; npm run build } else { docker compose exec -T frontend npm run build }"
         language: system
         pass_filenames: false
         stages: [manual]
 
       - id: frontend-spacing
         name: "Frontend: spacing lint"
-        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "cd frontend; npm run lint:spacing"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { cd frontend; npm run lint:spacing } else { docker compose exec -T frontend npm run lint:spacing }"
         language: system
         pass_filenames: false
         stages: [manual]

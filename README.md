@@ -332,6 +332,31 @@ cat ./database/tests.sql | docker compose exec -T postgres psql -U qc_user -d qc
 
 This project uses a GitHub Actions CI pipeline to enforce code quality and run automated tests on every push and pull request.
 
+## Donwloading everything needed for testing:
+# Backend setup
+```bash
+cd backend
+python -m venv venv
+
+# Activate venv:
+
+# Windows:
+venv\Scripts\Activate.ps1
+
+# macOS/Linux:
+venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Frontend setup
+cd ../frontend
+npm install
+
+# Enable pre-commit
+cd ../backend
+pre-commit install
+
 ### Local Backend Testing
 
 From the `backend/` directory:

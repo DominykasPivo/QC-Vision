@@ -129,7 +129,6 @@ def mock_photo_storage(monkeypatch):
     monkeypatch.setattr(_photos_router_mod, "photo_storage", mock)
     monkeypatch.setattr(_tests_service_mod, "photo_storage", mock)
     monkeypatch.setattr(_tests_cleanup_utils_mod, "photo_storage", mock)
-    # photo_service holds its own PhotoStorage instance – replace directly
     _photos_service_mod.photo_service.storage = mock
     return mock
 
