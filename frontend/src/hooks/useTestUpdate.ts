@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { type ApiPhoto } from "./useTestDetailPhotos";
 import { usePhotoPreview } from "./usePhotoPreview";
 import { MAX_TOTAL_PHOTOS } from "@/lib/constants/testDetailsConstants";
@@ -115,9 +115,7 @@ export function useTestUpdate({
       MAX_TOTAL_PHOTOS - currentPhotoCount - newPhotos.length,
     );
     if (remaining <= 0) {
-      setPhotoNotice(
-        `You can upload up to ${MAX_TOTAL_PHOTOS} photos total.`,
-      );
+      setPhotoNotice(`You can upload up to ${MAX_TOTAL_PHOTOS} photos total.`);
       e.target.value = "";
       return;
     }

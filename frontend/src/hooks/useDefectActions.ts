@@ -9,7 +9,10 @@ import {
   type DefectPayload,
   type DefectRecord,
 } from "@/lib/api/defects";
-import { validateDefectForm, type DefectFormState } from "@/lib/forms/defect-form";
+import {
+  validateDefectForm,
+  type DefectFormState,
+} from "@/lib/forms/defect-form";
 import type { AnnotationGeometry } from "@/lib/annotation-types";
 
 interface UseDefectActionsParams {
@@ -164,7 +167,9 @@ export function useDefectActions({
     }
   };
 
-  const handleAnnotationDeletePermanent = async (annotationId: number): Promise<void> => {
+  const handleAnnotationDeletePermanent = async (
+    annotationId: number,
+  ): Promise<void> => {
     if (annotationId < 0) {
       // Handled by local form state
       return;

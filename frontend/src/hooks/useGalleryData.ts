@@ -11,7 +11,7 @@ import {
 export function useGalleryData(
   filters: APIFilters,
   page: number,
-  pageSize: number
+  pageSize: number,
 ) {
   const [galleryData, setGalleryData] = useState<GalleryResponse | null>(null);
   const [loading, setLoading] = useState(true);

@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-  TEXT_INPUT_CLASS,
-} from "@/lib/constants/photoDefectsConstants";
+import { TEXT_INPUT_CLASS } from "@/lib/constants/photoDefectsConstants";
 
 interface PhotoDescriptionSectionProps {
   description: string | null | undefined;
@@ -54,7 +52,12 @@ export function PhotoDescriptionSection({
             disabled={isSaving}
           />
           <div className="flex gap-2">
-            <Button type="button" size="sm" onClick={onSave} disabled={isSaving}>
+            <Button
+              type="button"
+              size="sm"
+              onClick={onSave}
+              disabled={isSaving}
+            >
               Save
             </Button>
             <Button

@@ -3,10 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
 import type { DefectRecord } from "@/lib/api/defects";
-import {
-  DEFECT_CATEGORIES,
-  formatEnumLabel,
-} from "@/lib/db-constants";
+import { DEFECT_CATEGORIES, formatEnumLabel } from "@/lib/db-constants";
 import { formatTimestamp } from "@/lib/utils/date-formatting";
 
 interface DefectsListProps {
@@ -90,7 +87,8 @@ export function DefectsList({
                         {categoryLabel}
                       </div>
                       <div className="text-xs text-slate-500 md:text-sm">
-                        Created {formatTimestamp(defect.created_at ?? defect.createdAt)}
+                        Created{" "}
+                        {formatTimestamp(defect.created_at ?? defect.createdAt)}
                       </div>
                     </div>
                     <span

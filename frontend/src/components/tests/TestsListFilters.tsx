@@ -6,12 +6,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { formatEnumLabel, TEST_STATUSES, TEST_TYPES } from "@/lib/db-constants";
 import {
-  formatEnumLabel,
-  TEST_STATUSES,
-  TEST_TYPES,
-} from "@/lib/db-constants";
-import { SORT_OPTIONS, DATE_RANGE_OPTIONS } from "@/lib/constants/testsListConstants";
+  SORT_OPTIONS,
+  DATE_RANGE_OPTIONS,
+} from "@/lib/constants/testsListConstants";
 
 interface TestsListFiltersProps {
   statusFilter: string;
@@ -40,10 +39,11 @@ export function TestsListFilters({
   onSortByChange,
   onPageReset,
 }: TestsListFiltersProps) {
-  const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
-    setter(value === "all" ? "" : value);
-    onPageReset();
-  };
+  const handleFilterChange =
+    (setter: (value: string) => void) => (value: string) => {
+      setter(value === "all" ? "" : value);
+      onPageReset();
+    };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onAssignedToChange(e.target.value);
@@ -55,7 +55,10 @@ export function TestsListFilters({
 
   return (
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-      <Select value={statusFilter || "all"} onValueChange={handleFilterChange(onStatusChange)}>
+      <Select
+        value={statusFilter || "all"}
+        onValueChange={handleFilterChange(onStatusChange)}
+      >
         <SelectTrigger className={triggerCls}>
           <SelectValue placeholder="Status" />
         </SelectTrigger>
@@ -69,7 +72,10 @@ export function TestsListFilters({
         </SelectContent>
       </Select>
 
-      <Select value={testTypeFilter || "all"} onValueChange={handleFilterChange(onTestTypeChange)}>
+      <Select
+        value={testTypeFilter || "all"}
+        onValueChange={handleFilterChange(onTestTypeChange)}
+      >
         <SelectTrigger className={triggerCls}>
           <SelectValue placeholder="Test Type" />
         </SelectTrigger>
@@ -91,7 +97,10 @@ export function TestsListFilters({
         onChange={handleInputChange}
       />
 
-      <Select value={dateRangeFilter || "all"} onValueChange={handleFilterChange(onDateRangeChange)}>
+      <Select
+        value={dateRangeFilter || "all"}
+        onValueChange={handleFilterChange(onDateRangeChange)}
+      >
         <SelectTrigger className={triggerCls}>
           <SelectValue placeholder="Deadline" />
         </SelectTrigger>

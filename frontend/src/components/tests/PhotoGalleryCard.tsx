@@ -14,10 +14,7 @@ export function PhotoGalleryCard({ photos }: PhotoGalleryCardProps) {
     <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader className="flex-row items-center justify-between border-b border-slate-100 px-8 py-6">
         <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-          <MaterialIcon
-            name="photo_library"
-            className="text-[#2563eb]"
-          />
+          <MaterialIcon name="photo_library" className="text-[#2563eb]" />
           Photos
         </CardTitle>
         <Badge
@@ -69,8 +66,7 @@ export function PhotoGalleryCard({ photos }: PhotoGalleryCardProps) {
                         <span
                           className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
                           title={
-                            VERIFICATION_DOT[photo.verification_status]
-                              .title
+                            VERIFICATION_DOT[photo.verification_status].title
                           }
                         />
                       )}

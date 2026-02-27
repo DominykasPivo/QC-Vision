@@ -14,7 +14,6 @@ interface TestsSearchBarProps {
 export function TestsSearchBar({
   searchInput,
   onSearchInputChange,
-  onSearchSubmit,
   onOpenFilters,
   onClearSearch,
 }: TestsSearchBarProps) {

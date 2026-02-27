@@ -27,9 +27,7 @@ export function PhotoSourceModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h4 className="text-xl font-bold text-[#111827]">Add Photos</h4>
-        <p className="mt-1 text-sm text-gray-600">
-          Choose how to add photos:
-        </p>
+        <p className="mt-1 text-sm text-gray-600">Choose how to add photos:</p>
         <div className="mt-5 flex flex-col gap-2.5">
           <Button
             type="button"

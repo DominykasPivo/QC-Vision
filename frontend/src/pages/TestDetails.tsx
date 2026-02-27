@@ -143,9 +143,7 @@ export function TestDetails() {
         show={showPhotoModal}
         onClose={() => setShowPhotoModal(false)}
         onCameraClick={() => document.getElementById("camera-input")?.click()}
-        onGalleryClick={() =>
-          document.getElementById("gallery-input")?.click()
-        }
+        onGalleryClick={() => document.getElementById("gallery-input")?.click()}
       />
     </div>
   );

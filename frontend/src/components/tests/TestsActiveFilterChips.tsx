@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { formatEnumLabel, type TestStatus } from "@/lib/db-constants";
-import { STATUS_FILTER_CHIP_CLASS, DEFAULT_SORT } from "@/lib/constants/testsListConstants";
+import {
+  STATUS_FILTER_CHIP_CLASS,
+  DEFAULT_SORT,
+} from "@/lib/constants/testsListConstants";
 
 interface TestsActiveFilterChipsProps {
   searchQuery: string;
@@ -23,7 +26,9 @@ export function TestsActiveFilterChips({
 }: TestsActiveFilterChipsProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-sm font-semibold text-slate-600">Active filters:</span>
+      <span className="text-sm font-semibold text-slate-600">
+        Active filters:
+      </span>
 
       {searchQuery && (
         <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">

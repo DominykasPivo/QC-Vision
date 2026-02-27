@@ -5,7 +5,10 @@ import { cn } from "@/lib/utils";
 import { formatEnumLabel, type Test } from "@/lib/db-constants";
 import { MaterialIcon } from "./MaterialIcon";
 import { InfoItem } from "./InfoItem";
-import { formatDateOnly, formatFieldValue } from "@/lib/utils/tests/formatTestDates";
+import {
+  formatDateOnly,
+  formatFieldValue,
+} from "@/lib/utils/tests/formatTestDates";
 
 interface TestInformationCardProps {
   test: Test;
@@ -37,10 +40,7 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
           <InfoItem label="Test ID" value={String(test.id)} />
           <InfoItem label="Jira ID" value={jiraIdLabel} />
           <InfoItem label="Product Name" value={productNameLabel} />
-          <InfoItem
-            label="Test Type"
-            value={formatEnumLabel(test.testType)}
-          />
+          <InfoItem label="Test Type" value={formatEnumLabel(test.testType)} />
           <InfoItem label="Requester" value={requesterLabel} />
           <InfoItem
             label="Assigned To"
@@ -71,9 +71,7 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
           <p
             className={cn(
               "text-xl",
-              hasDescription
-                ? "italic text-slate-700"
-                : "text-slate-400",
+              hasDescription ? "italic text-slate-700" : "text-slate-400",
             )}
           >
             {hasDescription
@@ -136,9 +134,7 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
               <p className="mb-2 text-sm font-bold uppercase tracking-widest text-slate-500">
                 Review Comment
               </p>
-              <p className="italic text-slate-700">
-                "{test.review_comment}"
-              </p>
+              <p className="italic text-slate-700">"{test.review_comment}"</p>
             </div>
           )}
         </div>

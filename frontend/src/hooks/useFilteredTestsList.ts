@@ -15,7 +15,7 @@ interface FilterOptions {
 export function useFilteredTestsList(
   tests: Test[],
   searchQuery: string,
-  filters: FilterOptions
+  filters: FilterOptions,
 ) {
   const { status, testType, assignedTo, dateRange, sortBy } = filters;
 

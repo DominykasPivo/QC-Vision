@@ -8,12 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatEnumLabel, TEST_STATUSES, TEST_TYPES } from "@/lib/db-constants";
 import {
-  formatEnumLabel,
-  TEST_STATUSES,
-  TEST_TYPES,
-} from "@/lib/db-constants";
-import { SORT_OPTIONS, DATE_RANGE_OPTIONS } from "@/lib/constants/testsListConstants";
+  SORT_OPTIONS,
+  DATE_RANGE_OPTIONS,
+} from "@/lib/constants/testsListConstants";
 
 interface TestsListFiltersMobileProps {
   isOpen: boolean;
@@ -48,10 +47,11 @@ export function TestsListFiltersMobile({
 }: TestsListFiltersMobileProps) {
   if (!isOpen) return null;
 
-  const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
-    setter(value === "all" ? "" : value);
-    onPageReset();
-  };
+  const handleFilterChange =
+    (setter: (value: string) => void) => (value: string) => {
+      setter(value === "all" ? "" : value);
+      onPageReset();
+    };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onAssignedToChange(e.target.value);
@@ -174,7 +174,10 @@ export function TestsListFiltersMobile({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                   Sort
                 </p>
-                <Select value={sortBy} onValueChange={handleFilterChange(onSortByChange)}>
+                <Select
+                  value={sortBy}
+                  onValueChange={handleFilterChange(onSortByChange)}
+                >
                   <SelectTrigger className={triggerCls}>
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>

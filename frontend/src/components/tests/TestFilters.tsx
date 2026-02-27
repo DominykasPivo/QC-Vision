@@ -48,7 +48,7 @@ export function TestFilters({
 }: TestFiltersProps) {
   const handleFilterChange = (
     filterSetter: (value: string) => void,
-    value: string
+    value: string,
   ): void => {
     const actualValue = value === "all" ? "" : value;
     filterSetter(actualValue);

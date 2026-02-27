@@ -39,7 +39,6 @@ export function PhotoDefects() {
   const {
     isSaving: photoSaving,
     actionError: photoActionError,
-    setActionError: setPhotoActionError,
     isEditingDescription,
     descriptionText,
     setDescriptionText,
@@ -76,7 +75,6 @@ export function PhotoDefects() {
   const {
     isSaving: defectSaving,
     actionError: defectActionError,
-    setActionError: setDefectActionError,
     deletingDefect,
     setDeletingDefect,
     handleCreate,
@@ -101,10 +99,6 @@ export function PhotoDefects() {
 
   const isSaving = photoSaving || defectSaving;
   const actionError = photoActionError || defectActionError;
-  const setActionError = (error: string | null) => {
-    setPhotoActionError(error);
-    setDefectActionError(error);
-  };
 
   const isApproved = photo?.verification_status === "approved";
   const isRejected = photo?.verification_status === "rejected";
@@ -143,14 +137,16 @@ export function PhotoDefects() {
 
   const handleAnnotationUpdateWrapper = async (
     annotationId: number,
-    geometry: any,
+    geometry: unknown,
   ) => {
+    const g = geometry as Annotation["geometry"];
+
     if (annotationId < 0) {
       const index = -annotationId - 1;
-      handleAnnotationUpdateLocal(index, geometry);
+      handleAnnotationUpdateLocal(index, g);
       return;
     }
-    await handleAnnotationUpdate(annotationId, geometry);
+    await handleAnnotationUpdate(annotationId, g);
   };
 
   const handleEditToggleDrawMode = () => {
@@ -288,9 +284,7 @@ export function PhotoDefects() {
               annotations={annotationsForImageAnnotator}
               currentTool={showCreate || isDrawingMode ? currentTool : "select"}
               onAnnotationCreate={
-                showCreate || isDrawingMode
-                  ? handleAnnotationCreate
-                  : undefined
+                showCreate || isDrawingMode ? handleAnnotationCreate : undefined
               }
               onAnnotationSelect={setSelectedAnnotation}
               onAnnotationUpdate={handleAnnotationUpdateWrapper}

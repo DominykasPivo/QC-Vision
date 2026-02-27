@@ -58,7 +58,7 @@ export function GalleryFiltersMobile({
 }: GalleryFiltersMobileProps) {
   const handleFilterChange = (
     filterSetter: (value: string) => void,
-    value: string
+    value: string,
   ): void => {
     const actualValue = value === "all" ? "" : value;
     filterSetter(actualValue);
@@ -94,7 +94,7 @@ export function GalleryFiltersMobile({
             "h-11 w-11 shrink-0 rounded-full border bg-white p-0 shadow-sm",
             hasAdvancedFilters
               ? "border-[#BFD2F8] bg-[#EAF1FF] text-[#1D4ED8]"
-              : "border-[#CFD8E3] text-[#64748B]"
+              : "border-[#CFD8E3] text-[#64748B]",
           )}
           aria-label="Open advanced filters"
           onClick={() => !isOpen && onClose()}
@@ -144,7 +144,9 @@ export function GalleryFiltersMobile({
                   </p>
                   <Select
                     value={severityFilter || "all"}
-                    onValueChange={(v) => handleFilterChange(onSeverityChange, v)}
+                    onValueChange={(v) =>
+                      handleFilterChange(onSeverityChange, v)
+                    }
                   >
                     <SelectTrigger className={MOBILE_TRIGGER_CLS}>
                       <SelectValue placeholder="Severity" />
@@ -167,7 +169,9 @@ export function GalleryFiltersMobile({
                   </p>
                   <Select
                     value={categoryFilter || "all"}
-                    onValueChange={(v) => handleFilterChange(onCategoryChange, v)}
+                    onValueChange={(v) =>
+                      handleFilterChange(onCategoryChange, v)
+                    }
                   >
                     <SelectTrigger className={MOBILE_TRIGGER_CLS}>
                       <SelectValue placeholder="Category" />
@@ -190,7 +194,9 @@ export function GalleryFiltersMobile({
                   </p>
                   <Select
                     value={testTypeFilter || "all"}
-                    onValueChange={(v) => handleFilterChange(onTestTypeChange, v)}
+                    onValueChange={(v) =>
+                      handleFilterChange(onTestTypeChange, v)
+                    }
                   >
                     <SelectTrigger className={MOBILE_TRIGGER_CLS}>
                       <SelectValue placeholder="Test Type" />
@@ -213,7 +219,9 @@ export function GalleryFiltersMobile({
                   </p>
                   <Select
                     value={hasDefectsFilter || "all"}
-                    onValueChange={(v) => handleFilterChange(onHasDefectsChange, v)}
+                    onValueChange={(v) =>
+                      handleFilterChange(onHasDefectsChange, v)
+                    }
                   >
                     <SelectTrigger className={MOBILE_TRIGGER_CLS}>
                       <SelectValue placeholder="Defects" />
@@ -233,7 +241,9 @@ export function GalleryFiltersMobile({
                   </p>
                   <Select
                     value={verificationFilter || "all"}
-                    onValueChange={(v) => handleFilterChange(onVerificationChange, v)}
+                    onValueChange={(v) =>
+                      handleFilterChange(onVerificationChange, v)
+                    }
                   >
                     <SelectTrigger className={MOBILE_TRIGGER_CLS}>
                       <SelectValue placeholder="Verification" />

@@ -24,8 +24,13 @@ export function TestsList() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Search management
-  const { searchInput, searchQuery, setSearchInput, setSearchQuery, handleSearchSubmit, clearSearch } =
-    useTestSearch();
+  const {
+    searchInput,
+    searchQuery,
+    setSearchInput,
+    handleSearchSubmit,
+    clearSearch,
+  } = useTestSearch();
 
   // Filter management
   const {
@@ -43,7 +48,10 @@ export function TestsList() {
   const filteredTests = useFilteredTestsList(tests, searchQuery, filters);
 
   // Pagination
-  const { currentPage, setCurrentPage } = usePagination(filteredTests, PAGE_SIZE);
+  const { currentPage, setCurrentPage } = usePagination(
+    filteredTests,
+    PAGE_SIZE,
+  );
 
   const totalPages = Math.max(1, Math.ceil(filteredTests.length / PAGE_SIZE));
 

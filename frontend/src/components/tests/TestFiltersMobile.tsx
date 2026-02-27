@@ -57,7 +57,7 @@ export function TestFiltersMobile({
 }: TestFiltersMobileProps) {
   const handleFilterChange = (
     filterSetter: (value: string) => void,
-    value: string
+    value: string,
   ): void => {
     const actualValue = value === "all" ? "" : value;
     filterSetter(actualValue);
@@ -93,7 +93,7 @@ export function TestFiltersMobile({
             "h-11 w-11 shrink-0 rounded-full border bg-white p-0 shadow-sm",
             hasAdvancedFilters
               ? "border-[#BFD2F8] bg-[#EAF1FF] text-[#1D4ED8]"
-              : "border-[#CFD8E3] text-[#64748B]"
+              : "border-[#CFD8E3] text-[#64748B]",
           )}
           aria-label="Open advanced filters"
           onClick={() => !isOpen && onClose()}
