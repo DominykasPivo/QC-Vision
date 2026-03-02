@@ -21,13 +21,25 @@ from app.modules.photos.service import photo_service
 from app.security import require_reviewer
 
 from .models import Tests
-from .schemas import TestCreate, TestListResponse, TestResponse, TestReviewRequest
+from .schemas import (
+    ColorResponse,
+    TestCreate,
+    TestListResponse,
+    TestResponse,
+    TestReviewRequest,
+)
 from .service import tests_service
 
 logger = logging.getLogger("backend_tests_router")
 
 # ✅ Correct prefix so tests hit /api/v1/tests/...
 router = APIRouter(prefix="/tests", tags=["tests"])
+
+
+@router.get("/colors", response_model=List[ColorResponse])
+async def list_colors(db: Session = Depends(get_db)):
+    """Get all active colors."""
+    return await tests_service.list_colors(db)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -39,6 +51,7 @@ async def create_test(
     requester: str = Form(...),
     assignedTo: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
+    colorIds: List[int] = Form(default=[]),
     status_field: str = Form("pending", alias="status"),
     deadlineAt: Optional[str] = Form(None),
     photos: List[UploadFile] = File(default=[]),
@@ -79,6 +92,7 @@ async def create_test(
             requester=requester,
             assigned_to=assignedTo,
             description=description,
+            color_ids=colorIds,
             status=status_field,
             deadline_at=deadline,
         )
@@ -103,6 +117,7 @@ async def create_test(
                 "description": description,
                 "status": status_field,
                 "deadlineAt": deadlineAt,
+                "color_ids": colorIds,
                 "photo_count": len(photos) if photos else 0,
             },
         )

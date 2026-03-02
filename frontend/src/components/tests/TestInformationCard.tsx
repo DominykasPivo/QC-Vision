@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -6,6 +6,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatEnumLabel, type Test } from "@/lib/db-constants";
 import { fetchTestActivity, type AuditActivityItem } from "@/lib/api/audit";
+import { fetchColors } from "@/lib/api/colors";
+import type { Color } from "@/lib/types";
 import { MaterialIcon } from "./MaterialIcon";
 import { InfoItem } from "./InfoItem";
 import {
@@ -23,6 +25,23 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
   const [recentChanges, setRecentChanges] = useState<AuditActivityItem[]>([]);
   const [changesLoading, setChangesLoading] = useState(false);
   const [changesError, setChangesError] = useState<string | null>(null);
+  const [colors, setColors] = useState<Color[]>([]);
+
+  useEffect(() => {
+    fetchColors()
+      .then(setColors)
+      .catch(() => {});
+  }, []);
+
+  const selectedColors = useMemo(() => {
+    const ids = test.colorIds ?? [];
+    if (ids.length === 0) return [];
+    // Prefer embedded color objects if available (they carry hexValue already)
+    if (test.colors && test.colors.length > 0) return test.colors;
+    return ids
+      .map((id) => colors.find((c) => c.id === id))
+      .filter(Boolean) as typeof colors;
+  }, [colors, test.colorIds, test.colors]);
   const jiraIdLabel = formatFieldValue(test.jiraId);
   const productNameLabel = formatFieldValue(test.productName);
   const requesterLabel = formatFieldValue(test.requester);
@@ -187,6 +206,29 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
                   : "text-slate-300"
               }
             />
+            <div>
+              <p className="mb-1 text-sm font-bold uppercase tracking-widest text-slate-500">
+                {selectedColors.length > 1 ? "Colors" : "Color"}
+              </p>
+              {selectedColors.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedColors.map((c) => (
+                    <span
+                      key={c.id}
+                      className="flex items-center gap-1.5 text-xl font-semibold text-slate-900"
+                    >
+                      <span
+                        className="inline-block h-5 w-5 rounded-full border border-slate-300"
+                        style={{ backgroundColor: c.hexValue }}
+                      />
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xl text-slate-300">—</span>
+              )}
+            </div>
           </div>
 
           <Separator className="bg-slate-100" />

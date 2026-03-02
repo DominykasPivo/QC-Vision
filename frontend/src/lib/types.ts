@@ -1,5 +1,12 @@
 import type { TestStatus, TestType, ReviewStatus } from "./db-constants";
 
+export interface Color {
+  id: number;
+  name: string;
+  hexValue: string;
+  isActive: boolean;
+}
+
 export interface Test {
   id: string;
   jiraId: string;
@@ -10,6 +17,8 @@ export interface Test {
   description?: string | null;
   deadline: string;
   deadlineAt?: string | null;
+  colorIds?: number[];
+  colors?: { id: number; name: string; hexValue: string }[];
   status: TestStatus;
   createdAt?: string | null;
   updatedAt?: string | null;

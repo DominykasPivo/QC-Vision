@@ -23,6 +23,8 @@ export type ApiTest = {
   assignedTo?: string | null;
   assigned_to?: string | null;
   description?: string | null;
+  color_ids?: number[] | null;
+  colors?: Array<{ id: number; name: string; hex_value: string }> | null;
   status?: string | null;
   deadlineAt?: string | null;
   deadline_at?: string | null;
@@ -89,6 +91,12 @@ export function toFrontendTest(raw: ApiTest): Test {
   const assignedTo = raw.assignedTo ?? raw.assigned_to ?? undefined;
   const createdAt = raw.createdAt ?? raw.created_at ?? null;
   const updatedAt = raw.updatedAt ?? raw.updated_at ?? null;
+  const colorIds = raw.color_ids ?? raw.colors?.map((c) => c.id) ?? [];
+  const colors = raw.colors?.map((c) => ({
+    id: c.id,
+    name: c.name,
+    hexValue: c.hex_value,
+  }));
 
   return {
     id: String(raw.id),
@@ -100,6 +108,8 @@ export function toFrontendTest(raw: ApiTest): Test {
     description: raw.description ?? null,
     deadline: formatDeadline(deadlineAt),
     deadlineAt,
+    colorIds,
+    colors,
     status,
     createdAt,
     updatedAt,

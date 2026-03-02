@@ -46,10 +46,12 @@ export function CreateTest() {
     isLoading,
     error,
     showToast,
+    colors,
     handleChange,
     handleTextareaChange,
     handleTestTypeChange,
     handleStatusChange,
+    handleColorChange,
     handleSubmit,
   } = useCreateTestForm({
     loggedInUser,
@@ -112,10 +114,12 @@ export function CreateTest() {
             <TestFormFields
               formData={formData}
               isLoading={isLoading}
+              colors={colors}
               onInputChange={handleChange}
               onTextareaChange={handleTextareaChange}
               onTestTypeChange={handleTestTypeChange}
               onStatusChange={handleStatusChange}
+              onColorChange={handleColorChange}
             />
 
             <div className="space-y-3 md:space-y-4">

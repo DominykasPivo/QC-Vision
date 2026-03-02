@@ -47,6 +47,7 @@ export function TestDetails() {
     newPhotoPreviews,
     draft,
     setDraft,
+    colors,
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
@@ -122,6 +123,7 @@ export function TestDetails() {
         show={showUpdateModal}
         isMobile={isMobile}
         draft={draft}
+        colors={colors}
         apiPhotos={apiPhotos}
         photosToDelete={photosToDelete}
         newPhotoPreviews={newPhotoPreviews}
