@@ -40,7 +40,7 @@ export function TestFormFields({
             className="text-base font-semibold text-slate-900 md:text-lg"
             htmlFor="jiraId"
           >
-            Jira ID
+            Jira ID <span className="text-red-500">*</span>
           </label>
           <Input
             type="text"
@@ -61,7 +61,7 @@ export function TestFormFields({
             className="text-base font-semibold text-slate-900 md:text-lg"
             htmlFor="productName"
           >
-            Product Name
+            Product Name <span className="text-red-500">*</span>
           </label>
           <Input
             type="text"
@@ -84,7 +84,7 @@ export function TestFormFields({
             className="text-base font-semibold text-slate-900 md:text-lg"
             htmlFor="testType"
           >
-            Test Type
+            Test Type <span className="text-red-500">*</span>
           </label>
           <Select
             value={formData.testType}

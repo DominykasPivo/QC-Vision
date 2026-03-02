@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.modules.audit.service import log_action
+from app.modules.photos.models import Photo
 from app.security import require_reviewer
 
 from .schemas import (
@@ -44,6 +45,20 @@ async def create_defect(
     try:
         defect = await defects_service.create_defect_for_photo(db, photo_id, payload)
         logger.info(f"Created defect {defect.id} for photo {photo_id}")
+        photo = db.query(Photo).filter(Photo.id == photo_id).first()
+        test_id = getattr(photo, "test_id", None) if photo else None
+        log_action(
+            db,
+            action="ADD_DEFECT",
+            entity_type="Defect",
+            entity_id=defect.id,
+            username="system",
+            meta={
+                "photo_id": photo_id,
+                "test_id": test_id,
+                "severity": payload.severity,
+            },
+        )
         return defect
     except Exception as e:
         logger.error(f"Failed to create defect for photo {photo_id}: {str(e)}")
@@ -126,10 +141,28 @@ async def update_defect(
 @router.delete("/{defect_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_defect(defect_id: int, db: Session = Depends(get_db)):
     """Delete a defect and all its annotations."""
+    defect = await defects_service.get_defect(db, defect_id)
+    if not defect:
+        raise HTTPException(status_code=404, detail="Defect not found")
+
+    photo = db.query(Photo).filter(Photo.id == defect.photo_id).first()
+    test_id = getattr(photo, "test_id", None) if photo else None
+
     success = await defects_service.delete_defect(db, defect_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Defect not found")
+        raise HTTPException(status_code=500, detail="Failed to delete defect")
     logger.info(f"Deleted defect {defect_id}")
+    log_action(
+        db,
+        action="REMOVE_DEFECT",
+        entity_type="Defect",
+        entity_id=defect_id,
+        username="system",
+        meta={
+            "photo_id": defect.photo_id,
+            "test_id": test_id,
+        },
+    )
 
 
 @router.put("/annotations/{annotation_id}", response_model=AnnotationResponse)

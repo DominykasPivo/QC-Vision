@@ -10,6 +10,23 @@ export type FetchAuditParams = {
   offset?: number;
 };
 
+export type AuditActivityItem = {
+  id: number | string;
+  action: string;
+  entity_type: string;
+  entity_id: number | string;
+  username?: string | null;
+  created_at: string;
+  meta?: Record<string, unknown> | null;
+};
+
+export type AuditActivityResponse = {
+  items: AuditActivityItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export async function fetchAuditLogs(params: FetchAuditParams = {}) {
   const searchParams = new URLSearchParams();
 
@@ -36,4 +53,27 @@ export async function fetchAuditLogs(params: FetchAuditParams = {}) {
   }
 
   return res.json(); // { items, total, limit, offset }
+}
+
+export async function fetchTestActivity(
+  testId: number | string,
+  params: { user_actions_only?: boolean; limit?: number; offset?: number } = {},
+) {
+  const searchParams = new URLSearchParams();
+  searchParams.set(
+    "user_actions_only",
+    String(params.user_actions_only ?? true),
+  );
+  searchParams.set("limit", String(params.limit ?? 20));
+  searchParams.set("offset", String(params.offset ?? 0));
+
+  const res = await fetch(
+    `${API_URL}/api/v1/audit/tests/${testId}/activity?${searchParams.toString()}`,
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch test activity (${res.status})`);
+  }
+
+  return (await res.json()) as AuditActivityResponse;
 }
