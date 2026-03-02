@@ -56,6 +56,23 @@ export function useCreateTestForm({
     setError(null);
 
     try {
+      // Validate required fields
+      if (!formData.jiraId.trim()) {
+        setError("Jira ID is required");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.productName.trim()) {
+        setError("Product Name is required");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.testType.trim()) {
+        setError("Test Type is required");
+        setIsLoading(false);
+        return;
+      }
+
       // Build form data for submission
       const submitFormData = buildTestSubmitFormData(formData, selectedPhotos);
 
@@ -86,7 +103,16 @@ export function useCreateTestForm({
       setFormData(createEmptyTestForm(loggedInUser));
       onPhotosClear();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create test");
+      // Extract error message from various error formats
+      let errorMessage = "Failed to create test";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      } else if (err && typeof err === "object" && "detail" in err) {
+        errorMessage = String(err.detail);
+      }
+      setError(errorMessage);
       console.error("Error creating test:", err);
     } finally {
       setIsLoading(false);

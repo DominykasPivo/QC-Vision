@@ -42,63 +42,65 @@ export function PhotoGalleryCard({ photos }: PhotoGalleryCardProps) {
           )}
         </button>
       </CardHeader>
-      {isOpen && <CardContent className="px-8 py-8">
-        {photos.length === 0 ? (
-          <div className="flex min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 text-center">
-            <p className="text-xl font-semibold text-slate-400">
-              No photos uploaded
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
-            {photos.map((photo) => (
-              <Link
-                key={photo.id}
-                to={`/photos/${photo.id}`}
-                className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl ring-1 ring-slate-200 transition-transform active:scale-95"
-                aria-label={`Open photo ${photo.id}`}
-              >
-                {photo.url ? (
-                  <>
-                    <img
-                      src={photo.url}
-                      alt={`Photo ${photo.id}`}
-                      className="h-full w-full object-cover"
-                      onError={(e) =>
-                        console.error(
-                          `Image failed to load: Photo ${photo.id}`,
-                          photo.url,
-                          e,
-                        )
-                      }
+      {isOpen && (
+        <CardContent className="px-8 py-8">
+          {photos.length === 0 ? (
+            <div className="flex min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 text-center">
+              <p className="text-xl font-semibold text-slate-400">
+                No photos uploaded
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+              {photos.map((photo) => (
+                <Link
+                  key={photo.id}
+                  to={`/photos/${photo.id}`}
+                  className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl ring-1 ring-slate-200 transition-transform active:scale-95"
+                  aria-label={`Open photo ${photo.id}`}
+                >
+                  {photo.url ? (
+                    <>
+                      <img
+                        src={photo.url}
+                        alt={`Photo ${photo.id}`}
+                        className="h-full w-full object-cover"
+                        onError={(e) =>
+                          console.error(
+                            `Image failed to load: Photo ${photo.id}`,
+                            photo.url,
+                            e,
+                          )
+                        }
+                      />
+                      {/* Verification status dot */}
+                      {photo.verification_status &&
+                        VERIFICATION_DOT[photo.verification_status] && (
+                          <span
+                            className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
+                            title={
+                              VERIFICATION_DOT[photo.verification_status].title
+                            }
+                          />
+                        )}
+                    </>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs font-medium text-slate-500">
+                      Loading...
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+                    <MaterialIcon
+                      name="zoom_in"
+                      className="text-3xl text-white"
                     />
-                    {/* Verification status dot */}
-                    {photo.verification_status &&
-                      VERIFICATION_DOT[photo.verification_status] && (
-                        <span
-                          className={`absolute top-1.5 right-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${VERIFICATION_DOT[photo.verification_status].bg}`}
-                          title={
-                            VERIFICATION_DOT[photo.verification_status].title
-                          }
-                        />
-                      )}
-                  </>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs font-medium text-slate-500">
-                    Loading...
                   </div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-                  <MaterialIcon
-                    name="zoom_in"
-                    className="text-3xl text-white"
-                  />
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </CardContent>}
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      )}
     </Card>
   );
 }
