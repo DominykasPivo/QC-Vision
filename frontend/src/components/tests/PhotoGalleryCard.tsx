@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { MaterialIcon } from "./MaterialIcon";
 import { VERIFICATION_DOT } from "@/lib/constants/galleryConstants";
 import type { ApiPhoto } from "@/hooks/useTestDetailPhotos";
@@ -10,21 +12,37 @@ interface PhotoGalleryCardProps {
 }
 
 export function PhotoGalleryCard({ photos }: PhotoGalleryCardProps) {
+  const [isOpen, setIsOpen] = useState(true);
+
   return (
     <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
-      <CardHeader className="flex-row items-center justify-between border-b border-slate-100 px-8 py-6">
-        <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-          <MaterialIcon name="photo_library" className="text-[#2563eb]" />
-          Photos
-        </CardTitle>
-        <Badge
-          variant="secondary"
-          className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700"
+      <CardHeader className="border-b border-slate-100 px-8 py-4">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 text-left"
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-expanded={isOpen}
         >
-          {photos.length} Photo{photos.length !== 1 ? "s" : ""}
-        </Badge>
+          <div className="flex items-center gap-3">
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+              <MaterialIcon name="photo_library" className="text-[#2563eb]" />
+              Photos
+            </CardTitle>
+            <Badge
+              variant="secondary"
+              className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700"
+            >
+              {photos.length} Photo{photos.length !== 1 ? "s" : ""}
+            </Badge>
+          </div>
+          {isOpen ? (
+            <ChevronUp className="h-5 w-5 text-slate-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-slate-500" />
+          )}
+        </button>
       </CardHeader>
-      <CardContent className="px-8 py-8">
+      {isOpen && <CardContent className="px-8 py-8">
         {photos.length === 0 ? (
           <div className="flex min-h-[200px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 text-center">
             <p className="text-xl font-semibold text-slate-400">
@@ -80,7 +98,7 @@ export function PhotoGalleryCard({ photos }: PhotoGalleryCardProps) {
             ))}
           </div>
         )}
-      </CardContent>
+      </CardContent>}
     </Card>
   );
 }

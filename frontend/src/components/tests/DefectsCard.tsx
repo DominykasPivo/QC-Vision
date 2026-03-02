@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { MaterialIcon } from "./MaterialIcon";
 import { VERIFICATION_DOT } from "@/lib/constants/galleryConstants";
 import type { ApiPhoto } from "@/hooks/useTestDetailPhotos";
@@ -11,15 +13,29 @@ interface DefectsCardProps {
 }
 
 export function DefectsCard({ photosWithDefects }: DefectsCardProps) {
+  const [isOpen, setIsOpen] = useState(true);
+
   return (
     <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
-      <CardHeader className="border-b border-slate-100 px-8 py-6">
-        <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-          <MaterialIcon name="report_problem" className="text-red-600" />
-          Defects
-        </CardTitle>
+      <CardHeader className="border-b border-slate-100 px-8 py-4">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 text-left"
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-expanded={isOpen}
+        >
+          <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+            <MaterialIcon name="report_problem" className="text-red-600" />
+            Defects
+          </CardTitle>
+          {isOpen ? (
+            <ChevronUp className="h-5 w-5 text-slate-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-slate-500" />
+          )}
+        </button>
       </CardHeader>
-      <CardContent className="px-8 py-8">
+      {isOpen && <CardContent className="px-8 py-8">
         {photosWithDefects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-green-50">
@@ -74,7 +90,7 @@ export function DefectsCard({ photosWithDefects }: DefectsCardProps) {
             ))}
           </div>
         )}
-      </CardContent>
+      </CardContent>}
     </Card>
   );
 }

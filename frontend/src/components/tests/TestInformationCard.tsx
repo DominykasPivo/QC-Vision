@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatEnumLabel, type Test } from "@/lib/db-constants";
+import { fetchTestActivity, type AuditActivityItem } from "@/lib/api/audit";
 import { MaterialIcon } from "./MaterialIcon";
 import { InfoItem } from "./InfoItem";
 import {
@@ -15,6 +18,10 @@ interface TestInformationCardProps {
 }
 
 export function TestInformationCard({ test }: TestInformationCardProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [recentChanges, setRecentChanges] = useState<AuditActivityItem[]>([]);
+  const [changesLoading, setChangesLoading] = useState(false);
+  const [changesError, setChangesError] = useState<string | null>(null);
   const jiraIdLabel = formatFieldValue(test.jiraId);
   const productNameLabel = formatFieldValue(test.productName);
   const requesterLabel = formatFieldValue(test.requester);
@@ -27,15 +34,130 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
   const updatedLabel = formatDateOnly(test.updatedAt ?? null);
   const hasDescription = Boolean(test.description?.trim());
 
+  useEffect(() => {
+    const testId = Number(test.id);
+    if (!Number.isFinite(testId)) {
+      setRecentChanges([]);
+      return;
+    }
+
+    let isCancelled = false;
+    const loadRecentChanges = async () => {
+      setChangesLoading(true);
+      setChangesError(null);
+      try {
+        const data = await fetchTestActivity(testId, {
+          user_actions_only: true,
+          limit: 12,
+          offset: 0,
+        });
+        if (!isCancelled) {
+          setRecentChanges(Array.isArray(data.items) ? data.items : []);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setChangesError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load recent changes.",
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setChangesLoading(false);
+        }
+      }
+    };
+
+    loadRecentChanges();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [test.id]);
+
+  const formatChangeTimestamp = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const formatChangeMessage = (item: AuditActivityItem) => {
+    const meta =
+      item.meta && typeof item.meta === "object"
+        ? item.meta
+        : ({} as Record<string, unknown>);
+    const actor = item.username || "system";
+    const fromValue = meta.from;
+    const toValue = meta.to;
+    const updatedFields = Array.isArray(meta.updated_fields)
+      ? meta.updated_fields
+      : [];
+    const safe = (value: unknown) =>
+      value == null || value === "" ? "none" : String(value);
+
+    switch (item.action) {
+      case "STATUS_CHANGE":
+        return `${actor} changed status from ${safe(fromValue)} to ${safe(toValue)}`;
+      case "ASSIGN":
+        return `${actor} changed assignee from ${safe(fromValue)} to ${safe(toValue)}`;
+      case "UNASSIGN":
+        return `${actor} unassigned ${safe(fromValue)}`;
+      case "TEST_TYPE_CHANGE":
+        return `${actor} changed test type from ${safe(fromValue)} to ${safe(toValue)}`;
+      case "UPDATE":
+        return updatedFields.length > 0
+          ? `${actor} updated fields: ${updatedFields.map(String).join(", ")}`
+          : `${actor} updated this test`;
+      case "UPLOAD":
+        return `${actor} uploaded photo #${item.entity_id}`;
+      case "ADD_DEFECT":
+        return `${actor} added defect #${item.entity_id}`;
+      case "REMOVE_DEFECT":
+        return `${actor} removed defect #${item.entity_id}`;
+      case "CREATE":
+        return `${actor} created this test`;
+      case "DELETE":
+        return `${actor} deleted this test`;
+      default:
+        return `${actor} performed ${item.action.toLowerCase().replace(/_/g, " ")}`;
+    }
+  };
+
+  const visibleRecentChanges = recentChanges.filter(
+    (change) => change.action !== "UPDATE",
+  );
+
   return (
     <Card className="overflow-hidden rounded-xl border-slate-200 bg-white shadow-sm">
-      <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-8 py-6">
-        <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-          <MaterialIcon name="info" className="text-[#2563eb]" />
-          Test Information
-        </CardTitle>
+      <CardHeader className="border-b border-slate-100 bg-slate-50/50 px-8 py-4">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 text-left"
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-expanded={isOpen}
+        >
+          <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+            <MaterialIcon name="info" className="text-[#2563eb]" />
+            Test Information
+          </CardTitle>
+          {isOpen ? (
+            <ChevronUp className="h-5 w-5 text-slate-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-slate-500" />
+          )}
+        </button>
       </CardHeader>
-      <CardContent className="space-y-6 px-8 py-8">
+      {isOpen && <CardContent className="space-y-6 px-8 py-8">
         <div className="grid grid-cols-1 gap-x-4 gap-y-6 md:grid-cols-2">
           <InfoItem label="Test ID" value={String(test.id)} />
           <InfoItem label="Jira ID" value={jiraIdLabel} />
@@ -138,7 +260,39 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
             </div>
           )}
         </div>
-      </CardContent>
+
+        <Separator className="bg-slate-100" />
+
+        <div className="space-y-3">
+          <p className="text-sm font-bold uppercase tracking-widest text-slate-500">
+            Recent Changes
+          </p>
+
+          {changesLoading ? (
+            <p className="text-sm text-slate-500">Loading changes...</p>
+          ) : changesError ? (
+            <p className="text-sm text-red-600">{changesError}</p>
+          ) : visibleRecentChanges.length === 0 ? (
+            <p className="text-sm text-slate-500">No change history yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {visibleRecentChanges.map((change) => (
+                <div
+                  key={change.id}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                >
+                  <p className="text-sm font-medium text-slate-800">
+                    {formatChangeMessage(change)}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {formatChangeTimestamp(change.created_at)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>}
     </Card>
   );
 }
