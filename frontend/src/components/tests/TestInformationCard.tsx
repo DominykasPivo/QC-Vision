@@ -19,6 +19,7 @@ interface TestInformationCardProps {
 
 export function TestInformationCard({ test }: TestInformationCardProps) {
   const [isOpen, setIsOpen] = useState(true);
+  const [isRecentChangesOpen, setIsRecentChangesOpen] = useState(false);
   const [recentChanges, setRecentChanges] = useState<AuditActivityItem[]>([]);
   const [changesLoading, setChangesLoading] = useState(false);
   const [changesError, setChangesError] = useState<string | null>(null);
@@ -264,32 +265,48 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
         <Separator className="bg-slate-100" />
 
         <div className="space-y-3">
-          <p className="text-sm font-bold uppercase tracking-widest text-slate-500">
-            Recent Changes
-          </p>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 text-left"
+            onClick={() => setIsRecentChangesOpen((prev) => !prev)}
+            aria-expanded={isRecentChangesOpen}
+          >
+            <p className="text-sm font-bold uppercase tracking-widest text-slate-500">
+              Recent Changes
+            </p>
+            {isRecentChangesOpen ? (
+              <ChevronUp className="h-4 w-4 text-slate-500" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-slate-500" />
+            )}
+          </button>
 
-          {changesLoading ? (
-            <p className="text-sm text-slate-500">Loading changes...</p>
-          ) : changesError ? (
-            <p className="text-sm text-red-600">{changesError}</p>
-          ) : visibleRecentChanges.length === 0 ? (
-            <p className="text-sm text-slate-500">No change history yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {visibleRecentChanges.map((change) => (
-                <div
-                  key={change.id}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
-                >
-                  <p className="text-sm font-medium text-slate-800">
-                    {formatChangeMessage(change)}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {formatChangeTimestamp(change.created_at)}
-                  </p>
+          {isRecentChangesOpen && (
+            <>
+              {changesLoading ? (
+                <p className="text-sm text-slate-500">Loading changes...</p>
+              ) : changesError ? (
+                <p className="text-sm text-red-600">{changesError}</p>
+              ) : visibleRecentChanges.length === 0 ? (
+                <p className="text-sm text-slate-500">No change history yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {visibleRecentChanges.map((change) => (
+                    <div
+                      key={change.id}
+                      className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                    >
+                      <p className="text-sm font-medium text-slate-800">
+                        {formatChangeMessage(change)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatChangeTimestamp(change.created_at)}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </CardContent>}
