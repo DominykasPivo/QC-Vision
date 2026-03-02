@@ -126,9 +126,6 @@ class TestsService:
         if not test:
             raise ValueError("Test not found")
 
-        if getattr(test, "review_status", None) in ("approved", "rejected"):
-            raise ValueError("Test already reviewed")
-
         decision_norm = (decision or "").lower().strip()
 
         if decision_norm in ("approved", "approve"):

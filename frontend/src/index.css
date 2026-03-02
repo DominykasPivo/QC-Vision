@@ -151,7 +151,6 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-left: auto;
   flex-shrink: 0;
   order: 3;
 }
@@ -186,6 +185,17 @@ body {
 .role-select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.mobile-role-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  margin-left: auto;
+  order: 2;
 }
 
 .logout-button {
@@ -584,6 +594,10 @@ body {
     flex-direction: row;
   }
 
+  .mobile-role-selector {
+    display: none;
+  }
+
   .desktop-sidebar {
     display: flex;
     flex-direction: column;
@@ -650,6 +664,41 @@ body {
     width: 24px;
     height: 24px;
     flex-shrink: 0;
+  }
+
+  .sidebar-role-selector {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .sidebar-role-selector .role-select {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    min-height: 36px;
+  }
+
+  .sidebar-role-selector .role-select:hover:not(:disabled) {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  }
+
+  .sidebar-role-selector .role-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .header-controls {
+    margin-left: auto;
   }
 
   .main-wrapper {

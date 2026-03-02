@@ -7,6 +7,7 @@ import type { Annotation, AnnotationGeometry } from "@/lib/annotation-types";
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
 import { BACK_LINK_CLASS } from "@/lib/constants/photoDefectsConstants";
+import { isReviewer } from "@/lib/auth";
 import { usePhotoDefects } from "@/hooks/usePhotoDefects";
 import { usePhotoActions } from "@/hooks/usePhotoActions";
 import { useDefectForm } from "@/hooks/useDefectForm";
@@ -215,12 +216,14 @@ export function PhotoDefects() {
         Defects linked to this photo.
       </p>
 
-      <VerificationStatusBar
-        isApproved={isApproved}
-        isRejected={isRejected}
-        isSaving={photoSaving}
-        onVerify={handleVerification}
-      />
+      {isReviewer() && (
+        <VerificationStatusBar
+          isApproved={isApproved}
+          isRejected={isRejected}
+          isSaving={photoSaving}
+          onVerify={handleVerification}
+        />
+      )}
 
       <Card className={spacing.cardShell}>
         <CardHeader className="p-0">

@@ -309,16 +309,28 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="sidebar-role-selector">
+          <select
+            id="role-select"
+            value={currentRole}
+            onChange={(e) => handleRoleChange(e.target.value)}
+            disabled={isChangingRole}
+            className="role-select"
+          >
+            <option value="user">User</option>
+            <option value="reviewer">Reviewer</option>
+          </select>
+        </div>
       </aside>
 
       <div className="main-wrapper">
         <header className="app-header">
           <h1>QC Vision</h1>
 
-          <div className="role-switcher">
-            <label htmlFor="role-select">Role:</label>
+          <div className="mobile-role-selector">
             <select
-              id="role-select"
+              id="role-select-mobile"
               value={currentRole}
               onChange={(e) => handleRoleChange(e.target.value)}
               disabled={isChangingRole}
