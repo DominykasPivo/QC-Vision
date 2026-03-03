@@ -1,5 +1,3 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 export type FetchAuditParams = {
   action?: string;
   entity_type?: string;
@@ -44,9 +42,7 @@ export async function fetchAuditLogs(params: FetchAuditParams = {}) {
     if (params.username) searchParams.set("username", params.username);
   }
 
-  const res = await fetch(
-    `${API_URL}/api/v1/audit/logs?${searchParams.toString()}`,
-  );
+  const res = await fetch(`/api/v1/audit/logs?${searchParams.toString()}`);
 
   if (!res.ok) {
     throw new Error(`Failed to fetch audit logs (${res.status})`);
@@ -68,7 +64,7 @@ export async function fetchTestActivity(
   searchParams.set("offset", String(params.offset ?? 0));
 
   const res = await fetch(
-    `${API_URL}/api/v1/audit/tests/${testId}/activity?${searchParams.toString()}`,
+    `/api/v1/audit/tests/${testId}/activity?${searchParams.toString()}`,
   );
 
   if (!res.ok) {
