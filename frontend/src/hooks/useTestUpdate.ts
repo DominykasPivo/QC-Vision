@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { type ApiPhoto } from "./useTestDetailPhotos";
 import { usePhotoPreview } from "./usePhotoPreview";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import type { TestStatus, TestType, Test } from "@/lib/db-constants";
 import { TEST_STATUSES, TEST_TYPES } from "@/lib/db-constants";
+import { fetchColors } from "@/lib/api/colors";
+import type { Color } from "@/lib/types";
 import { validateSelectedFiles } from "./test-update/photoValidation";
 import {
   deletePhotoById,
@@ -35,6 +37,13 @@ export function useTestUpdate({
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
+  const [colors, setColors] = useState<Color[]>([]);
+
+  useEffect(() => {
+    fetchColors()
+      .then(setColors)
+      .catch(() => {});
+  }, []);
 
   const newPhotoPreviews = usePhotoPreview(newPhotos);
 
@@ -46,6 +55,7 @@ export function useTestUpdate({
     assignedTo: test?.assignedTo ?? "",
     description: test?.description ?? "",
     deadline: test?.deadline ?? "",
+    colorIds: test?.colorIds ?? [],
     status: (test?.status ?? "pending") as TestStatus,
   });
 
@@ -66,6 +76,7 @@ export function useTestUpdate({
       assignedTo: test.assignedTo ?? "",
       description: test.description ?? "",
       deadline: safeDeadline,
+      colorIds: test.colorIds ?? [],
       status: safeStatus,
     });
     setNewPhotos([]);
@@ -133,6 +144,7 @@ export function useTestUpdate({
         requester: draft.requester.trim(),
         assigned_to: draft.assignedTo.trim() || null,
         description: draft.description.trim() || null,
+        color_ids: draft.colorIds,
         status: draft.status,
         deadline_at: draft.deadline
           ? new Date(draft.deadline).toISOString()
@@ -155,6 +167,7 @@ export function useTestUpdate({
         requester: draft.requester.trim(),
         assignedTo: draft.assignedTo.trim() || undefined,
         description: draft.description.trim() || null,
+        colorIds: draft.colorIds,
         deadline: draft.deadline,
         status: draft.status,
       });
@@ -194,6 +207,10 @@ export function useTestUpdate({
     }
   };
 
+  const handleColorCreated = (color: Color) => {
+    setColors((prev) => [...prev, color]);
+  };
+
   return {
     showUpdateModal,
     setShowUpdateModal,
@@ -206,9 +223,11 @@ export function useTestUpdate({
     newPhotoPreviews,
     draft,
     setDraft,
+    colors,
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
     handleUpdateSave,
+    handleColorCreated,
   };
 }

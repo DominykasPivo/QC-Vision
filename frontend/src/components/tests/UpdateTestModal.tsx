@@ -15,6 +15,8 @@ import {
   type TestType,
 } from "@/lib/db-constants";
 import type { ApiPhoto } from "@/hooks/useTestDetailPhotos";
+import type { Color } from "@/lib/types";
+import { ColorCombobox } from "./ColorCombobox";
 import { ExistingPhotosGrid } from "./update-test-modal/ExistingPhotosGrid";
 import { NewPhotosGrid } from "./update-test-modal/NewPhotosGrid";
 
@@ -26,6 +28,7 @@ interface UpdateDraft {
   assignedTo: string;
   description: string;
   deadline: string;
+  colorIds: number[];
   status: TestStatus;
 }
 
@@ -33,6 +36,7 @@ interface UpdateTestModalProps {
   show: boolean;
   isMobile: boolean;
   draft: UpdateDraft;
+  colors: Color[];
   apiPhotos: ApiPhoto[];
   photosToDelete: string[];
   newPhotoPreviews: { file: File; url: string }[];
@@ -44,12 +48,14 @@ interface UpdateTestModalProps {
   onPhotoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveExistingPhoto: (photoId: string) => void;
   onRemoveNewPhoto: (index: number) => void;
+  onColorCreated?: (color: Color) => void;
 }
 
 export function UpdateTestModal({
   show,
   isMobile,
   draft,
+  colors,
   apiPhotos,
   photosToDelete,
   newPhotoPreviews,
@@ -61,6 +67,7 @@ export function UpdateTestModal({
   onPhotoSelect,
   onRemoveExistingPhoto,
   onRemoveNewPhoto,
+  onColorCreated,
 }: UpdateTestModalProps) {
   if (!show) {
     return null;
@@ -163,6 +170,19 @@ export function UpdateTestModal({
                 className="h-11 rounded-xl border-gray-300 text-gray-900"
                 value={draft.deadline || ""}
                 onChange={(e) => onDraftChange({ deadline: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-black uppercase tracking-[0.2em] text-gray-500">
+                Color
+              </label>
+              <ColorCombobox
+                colors={colors}
+                value={draft.colorIds}
+                onChange={(ids) => onDraftChange({ colorIds: ids })}
+                triggerClassName="h-11 rounded-xl border-gray-300 text-gray-900"
+                onColorCreated={onColorCreated}
               />
             </div>
 

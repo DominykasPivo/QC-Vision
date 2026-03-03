@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session
 from app.modules.photos.storage import photo_storage  # noqa: F401
 
 from .cleanup_utils import cleanup_test_photos
-from .models import Tests
-from .schemas import TestCreate
+from .factory import TestFactory
+from .models import Color, Tests
+from .schemas import ColorCreate, TestCreate
 
 logger = logging.getLogger("backend_tests_service")
 
@@ -20,17 +21,23 @@ class TestsService:
     Service layer for quality test management.
     """
 
-    async def create_test(self, db: Session, test_data: TestCreate) -> Tests:
-        test = Tests(
-            jira_id=test_data.jira_id,
-            product_name=test_data.product_name,
-            test_type=test_data.test_type,
-            requester=test_data.requester,
-            assigned_to=test_data.assigned_to,
-            description=test_data.description,
-            status=test_data.status,
-            deadline_at=test_data.deadline_at,
+    async def list_colors(self, db: Session) -> list[Color]:
+        return (
+            db.query(Color)
+            .filter(Color.is_active == True)  # noqa: E712
+            .order_by(Color.name)
+            .all()
         )
+
+    async def create_color(self, db: Session, data: ColorCreate) -> Color:
+        color = Color(name=data.name.strip(), hex_value=data.hex_value)
+        db.add(color)
+        db.commit()
+        db.refresh(color)
+        return color
+
+    async def create_test(self, db: Session, test_data: TestCreate) -> Tests:
+        test = TestFactory.build(db, test_data)
         db.add(test)
         db.commit()
         db.refresh(test)
@@ -82,6 +89,10 @@ class TestsService:
         if not test:
             # ✅ unit tests expect ValueError
             raise ValueError("Test not found")
+
+        if "color_ids" in test_data:
+            color_ids = test_data.pop("color_ids")
+            test.colors = db.query(Color).filter(Color.id.in_(color_ids)).all()
 
         for key, value in test_data.items():
             if hasattr(test, key):

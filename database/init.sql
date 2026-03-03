@@ -19,6 +19,57 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 
+CREATE TABLE IF NOT EXISTS colors (
+  id        SERIAL PRIMARY KEY,
+  name      TEXT NOT NULL UNIQUE,
+  hex_value VARCHAR(7) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+INSERT INTO colors (name, hex_value) VALUES
+  ('White', '#FFFFFF'),
+  ('Black', '#000000'),
+  ('Red', '#EF4444'),
+  ('Navy Blue', '#1E3A5F'),
+  ('Royal Blue', '#2563EB'),
+  ('Sky Blue', '#38BDF8'),
+  ('Forest Green', '#166534'),
+  ('Lime Green', '#84CC16'),
+  ('Mint', '#6EE7B7'),
+  ('Yellow', '#EAB308'),
+  ('Gold', '#F59E0B'),
+  ('Orange', '#F97316'),
+  ('Pink', '#F472B6'),
+  ('Hot Pink', '#EC4899'),
+  ('Magenta', '#D946EF'),
+  ('Purple', '#9333EA'),
+  ('Lavender', '#A78BFA'),
+  ('Maroon', '#7F1D1D'),
+  ('Burgundy', '#881337'),
+  ('Coral', '#FB7185'),
+  ('Salmon', '#FCA5A5'),
+  ('Peach', '#FDBA74'),
+  ('Brown', '#92400E'),
+  ('Tan', '#D97706'),
+  ('Beige', '#F5F5DC'),
+  ('Cream', '#FFFDD0'),
+  ('Ivory', '#FFFFF0'),
+  ('Grey', '#6B7280'),
+  ('Light Grey', '#D1D5DB'),
+  ('Dark Grey', '#374151'),
+  ('Charcoal', '#1F2937'),
+  ('Silver', '#C0C0C0'),
+  ('Khaki', '#C3B091'),
+  ('Olive', '#708238'),
+  ('Teal', '#0D9488'),
+  ('Turquoise', '#06B6D4'),
+  ('Indigo', '#4338CA'),
+  ('Rust', '#B45309'),
+  ('Camel', '#C19A6B'),
+  ('Off-White', '#FAF9F6')
+ON CONFLICT (name) DO NOTHING;
+
+
 CREATE TABLE IF NOT EXISTS quality_tests (
   id            SERIAL PRIMARY KEY,
   jira_id       VARCHAR(100) NOT NULL,
@@ -41,6 +92,15 @@ CREATE TABLE IF NOT EXISTS quality_tests (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS test_colors (
+  test_id   INT NOT NULL REFERENCES quality_tests(id) ON DELETE CASCADE,
+  color_id  INT NOT NULL REFERENCES colors(id) ON DELETE CASCADE,
+  PRIMARY KEY (test_id, color_id)
+);
+CREATE INDEX IF NOT EXISTS idx_test_colors_test_id  ON test_colors(test_id);
+CREATE INDEX IF NOT EXISTS idx_test_colors_color_id ON test_colors(color_id);
+
 
 --allows tests to be searched by status, deadline, creation date, jira_id
 CREATE INDEX IF NOT EXISTS idx_quality_tests_status    ON quality_tests(status);
@@ -75,7 +135,9 @@ CREATE TABLE IF NOT EXISTS photos (
   time_stamp      TIMESTAMPTZ NOT NULL DEFAULT now(),
   analysis_results TEXT,
   description     TEXT,
-  verification_status photo_verification_status NOT NULL DEFAULT 'pending'
+  verification_status photo_verification_status NOT NULL DEFAULT 'pending',
+  color_id        INT REFERENCES colors(id) ON DELETE SET NULL,
+  method          TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_test_id ON photos(test_id);

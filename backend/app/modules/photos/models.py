@@ -27,3 +27,9 @@ class Photo(Base):
     analysis_results = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     verification_status = Column(Text, nullable=False, default="pending")
+    color_id = Column(
+        Integer,
+        ForeignKey("colors.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    method = Column(Text, nullable=True)

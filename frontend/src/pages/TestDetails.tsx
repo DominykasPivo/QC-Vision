@@ -17,6 +17,7 @@ import {
   DeleteConfirmModal,
   UpdateTestModal,
   PhotoSourceModal,
+  QCMatrixCard,
 } from "@/components/tests";
 
 export function TestDetails() {
@@ -47,10 +48,12 @@ export function TestDetails() {
     newPhotoPreviews,
     draft,
     setDraft,
+    colors,
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
     handleUpdateSave,
+    handleColorCreated,
   } = useTestUpdate({
     test: test!,
     apiPhotos,
@@ -97,6 +100,15 @@ export function TestDetails() {
           </section>
         </div>
 
+        {test.colors && test.colors.length > 0 && (
+          <div className="mt-8">
+            <QCMatrixCard
+              colors={test.colors.map((c) => ({ ...c, isActive: true }))}
+              photos={apiPhotos}
+            />
+          </div>
+        )}
+
         <MobileActionButtons
           onUpdate={openUpdate}
           onDelete={() => setShowDeleteConfirm(true)}
@@ -122,6 +134,7 @@ export function TestDetails() {
         show={showUpdateModal}
         isMobile={isMobile}
         draft={draft}
+        colors={colors}
         apiPhotos={apiPhotos}
         photosToDelete={photosToDelete}
         newPhotoPreviews={newPhotoPreviews}
@@ -137,6 +150,7 @@ export function TestDetails() {
           setPhotosToDelete((prev) => [...prev, photoId])
         }
         onRemoveNewPhoto={handleRemoveNewPhoto}
+        onColorCreated={handleColorCreated}
       />
 
       <PhotoSourceModal

@@ -6,6 +6,8 @@ export type ApiPhoto = {
   file_path: string;
   url?: string;
   verification_status?: "pending" | "approved" | "rejected";
+  color_id?: number | null;
+  method?: string | null;
 };
 
 type PhotoWithDefects = ApiPhoto & { defectCount: number };
