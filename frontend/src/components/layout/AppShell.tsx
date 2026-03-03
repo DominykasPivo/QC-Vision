@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { AuditEvent, Photo, Test } from "@/lib/types";
-import { isReviewer, logoutUser } from "@/lib/auth";
+import {
+  logoutUser,
+  getStoredUsername,
+  getStoredRole,
+  setStoredRole,
+} from "@/lib/auth";
+import { request } from "@/lib/api/http";
 import { fetchAuditLogs } from "@/lib/api/audit";
 import {
   toFrontendTest,
@@ -36,7 +42,9 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const canReview = isReviewer();
+  const [currentRole, setCurrentRole] = useState<string>("user");
+  const [isChangingRole, setIsChangingRole] = useState(false);
+  const [canReview, setCanReview] = useState(false);
 
   const [tests, setTests] = useState<Test[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
@@ -44,6 +52,47 @@ export function AppShell() {
   const [testsLoaded, setTestsLoaded] = useState(false);
   const [storageHydrated, setStorageHydrated] = useState(false);
   const [deletedTestIds, setDeletedTestIds] = useState<string[]>([]);
+
+  // Initialize role from localStorage
+  useEffect(() => {
+    const storedRole = getStoredRole();
+    setCurrentRole(storedRole);
+    setCanReview(storedRole === "reviewer" || storedRole === "admin");
+  }, []);
+
+  const handleRoleChange = useCallback(
+    async (newRole: string) => {
+      if (newRole === currentRole) return;
+
+      setIsChangingRole(true);
+      try {
+        const username = getStoredUsername();
+        await request<{ username: string; role: string }>(
+          "/api/v1/users/me/role",
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "X-User": username || "system",
+            },
+            body: JSON.stringify({ role: newRole }),
+          },
+        );
+
+        // Update localStorage and state
+        setStoredRole(newRole);
+        setCurrentRole(newRole);
+        setCanReview(newRole === "reviewer" || newRole === "admin");
+      } catch (error) {
+        console.error("Failed to update role:", error);
+        // Reset to previous role on error
+        setCurrentRole(getStoredRole());
+      } finally {
+        setIsChangingRole(false);
+      }
+    },
+    [currentRole],
+  );
 
   useEffect(() => {
     const storedPhotos = readStoredJson<Photo[]>(STORAGE_KEYS.photos);
@@ -260,22 +309,50 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="sidebar-role-selector">
+          <select
+            id="role-select"
+            value={currentRole}
+            onChange={(e) => handleRoleChange(e.target.value)}
+            disabled={isChangingRole}
+            className="role-select"
+          >
+            <option value="user">User</option>
+            <option value="reviewer">Reviewer</option>
+          </select>
+        </div>
       </aside>
 
       <div className="main-wrapper">
         <header className="app-header">
           <h1>QC Vision</h1>
 
-          <button
-            className="logout-button"
-            type="button"
-            onClick={() => {
-              logoutUser();
-              navigate("/login", { replace: true });
-            }}
-          >
-            Logout
-          </button>
+          <div className="mobile-role-selector">
+            <select
+              id="role-select-mobile"
+              value={currentRole}
+              onChange={(e) => handleRoleChange(e.target.value)}
+              disabled={isChangingRole}
+              className="role-select"
+            >
+              <option value="user">User</option>
+              <option value="reviewer">Reviewer</option>
+            </select>
+          </div>
+
+          <div className="header-controls">
+            <button
+              className="logout-button"
+              type="button"
+              onClick={() => {
+                logoutUser();
+                navigate("/login", { replace: true });
+              }}
+            >
+              Logout
+            </button>
+          </div>
         </header>
 
         <main

@@ -14,6 +14,7 @@ import {
   formatEnumLabel,
 } from "@/lib/db-constants";
 import { cn } from "@/lib/utils";
+import { isReviewer } from "@/lib/auth";
 import { MOBILE_TRIGGER_CLS, VERIFICATION_STATUSES } from "@/lib/constants";
 import type { CategoryRecord } from "@/hooks/useCategories";
 
@@ -234,30 +235,32 @@ export function GalleryFiltersMobile({
                   </Select>
                 </div>
 
-                {/* Verification */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-                    Verification
-                  </p>
-                  <Select
-                    value={verificationFilter || "all"}
-                    onValueChange={(v) =>
-                      handleFilterChange(onVerificationChange, v)
-                    }
-                  >
-                    <SelectTrigger className={MOBILE_TRIGGER_CLS}>
-                      <SelectValue placeholder="Verification" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Verifications</SelectItem>
-                      {VERIFICATION_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {formatEnumLabel(s)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Verification - Only for Reviewers */}
+                {isReviewer() && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Verification
+                    </p>
+                    <Select
+                      value={verificationFilter || "all"}
+                      onValueChange={(v) =>
+                        handleFilterChange(onVerificationChange, v)
+                      }
+                    >
+                      <SelectTrigger className={MOBILE_TRIGGER_CLS}>
+                        <SelectValue placeholder="Verification" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Verifications</SelectItem>
+                        {VERIFICATION_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {formatEnumLabel(s)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}

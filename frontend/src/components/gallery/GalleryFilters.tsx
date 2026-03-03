@@ -12,6 +12,7 @@ import {
   formatEnumLabel,
 } from "@/lib/db-constants";
 import { DESKTOP_TRIGGER_CLS, VERIFICATION_STATUSES } from "@/lib/constants";
+import { isReviewer } from "@/lib/auth";
 import type { CategoryRecord } from "@/hooks/useCategories";
 
 interface GalleryFiltersProps {
@@ -146,23 +147,25 @@ export function GalleryFilters({
           </SelectContent>
         </Select>
 
-        {/* Verification Filter */}
-        <Select
-          value={verificationFilter || "all"}
-          onValueChange={(v) => handleFilterChange(onVerificationChange, v)}
-        >
-          <SelectTrigger className={DESKTOP_TRIGGER_CLS}>
-            <SelectValue placeholder="Verification" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Verifications</SelectItem>
-            {VERIFICATION_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {formatEnumLabel(s)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Verification Filter - Only for Reviewers */}
+        {isReviewer() && (
+          <Select
+            value={verificationFilter || "all"}
+            onValueChange={(v) => handleFilterChange(onVerificationChange, v)}
+          >
+            <SelectTrigger className={DESKTOP_TRIGGER_CLS}>
+              <SelectValue placeholder="Verification" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Verifications</SelectItem>
+              {VERIFICATION_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {formatEnumLabel(s)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </div>
   );
