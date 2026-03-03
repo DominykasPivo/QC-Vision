@@ -186,7 +186,7 @@ export function Review() {
   if (error) return <div className="p-6">Error: {error}</div>;
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="p-6 max-w-7xl mx-auto">
       <h2 className="mb-1 text-xl font-semibold">Review</h2>
       <p className="mt-0 text-sm text-muted-foreground">
         Tests and Photos for review and decision changes.
@@ -204,7 +204,7 @@ export function Review() {
               .map((t) => (
                 <div
                   key={t.id}
-                  className="border border-border rounded-xl p-5 flex items-center justify-between"
+                  className="border border-border rounded-xl p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div>
                     <div className="text-sm text-muted-foreground">
@@ -243,7 +243,7 @@ export function Review() {
                     </div>
                   </div>
 
-                  <div className="grid gap-2">
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
                     <button
                       type="button"
                       onClick={() => approveTest(t.id)}
@@ -280,7 +280,7 @@ export function Review() {
               .map((t) => (
                 <div
                   key={t.id}
-                  className="border border-border rounded-xl p-5 flex items-center justify-between"
+                  className="border border-border rounded-xl p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div>
                     <div className="text-sm text-muted-foreground">
@@ -336,7 +336,7 @@ export function Review() {
                     </div>
                   </div>
 
-                  <div className="grid gap-2">
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
                     <button
                       type="button"
                       onClick={() => approveTest(t.id)}

@@ -2,7 +2,7 @@
  * Gallery-related constants for UI and filtering
  */
 
-export const PAGE_SIZE = 20;
+export const PAGE_SIZE = 12;
 
 export const NO_DEFECT_BORDER = "border-emerald-400 border";
 

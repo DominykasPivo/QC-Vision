@@ -3,7 +3,7 @@ import {
   validatePhotoFiles,
   mergePhotoFiles,
 } from "@/lib/validation/photo-validation";
-import { MAX_PHOTOS } from "@/lib/constants/createTestConstants";
+import { MAX_PHOTOS_PER_UPLOAD } from "@/lib/constants/createTestConstants";
 
 /**
  * Hook to manage photo upload functionality
@@ -35,7 +35,7 @@ export function usePhotoUpload() {
     const { photos: mergedPhotos, warning } = mergePhotoFiles(
       selectedPhotos,
       files,
-      MAX_PHOTOS,
+      MAX_PHOTOS_PER_UPLOAD,
     );
 
     setSelectedPhotos(mergedPhotos);

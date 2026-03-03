@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ImageAnnotator } from "@/components/annotations/ImageAnnotator";
 import { AnnotationToolbar } from "@/components/annotations/AnnotationToolbar";
 import type { Annotation, AnnotationGeometry } from "@/lib/annotation-types";
@@ -120,14 +121,15 @@ export function PhotoDefects() {
   const [tagSaving, setTagSaving] = useState(false);
   const [tagError, setTagError] = useState<string | null>(null);
   const [tagSaved, setTagSaved] = useState(false);
+  const [hasUnsavedTagChanges, setHasUnsavedTagChanges] = useState(false);
 
-  // Sync tag form from loaded photo
+  // Sync tag form from loaded photo (only if no unsaved changes)
   useEffect(() => {
-    if (photo) {
+    if (photo && !hasUnsavedTagChanges) {
       setTagColorId(photo.color_id ?? null);
       setTagMethod(photo.method ?? "");
     }
-  }, [photo]);
+  }, [photo, hasUnsavedTagChanges]);
 
   // Fetch test colors when test_id is available
   useEffect(() => {
@@ -169,6 +171,7 @@ export function PhotoDefects() {
         method: tagMethod || null,
       });
       setPhoto((p) => (p ? { ...p, ...updated } : p));
+      setHasUnsavedTagChanges(false); // Clear unsaved changes flag
       setTagSaved(true);
       setTimeout(() => setTagSaved(false), 2000);
     } catch {
@@ -300,6 +303,31 @@ export function PhotoDefects() {
         Defects linked to this photo.
       </p>
 
+      {/* Verification Status Badge - Visible to all users */}
+      {photo?.verification_status && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-600">
+            Verification Status:
+          </span>
+          <Badge
+            className={cn(
+              "font-semibold",
+              photo.verification_status === "approved" &&
+                "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
+              photo.verification_status === "rejected" &&
+                "bg-red-100 text-red-800 hover:bg-red-100",
+              photo.verification_status === "pending" &&
+                "bg-slate-100 text-slate-700 hover:bg-slate-100",
+            )}
+          >
+            {photo.verification_status === "approved" && "✓ Approved"}
+            {photo.verification_status === "rejected" && "✗ Rejected"}
+            {photo.verification_status === "pending" && "Pending Review"}
+          </Badge>
+        </div>
+      )}
+
+      {/* Verification Controls - Only for reviewers */}
       {isReviewer() && (
         <VerificationStatusBar
           isApproved={isApproved}
@@ -417,11 +445,12 @@ export function PhotoDefects() {
                     <select
                       className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={tagColorId ?? ""}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setTagColorId(
                           e.target.value ? Number(e.target.value) : null,
-                        )
-                      }
+                        );
+                        setHasUnsavedTagChanges(true);
+                      }}
                     >
                       <option value="">None</option>
                       {testColors.map((c) => (
@@ -438,7 +467,10 @@ export function PhotoDefects() {
                     <select
                       className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={tagMethod}
-                      onChange={(e) => setTagMethod(e.target.value)}
+                      onChange={(e) => {
+                        setTagMethod(e.target.value);
+                        setHasUnsavedTagChanges(true);
+                      }}
                     >
                       <option value="">None</option>
                       {PRINT_TYPES.map((pt) => (

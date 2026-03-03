@@ -1,4 +1,4 @@
-import { MAX_TOTAL_PHOTOS } from "@/lib/constants/testDetailsConstants";
+import { MAX_PHOTOS_PER_UPLOAD } from "@/lib/constants/createTestConstants";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_FORMATS = ["image/jpeg", "image/png", "image/webp"];
@@ -9,11 +9,7 @@ type ValidateResult = {
   reject: boolean;
 };
 
-export function validateSelectedFiles(
-  files: File[],
-  currentVisibleCount: number,
-  pendingNewCount: number,
-): ValidateResult {
+export function validateSelectedFiles(files: File[]): ValidateResult {
   const invalidTypeFiles = files.filter(
     (file) => !file.type.startsWith("image/"),
   );
@@ -46,26 +42,14 @@ export function validateSelectedFiles(
     return { acceptedFiles: [], notice: "File is empty", reject: true };
   }
 
-  const remaining = Math.max(
-    0,
-    MAX_TOTAL_PHOTOS - currentVisibleCount - pendingNewCount,
-  );
-  if (remaining <= 0) {
+  // Limit only the upload batch size, not total photos
+  if (files.length > MAX_PHOTOS_PER_UPLOAD) {
     return {
-      acceptedFiles: [],
-      notice: `You can upload up to ${MAX_TOTAL_PHOTOS} photos total.`,
-      reject: true,
-    };
-  }
-
-  const acceptedFiles = files.slice(0, remaining);
-  if (files.length > remaining) {
-    return {
-      acceptedFiles,
-      notice: `You can upload up to ${MAX_TOTAL_PHOTOS} photos total. Extra files were not added.`,
+      acceptedFiles: files.slice(0, MAX_PHOTOS_PER_UPLOAD),
+      notice: `You can upload up to ${MAX_PHOTOS_PER_UPLOAD} photos at once. ${files.length - MAX_PHOTOS_PER_UPLOAD} extra file(s) were not added.`,
       reject: false,
     };
   }
 
-  return { acceptedFiles, notice: null, reject: false };
+  return { acceptedFiles: files, notice: null, reject: false };
 }

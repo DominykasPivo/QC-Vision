@@ -110,7 +110,7 @@ class PhotoService:
         self,
         db: Session,
         page: int = 1,
-        page_size: int = 20,
+        page_size: int = 12,
         severity: Optional[str] = None,
         category_id: Optional[int] = None,
         test_type: Optional[str] = None,

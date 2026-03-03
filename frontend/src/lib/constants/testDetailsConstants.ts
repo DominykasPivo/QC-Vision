@@ -5,5 +5,3 @@ export const STATUS_COLORS: Record<string, string> = {
   "in-progress": "bg-blue-100 text-blue-800",
   finalized: "bg-emerald-100 text-emerald-800",
 };
-
-export const MAX_TOTAL_PHOTOS = 6;

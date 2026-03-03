@@ -1,4 +1,4 @@
-import { MAX_PHOTOS } from "@/lib/constants/createTestConstants";
+import { MAX_PHOTOS_PER_UPLOAD } from "@/lib/constants/createTestConstants";
 
 interface PhotoUploadButtonProps {
   onClick: () => void;
@@ -50,13 +50,13 @@ export function PhotoUploadButton({
         Upload photos for this test
       </p>
       <p className="mt-1 text-sm font-medium text-slate-500">
-        PNG/JPG, up to {MAX_PHOTOS} files
+        PNG/JPG, up to {MAX_PHOTOS_PER_UPLOAD} files per upload
       </p>
       <p className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
         {isMobile ? "📷 Add Photos" : "Choose images"}
       </p>
       <p className="mt-2 text-sm font-semibold text-slate-500">
-        Selected {selectedCount} of {MAX_PHOTOS}
+        Selected {selectedCount} photo{selectedCount !== 1 ? "s" : ""}
       </p>
     </button>
   );

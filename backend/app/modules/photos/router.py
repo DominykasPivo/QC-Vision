@@ -12,11 +12,12 @@ from app.modules.audit.service import log_action
 from .models import Photo
 from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUpdate
 from .service import photo_service
-from .storage import photo_storage
 
 logger = logging.getLogger("backend_photos_router")
 
 router = APIRouter(prefix="/photos", tags=["photos"])
+
+photo_storage = photo_service.storage
 
 
 @router.get("/test/{test_id}", response_model=List[PhotoResponse])
@@ -28,7 +29,7 @@ async def get_photos_for_test(test_id: int, db: Session = Depends(get_db)):
 @router.get("/gallery", response_model=GalleryResponse)
 async def get_gallery(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=12, ge=1, le=100),
     severity: Optional[str] = Query(default=None),
     category_id: Optional[int] = Query(default=None),
     test_type: Optional[str] = Query(default=None),
@@ -214,18 +215,18 @@ async def update_photo(
     update_data: PhotoUpdate,
     db: Session = Depends(get_db),
 ):
-    """Update photo metadata (e.g., description)."""
+    """Update photo metadata (description, color_id, method)."""
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
-    fields_set = update_data.model_fields_set
-    if "description" in fields_set:
-        photo.description = update_data.description
-    if "color_id" in fields_set:
-        photo.color_id = update_data.color_id
-    if "method" in fields_set:
-        photo.method = update_data.method
+    # Get only the fields that were explicitly set in the request
+    update_dict = update_data.model_dump(exclude_unset=True)
+
+    # Update photo with provided fields (including null values to clear)
+    for field, value in update_dict.items():
+        if hasattr(photo, field):
+            setattr(photo, field, value)
 
     db.commit()
     db.refresh(photo)
@@ -236,11 +237,7 @@ async def update_photo(
         entity_type="Photo",
         entity_id=photo_id,
         username="system",
-        meta={
-            "description": update_data.description,
-            "color_id": update_data.color_id,
-            "method": update_data.method,
-        },
+        meta=update_dict,
     )
 
     return photo

@@ -91,12 +91,7 @@ export function useTestUpdate({
       return;
     }
 
-    const currentPhotoCount = apiPhotos.length - photosToDelete.length;
-    const validation = validateSelectedFiles(
-      files,
-      currentPhotoCount,
-      newPhotos.length,
-    );
+    const validation = validateSelectedFiles(files);
 
     setPhotoNotice(validation.notice);
     if (!validation.reject) {
