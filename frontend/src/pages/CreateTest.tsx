@@ -52,6 +52,7 @@ export function CreateTest() {
     handleTestTypeChange,
     handleStatusChange,
     handleColorChange,
+    handleColorCreated,
     handleSubmit,
   } = useCreateTestForm({
     loggedInUser,
@@ -120,6 +121,7 @@ export function CreateTest() {
               onTestTypeChange={handleTestTypeChange}
               onStatusChange={handleStatusChange}
               onColorChange={handleColorChange}
+              onColorCreated={handleColorCreated}
             />
 
             <div className="space-y-3 md:space-y-4">

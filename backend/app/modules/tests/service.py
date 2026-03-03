@@ -11,7 +11,7 @@ from app.modules.photos.storage import photo_storage  # noqa: F401
 from .cleanup_utils import cleanup_test_photos
 from .factory import TestFactory
 from .models import Color, Tests
-from .schemas import TestCreate
+from .schemas import ColorCreate, TestCreate
 
 logger = logging.getLogger("backend_tests_service")
 
@@ -28,6 +28,13 @@ class TestsService:
             .order_by(Color.name)
             .all()
         )
+
+    async def create_color(self, db: Session, data: ColorCreate) -> Color:
+        color = Color(name=data.name.strip(), hex_value=data.hex_value)
+        db.add(color)
+        db.commit()
+        db.refresh(color)
+        return color
 
     async def create_test(self, db: Session, test_data: TestCreate) -> Tests:
         test = TestFactory.build(db, test_data)

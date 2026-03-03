@@ -24,3 +24,4 @@ export * from "./DesktopActionBar";
 export * from "./DeleteConfirmModal";
 export * from "./UpdateTestModal";
 export * from "./PhotoSourceModal";
+export * from "./QCMatrixCard";

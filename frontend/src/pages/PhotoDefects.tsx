@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageAnnotator } from "@/components/annotations/ImageAnnotator";
@@ -11,6 +11,9 @@ import { usePhotoDefects } from "@/hooks/usePhotoDefects";
 import { usePhotoActions } from "@/hooks/usePhotoActions";
 import { useDefectForm } from "@/hooks/useDefectForm";
 import { useDefectActions } from "@/hooks/useDefectActions";
+import { updatePhoto } from "@/lib/api/defects";
+import { PRINT_TYPES } from "@/lib/constants/printTypes";
+import type { Color } from "@/lib/types";
 import {
   VerificationStatusBar,
   PhotoDescriptionSection,
@@ -96,6 +99,87 @@ export function PhotoDefects() {
 
   const [selectedAnnotation, setSelectedAnnotation] =
     useState<Annotation | null>(null);
+
+  const annotationCardRef = useRef<HTMLDivElement>(null);
+
+  const openCreateAndScroll = () => {
+    openCreate();
+    setTimeout(() => {
+      annotationCardRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  };
+
+  // Print tag state
+  const [testColors, setTestColors] = useState<Color[]>([]);
+  const [tagColorId, setTagColorId] = useState<number | null>(null);
+  const [tagMethod, setTagMethod] = useState<string>("");
+  const [tagSaving, setTagSaving] = useState(false);
+  const [tagError, setTagError] = useState<string | null>(null);
+  const [tagSaved, setTagSaved] = useState(false);
+
+  // Sync tag form from loaded photo
+  useEffect(() => {
+    if (photo) {
+      setTagColorId(photo.color_id ?? null);
+      setTagMethod(photo.method ?? "");
+    }
+  }, [photo]);
+
+  // Fetch test colors when test_id is available
+  useEffect(() => {
+    const testId = photo?.test_id;
+    if (!testId) return;
+    fetch(`/api/v1/tests/${testId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const rawColors: Array<{
+          id: number;
+          name: string;
+          hex_value: string;
+        }> = data.colors ?? [];
+        setTestColors(
+          rawColors.map((c) => ({
+            id: c.id,
+            name: c.name,
+            hexValue: c.hex_value,
+            isActive: true,
+          })),
+        );
+      })
+      .catch(() => {});
+  }, [photo?.test_id]);
+
+  const handleSaveTag = async () => {
+    if (!photoId) return;
+    setTagSaving(true);
+    setTagError(null);
+    setTagSaved(false);
+    const prev = { color_id: photo?.color_id, method: photo?.method };
+    // Optimistic update
+    setPhoto((p) =>
+      p ? { ...p, color_id: tagColorId, method: tagMethod || null } : p,
+    );
+    try {
+      const updated = await updatePhoto(photoId, {
+        color_id: tagColorId,
+        method: tagMethod || null,
+      });
+      setPhoto((p) => (p ? { ...p, ...updated } : p));
+      setTagSaved(true);
+      setTimeout(() => setTagSaved(false), 2000);
+    } catch {
+      // Revert
+      setPhoto((p) =>
+        p ? { ...p, color_id: prev.color_id, method: prev.method } : p,
+      );
+      setTagError("Failed to save tag.");
+    } finally {
+      setTagSaving(false);
+    }
+  };
 
   const isSaving = photoSaving || defectSaving;
   const actionError = photoActionError || defectActionError;
@@ -222,7 +306,7 @@ export function PhotoDefects() {
         onVerify={handleVerification}
       />
 
-      <Card className={spacing.cardShell}>
+      <Card ref={annotationCardRef} className={spacing.cardShell}>
         <CardHeader className="p-0">
           <CardTitle className="px-5 py-4 text-lg font-semibold text-slate-900 md:px-6 md:py-5">
             Photo with Annotations
@@ -312,6 +396,110 @@ export function PhotoDefects() {
               onDescriptionChange={setDescriptionText}
             />
 
+            {/* Print Tag Panel */}
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <div className="text-sm font-semibold text-slate-700">
+                Print Tag
+              </div>
+              {testColors.length === 0 ? (
+                <p className="text-xs text-slate-500">
+                  No colors assigned to this test.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600">
+                      Color
+                    </label>
+                    <select
+                      className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={tagColorId ?? ""}
+                      onChange={(e) =>
+                        setTagColorId(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                    >
+                      <option value="">None</option>
+                      {testColors.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-slate-600">
+                      Method
+                    </label>
+                    <select
+                      className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={tagMethod}
+                      onChange={(e) => setTagMethod(e.target.value)}
+                    >
+                      <option value="">None</option>
+                      {PRINT_TYPES.map((pt) => (
+                        <optgroup key={pt.key} label={pt.label}>
+                          {pt.methods.map((m) => (
+                            <option key={m.key} value={m.key}>
+                              {m.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={tagSaving}
+                    onClick={handleSaveTag}
+                    className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {tagSaving ? "Saving…" : "Save Tag"}
+                  </button>
+                  {tagSaved && (
+                    <span className="text-xs font-medium text-green-600">
+                      Saved!
+                    </span>
+                  )}
+                  {tagError && (
+                    <span className="text-xs font-medium text-red-600">
+                      {tagError}
+                    </span>
+                  )}
+                </div>
+              )}
+              {/* Current tag display */}
+              {(photo?.color_id || photo?.method) && (
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <span className="font-medium">Current tag:</span>
+                  {photo.color_id && testColors.length > 0 && (
+                    <span className="flex items-center gap-1">
+                      {(() => {
+                        const c = testColors.find(
+                          (x) => x.id === photo.color_id,
+                        );
+                        return c ? (
+                          <>
+                            <span
+                              className="inline-block h-3 w-3 rounded-full border border-slate-300"
+                              style={{ backgroundColor: c.hexValue }}
+                            />
+                            {c.name}
+                          </>
+                        ) : null;
+                      })()}
+                    </span>
+                  )}
+                  {photo.method && (
+                    <span className="rounded bg-slate-200 px-1.5 py-0.5 font-mono">
+                      {photo.method}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             {editingDefect && form.annotations.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-700">
@@ -388,7 +576,7 @@ export function PhotoDefects() {
         onEdit={openEdit}
         onDelete={setDeletingDefect}
         onRetry={loadDefects}
-        onAddDefect={openCreate}
+        onAddDefect={openCreateAndScroll}
       />
 
       <EditDefectModal

@@ -219,8 +219,13 @@ async def update_photo(
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
-    if update_data.description is not None:
+    fields_set = update_data.model_fields_set
+    if "description" in fields_set:
         photo.description = update_data.description
+    if "color_id" in fields_set:
+        photo.color_id = update_data.color_id
+    if "method" in fields_set:
+        photo.method = update_data.method
 
     db.commit()
     db.refresh(photo)
@@ -231,7 +236,11 @@ async def update_photo(
         entity_type="Photo",
         entity_id=photo_id,
         username="system",
-        meta={"description": update_data.description},
+        meta={
+            "description": update_data.description,
+            "color_id": update_data.color_id,
+            "method": update_data.method,
+        },
     )
 
     return photo

@@ -22,6 +22,7 @@ from app.security import require_reviewer
 
 from .models import Tests
 from .schemas import (
+    ColorCreate,
     ColorResponse,
     TestCreate,
     TestListResponse,
@@ -40,6 +41,29 @@ router = APIRouter(prefix="/tests", tags=["tests"])
 async def list_colors(db: Session = Depends(get_db)):
     """Get all active colors."""
     return await tests_service.list_colors(db)
+
+
+@router.post(
+    "/colors", response_model=ColorResponse, status_code=status.HTTP_201_CREATED
+)
+async def create_color(payload: ColorCreate, db: Session = Depends(get_db)):
+    """Create a custom color."""
+    from sqlalchemy import func
+
+    from .models import Color
+
+    name_trimmed = payload.name.strip()
+    existing = (
+        db.query(Color).filter(func.lower(Color.name) == name_trimmed.lower()).first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=409, detail="A color with that name already exists"
+        )
+
+    return await tests_service.create_color(
+        db, ColorCreate(name=name_trimmed, hex_value=payload.hex_value)
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

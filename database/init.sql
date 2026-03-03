@@ -135,7 +135,9 @@ CREATE TABLE IF NOT EXISTS photos (
   time_stamp      TIMESTAMPTZ NOT NULL DEFAULT now(),
   analysis_results TEXT,
   description     TEXT,
-  verification_status photo_verification_status NOT NULL DEFAULT 'pending'
+  verification_status photo_verification_status NOT NULL DEFAULT 'pending',
+  color_id        INT REFERENCES colors(id) ON DELETE SET NULL,
+  method          TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_photos_test_id ON photos(test_id);

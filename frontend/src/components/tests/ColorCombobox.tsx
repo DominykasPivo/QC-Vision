@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Search, X, Check } from "lucide-react";
+import { ChevronDown, Search, X, Check, Plus } from "lucide-react";
 import type { Color } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { createColor } from "@/lib/api/colors";
 
 interface ColorComboboxProps {
   colors: Color[];
@@ -9,6 +10,7 @@ interface ColorComboboxProps {
   onChange: (value: number[]) => void;
   disabled?: boolean;
   triggerClassName?: string;
+  onColorCreated?: (color: Color) => void;
 }
 
 export function ColorCombobox({
@@ -17,9 +19,15 @@ export function ColorCombobox({
   onChange,
   disabled = false,
   triggerClassName,
+  onColorCreated,
 }: ColorComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customHex, setCustomHex] = useState("#3B82F6");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -38,6 +46,9 @@ export function ColorCombobox({
       ) {
         setOpen(false);
         setSearch("");
+        setShowAddForm(false);
+        setCustomName("");
+        setAddError(null);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -62,6 +73,29 @@ export function ColorCombobox({
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     onChange([]);
+  };
+
+  const handleAddColor = async () => {
+    if (!customName.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    setAddError(null);
+    try {
+      const newColor = await createColor(customName.trim(), customHex);
+      onColorCreated?.(newColor);
+      onChange([...value, newColor.id]);
+      setShowAddForm(false);
+      setCustomName("");
+      setCustomHex("#3B82F6");
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      if (status === 409) {
+        setAddError("A color with that name already exists");
+      } else {
+        setAddError("Failed to create color");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,7 +185,7 @@ export function ColorCombobox({
           </div>
 
           {/* Options list */}
-          <ul className="max-h-72 overflow-y-auto py-1">
+          <ul className="max-h-48 overflow-y-auto py-1">
             {filtered.length === 0 ? (
               <li className="px-3 py-4 text-center text-sm text-slate-400">
                 No colors found
@@ -183,6 +217,68 @@ export function ColorCombobox({
               })
             )}
           </ul>
+
+          {/* Add custom color section */}
+          {onColorCreated && (
+            <div className="border-t border-slate-100">
+              {!showAddForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(true)}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-[#2563eb] hover:bg-slate-50"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add custom color
+                </button>
+              ) : (
+                <div className="px-3 py-2.5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={customHex}
+                      onChange={(e) => setCustomHex(e.target.value)}
+                      className="h-8 w-8 shrink-0 cursor-pointer rounded border border-slate-300 p-0.5"
+                      title="Pick a color"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Color name"
+                      value={customName}
+                      onChange={(e) => {
+                        setCustomName(e.target.value);
+                        setAddError(null);
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddColor()}
+                      className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-[#2563eb]"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddColor}
+                      disabled={!customName.trim() || isSubmitting}
+                      className="rounded-lg bg-[#2563eb] px-2.5 py-1.5 text-sm font-semibold text-white hover:bg-[#1d4ed8] disabled:opacity-50"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddForm(false);
+                        setCustomName("");
+                        setAddError(null);
+                      }}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {addError && (
+                    <p className="text-xs text-red-500">{addError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

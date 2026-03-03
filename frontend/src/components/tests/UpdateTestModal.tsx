@@ -48,6 +48,7 @@ interface UpdateTestModalProps {
   onPhotoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveExistingPhoto: (photoId: string) => void;
   onRemoveNewPhoto: (index: number) => void;
+  onColorCreated?: (color: Color) => void;
 }
 
 export function UpdateTestModal({
@@ -66,6 +67,7 @@ export function UpdateTestModal({
   onPhotoSelect,
   onRemoveExistingPhoto,
   onRemoveNewPhoto,
+  onColorCreated,
 }: UpdateTestModalProps) {
   if (!show) {
     return null;
@@ -180,6 +182,7 @@ export function UpdateTestModal({
                 value={draft.colorIds}
                 onChange={(ids) => onDraftChange({ colorIds: ids })}
                 triggerClassName="h-11 rounded-xl border-gray-300 text-gray-900"
+                onColorCreated={onColorCreated}
               />
             </div>
 

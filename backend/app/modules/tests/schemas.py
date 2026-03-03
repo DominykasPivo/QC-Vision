@@ -4,6 +4,11 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ColorCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    hex_value: str = Field(..., pattern=r"^#[0-9A-Fa-f]{6}$")
+
+
 class ColorResponse(BaseModel):
     id: int
     name: str

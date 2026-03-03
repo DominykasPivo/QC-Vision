@@ -26,6 +26,7 @@ interface TestFormFieldsProps {
   onTestTypeChange: (value: string) => void;
   onStatusChange: (value: string) => void;
   onColorChange: (value: number[]) => void;
+  onColorCreated?: (color: Color) => void;
 }
 
 export function TestFormFields({
@@ -37,6 +38,7 @@ export function TestFormFields({
   onTestTypeChange,
   onStatusChange,
   onColorChange,
+  onColorCreated,
 }: TestFormFieldsProps) {
   return (
     <>
@@ -191,6 +193,7 @@ export function TestFormFields({
           onChange={onColorChange}
           disabled={isLoading}
           triggerClassName={CONTROL_CLASS}
+          onColorCreated={onColorCreated}
         />
       </div>
 

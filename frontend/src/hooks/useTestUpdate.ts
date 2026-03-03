@@ -207,6 +207,10 @@ export function useTestUpdate({
     }
   };
 
+  const handleColorCreated = (color: Color) => {
+    setColors((prev) => [...prev, color]);
+  };
+
   return {
     showUpdateModal,
     setShowUpdateModal,
@@ -224,5 +228,6 @@ export function useTestUpdate({
     handlePhotoSelect,
     handleRemoveNewPhoto,
     handleUpdateSave,
+    handleColorCreated,
   };
 }

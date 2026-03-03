@@ -63,6 +63,10 @@ export function useCreateTestForm({
     setFormData((prev) => ({ ...prev, colorIds: value }));
   };
 
+  const handleColorCreated = (color: Color) => {
+    setColors((prev) => [...prev, color]);
+  };
+
   const handleSubmit = async (e: FormEvent, selectedPhotos: File[]) => {
     e.preventDefault();
     setIsLoading(true);
@@ -143,6 +147,7 @@ export function useCreateTestForm({
     handleTestTypeChange,
     handleStatusChange,
     handleColorChange,
+    handleColorCreated,
     handleSubmit,
   };
 }
