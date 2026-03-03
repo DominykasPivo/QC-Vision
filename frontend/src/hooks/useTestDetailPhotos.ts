@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export type ApiPhoto = {
   id: number;
@@ -41,45 +41,86 @@ export function useTestDetailPhotos(testId?: string) {
     return photosWithDefectData.filter((p) => p.defectCount > 0);
   };
 
-  // Initial photo fetch
-  useEffect(() => {
-    if (testId) {
-      fetch(`/api/v1/photos/test/${testId}`)
-        .then((res) => res.json())
-        .then(async (data: ApiPhoto[]) => {
-          const photosWithUrls = await Promise.all(
-            data.map(async (photo: ApiPhoto) => {
-              return {
-                ...photo,
-                url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}`,
-              };
-            }),
-          );
-          setApiPhotos(photosWithUrls);
+  const loadPhotos = useCallback(async () => {
+    if (!testId) return;
 
-          const withDefects = await fetchDefectCounts(photosWithUrls);
-          setPhotosWithDefects(withDefects);
-        })
-        .catch((err) => console.error("Failed to fetch photos:", err));
+    try {
+      const res = await fetch(`/api/v1/photos/test/${testId}`);
+      const data: ApiPhoto[] = await res.json();
+
+      const photosWithUrls = await Promise.all(
+        data.map(async (photo: ApiPhoto) => {
+          return {
+            ...photo,
+            url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}`,
+          };
+        }),
+      );
+      setApiPhotos(photosWithUrls);
+
+      const withDefects = await fetchDefectCounts(photosWithUrls);
+      setPhotosWithDefects(withDefects);
+    } catch (err) {
+      console.error("Failed to fetch photos:", err);
     }
   }, [testId]);
 
-  // Refetch defects on window focus
+  // Initial photo fetch
   useEffect(() => {
-    const refetchDefects = async () => {
-      if (testId && apiPhotos.length > 0) {
-        try {
-          const withDefects = await fetchDefectCounts(apiPhotos);
-          setPhotosWithDefects(withDefects);
-        } catch (err) {
-          console.error("Failed to refetch defects:", err);
-        }
+    if (!testId) return;
+
+    // Fetch photos immediately on mount or when testId changes
+    const fetchInitial = async () => {
+      try {
+        const res = await fetch(`/api/v1/photos/test/${testId}`);
+        const data: ApiPhoto[] = await res.json();
+
+        const photosWithUrls = await Promise.all(
+          data.map(async (photo: ApiPhoto) => {
+            return {
+              ...photo,
+              url: `/api/v1/photos/${photo.id}/image?t=${Date.now()}`,
+            };
+          }),
+        );
+        setApiPhotos(photosWithUrls);
+
+        const withDefects = await fetchDefectCounts(photosWithUrls);
+        setPhotosWithDefects(withDefects);
+      } catch (err) {
+        console.error("Failed to fetch photos:", err);
       }
     };
 
-    window.addEventListener("focus", refetchDefects);
-    return () => window.removeEventListener("focus", refetchDefects);
-  }, [testId, apiPhotos]);
+    fetchInitial();
+  }, [testId]);
+
+  // Poll for photo updates every 15 seconds when tab is visible
+  // This keeps the QC Matrix in sync when new photos are added/updated
+  useEffect(() => {
+    if (!testId) return;
+
+    const POLL_MS = 15_000; // 15 seconds - matches usePhotoDefects polling rate
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        loadPhotos();
+      }
+    }, POLL_MS);
+
+    return () => clearInterval(id);
+  }, [testId, loadPhotos]);
+
+  // Refetch on window focus for immediate updates when user returns
+  useEffect(() => {
+    const handleFocus = () => {
+      if (testId) {
+        loadPhotos();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [testId, loadPhotos]);
 
   return {
     apiPhotos,

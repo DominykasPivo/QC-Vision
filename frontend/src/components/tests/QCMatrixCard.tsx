@@ -124,10 +124,10 @@ export function QCMatrixCard({ colors, photos }: QCMatrixCardProps) {
                                   <span
                                     className={`absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full border border-white ${
                                       p.verification_status === "approved"
-                                        ? "bg-green-500"
+                                        ? "bg-emerald-500"
                                         : p.verification_status === "rejected"
                                           ? "bg-red-500"
-                                          : "bg-yellow-500"
+                                          : "bg-slate-500"
                                     }`}
                                     title={p.verification_status || "pending"}
                                   />
@@ -178,11 +178,11 @@ export function QCMatrixCard({ colors, photos }: QCMatrixCardProps) {
                                             className={`absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full border border-white ${
                                               p.verification_status ===
                                               "approved"
-                                                ? "bg-green-500"
+                                                ? "bg-emerald-500"
                                                 : p.verification_status ===
                                                     "rejected"
                                                   ? "bg-red-500"
-                                                  : "bg-yellow-500"
+                                                  : "bg-slate-500"
                                             }`}
                                           />
                                         </Link>
