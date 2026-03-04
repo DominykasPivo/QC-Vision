@@ -18,7 +18,7 @@ from app.database import get_db
 from app.modules.audit.service import log_action
 from app.modules.photos.schemas import PhotoResponse
 from app.modules.photos.service import photo_service
-from app.security import require_reviewer
+from app.security import get_actor, require_reviewer
 
 from .models import Tests
 from .schemas import (
@@ -79,9 +79,10 @@ async def create_test(
     status_field: str = Form("pending", alias="status"),
     deadlineAt: Optional[str] = Form(None),
     photos: List[UploadFile] = File(default=[]),
+    actor=Depends(get_actor),
     db: Session = Depends(get_db),
 ):
-    username = "system"
+    username = actor["username"]
 
     try:
         deadline = None
@@ -337,8 +338,13 @@ async def list_tests(
 
 
 @router.patch("/{test_id}", response_model=TestResponse)
-async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_db)):
-    username = "system"
+async def update_test(
+    test_id: int,
+    test_data: dict,
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
+):
+    username = actor["username"]
     try:
         current = await tests_service.get_test(db, test_id)
         if not current:
@@ -419,8 +425,12 @@ async def update_test(test_id: int, test_data: dict, db: Session = Depends(get_d
 
 
 @router.delete("/{test_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_test(test_id: int, db: Session = Depends(get_db)):
-    username = "system"
+async def delete_test(
+    test_id: int,
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
+):
+    username = actor["username"]
     try:
         await tests_service.delete_test(db, test_id)
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.modules.audit.service import log_action
+from app.security import get_actor
 
 from .models import Photo
 from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUpdate
@@ -98,9 +99,12 @@ async def get_photo(photo_id: int, db: Session = Depends(get_db)):
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)
 async def upload_photo(
-    test_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)
+    test_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
-    username = "system"
+    username = actor["username"]
 
     if not file.content_type or not file.content_type.startswith("image/"):
         log_action(
@@ -181,6 +185,7 @@ async def update_verification_status(
     photo_id: int,
     payload: dict,
     db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
     """Update the verification status of a photo (pending, approved, rejected)."""
     verification_status = payload.get("verification_status")
@@ -202,7 +207,7 @@ async def update_verification_status(
         action="UPDATE",
         entity_type="Photo",
         entity_id=photo_id,
-        username="system",
+        username=actor["username"],
         meta={"verification_status": verification_status},
     )
 
@@ -214,6 +219,7 @@ async def update_photo(
     photo_id: int,
     update_data: PhotoUpdate,
     db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
     """Update photo metadata (description, color_id, method)."""
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
@@ -236,7 +242,7 @@ async def update_photo(
         action="UPDATE",
         entity_type="Photo",
         entity_id=photo_id,
-        username="system",
+        username=actor["username"],
         meta=update_dict,
     )
 
@@ -244,8 +250,12 @@ async def update_photo(
 
 
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
-    username = "system"
+async def delete_photo(
+    photo_id: int,
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
+):
+    username = actor["username"]
 
     try:
         photo = db.query(Photo).filter(Photo.id == photo_id).first()

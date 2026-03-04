@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.modules.audit.service import log_action
 from app.modules.photos.models import Photo
-from app.security import require_reviewer
+from app.security import get_actor, require_reviewer
 
 from .schemas import (
     AnnotationCreate,
@@ -39,7 +39,10 @@ async def list_defect_categories(db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
 )
 async def create_defect(
-    photo_id: int, payload: DefectCreate, db: Session = Depends(get_db)
+    photo_id: int,
+    payload: DefectCreate,
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
     """Create a new defect for a specific photo."""
     try:
@@ -52,7 +55,7 @@ async def create_defect(
             action="ADD_DEFECT",
             entity_type="Defect",
             entity_id=defect.id,
-            username="system",
+            username=actor["username"],
             meta={
                 "photo_id": photo_id,
                 "test_id": test_id,
@@ -139,7 +142,11 @@ async def update_defect(
 
 
 @router.delete("/{defect_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_defect(defect_id: int, db: Session = Depends(get_db)):
+async def delete_defect(
+    defect_id: int,
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
+):
     """Delete a defect and all its annotations."""
     defect = await defects_service.get_defect(db, defect_id)
     if not defect:
@@ -157,7 +164,7 @@ async def delete_defect(defect_id: int, db: Session = Depends(get_db)):
         action="REMOVE_DEFECT",
         entity_type="Defect",
         entity_id=defect_id,
-        username="system",
+        username=actor["username"],
         meta={
             "photo_id": defect.photo_id,
             "test_id": test_id,
