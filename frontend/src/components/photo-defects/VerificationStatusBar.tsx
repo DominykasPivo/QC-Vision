@@ -24,7 +24,7 @@ export function VerificationStatusBar({
             "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold",
             isApproved && "bg-emerald-100 text-emerald-800",
             isRejected && "bg-red-100 text-red-800",
-            !isApproved && !isRejected && "bg-slate-100 text-slate-700",
+            !isApproved && !isRejected && "bg-yellow-100 text-yellow-800",
           )}
         >
           <span
@@ -32,7 +32,7 @@ export function VerificationStatusBar({
               "h-2 w-2 rounded-full",
               isApproved && "bg-emerald-500",
               isRejected && "bg-red-500",
-              !isApproved && !isRejected && "bg-slate-400",
+              !isApproved && !isRejected && "bg-yellow-500",
             )}
           />
           {isApproved ? "Approved" : isRejected ? "Rejected" : "Pending"}

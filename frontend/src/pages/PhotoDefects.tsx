@@ -317,7 +317,7 @@ export function PhotoDefects() {
               photo.verification_status === "rejected" &&
                 "bg-red-100 text-red-800 hover:bg-red-100",
               photo.verification_status === "pending" &&
-                "bg-slate-100 text-slate-700 hover:bg-slate-100",
+                "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
             )}
           >
             {photo.verification_status === "approved" && "✓ Approved"}

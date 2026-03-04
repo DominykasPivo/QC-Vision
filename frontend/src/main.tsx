@@ -25,8 +25,13 @@ window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
   const username = getStoredUsername().trim();
   const role = getStoredRole().trim() || "user";
 
-  headers.set("X-User", username || "system");
-  headers.set("X-Role", role);
+  // Only set headers if not already present (don't override explicit values like during login)
+  if (!headers.has("X-User")) {
+    headers.set("X-User", username || "system");
+  }
+  if (!headers.has("X-Role")) {
+    headers.set("X-Role", role);
+  }
 
   return nativeFetch(input, { ...init, headers });
 };

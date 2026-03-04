@@ -18,10 +18,8 @@ def me(
     db: Session = Depends(get_db),
 ):
     username = (x_user or "").strip()
-    if len(username) != 5:
-        raise HTTPException(
-            status_code=400, detail="Username must be exactly 5 characters"
-        )
+    if len(username) < 2 or len(username) > 32:
+        raise HTTPException(status_code=400, detail="Username must be 2-32 characters")
 
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -41,10 +39,8 @@ def update_role(
 ):
     """Update the current user's role"""
     username = (x_user or "").strip()
-    if len(username) != 5:
-        raise HTTPException(
-            status_code=400, detail="Username must be exactly 5 characters"
-        )
+    if len(username) < 2 or len(username) > 32:
+        raise HTTPException(status_code=400, detail="Username must be 2-32 characters")
 
     # Validate role
     if role_update.role not in ("user", "reviewer", "admin"):

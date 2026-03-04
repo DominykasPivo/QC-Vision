@@ -127,7 +127,7 @@ export function QCMatrixCard({ colors, photos }: QCMatrixCardProps) {
                                         ? "bg-emerald-500"
                                         : p.verification_status === "rejected"
                                           ? "bg-red-500"
-                                          : "bg-slate-500"
+                                          : "bg-yellow-500"
                                     }`}
                                     title={p.verification_status || "pending"}
                                   />
@@ -182,7 +182,7 @@ export function QCMatrixCard({ colors, photos }: QCMatrixCardProps) {
                                                 : p.verification_status ===
                                                     "rejected"
                                                   ? "bg-red-500"
-                                                  : "bg-slate-500"
+                                                  : "bg-yellow-500"
                                             }`}
                                           />
                                         </Link>

@@ -20,7 +20,7 @@ export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
 export const VERIFICATION_DOT: Record<string, { bg: string; title: string }> = {
   approved: { bg: "bg-emerald-500", title: "Approved" },
   rejected: { bg: "bg-red-500", title: "Rejected" },
-  pending: { bg: "bg-slate-400", title: "Pending review" },
+  pending: { bg: "bg-yellow-500", title: "Pending review" },
 };
 
 /**
