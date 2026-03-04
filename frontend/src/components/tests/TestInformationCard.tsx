@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -139,11 +140,53 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
           ? `${actor} updated fields: ${updatedFields.map(String).join(", ")}`
           : `${actor} updated this test`;
       case "UPLOAD":
-        return `${actor} uploaded photo #${item.entity_id}`;
+        return (
+          <>
+            {actor} uploaded{" "}
+            <Link
+              to={`/photos/${item.entity_id}`}
+              className="font-semibold text-[#2563eb] underline-offset-2 hover:underline"
+            >
+              photo #{item.entity_id}
+            </Link>
+          </>
+        );
       case "ADD_DEFECT":
-        return `${actor} added defect #${item.entity_id}`;
+        return (
+          <>
+            {actor} added defect #{item.entity_id}
+            {meta.photo_id ? (
+              <>
+                {" "}
+                on{" "}
+                <Link
+                  to={`/photos/${String(meta.photo_id)}`}
+                  className="font-semibold text-[#2563eb] underline-offset-2 hover:underline"
+                >
+                  photo #{String(meta.photo_id)}
+                </Link>
+              </>
+            ) : null}
+          </>
+        );
       case "REMOVE_DEFECT":
-        return `${actor} removed defect #${item.entity_id}`;
+        return (
+          <>
+            {actor} removed defect #{item.entity_id}
+            {meta.photo_id ? (
+              <>
+                {" "}
+                from{" "}
+                <Link
+                  to={`/photos/${String(meta.photo_id)}`}
+                  className="font-semibold text-[#2563eb] underline-offset-2 hover:underline"
+                >
+                  photo #{String(meta.photo_id)}
+                </Link>
+              </>
+            ) : null}
+          </>
+        );
       case "CREATE":
         return `${actor} created this test`;
       case "DELETE":
