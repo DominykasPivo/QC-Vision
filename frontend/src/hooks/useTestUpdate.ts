@@ -155,6 +155,12 @@ export function useTestUpdate({
 
       await response.json();
 
+      // Map color IDs to full color objects for the QC Matrix
+      const selectedColors = draft.colorIds
+        .map((id) => colors.find((c) => c.id === id))
+        .filter((c): c is Color => c !== undefined)
+        .map((c) => ({ id: c.id, name: c.name, hexValue: c.hexValue }));
+
       updateTest(test.id, {
         jiraId: draft.jiraId.trim(),
         productName: draft.productName.trim(),
@@ -163,6 +169,7 @@ export function useTestUpdate({
         assignedTo: draft.assignedTo.trim() || undefined,
         description: draft.description.trim() || null,
         colorIds: draft.colorIds,
+        colors: selectedColors,
         deadline: draft.deadline,
         status: draft.status,
       });
