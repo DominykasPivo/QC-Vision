@@ -103,8 +103,10 @@ export function TestDetails() {
         {test.colors && test.colors.length > 0 && (
           <div className="mt-8">
             <QCMatrixCard
+              testId={test.id}
               colors={test.colors.map((c) => ({ ...c, isActive: true }))}
               photos={apiPhotos}
+              matrixColumns={test.matrixColumns ?? null}
             />
           </div>
         )}

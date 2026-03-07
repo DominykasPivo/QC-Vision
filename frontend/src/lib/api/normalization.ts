@@ -25,6 +25,7 @@ export type ApiTest = {
   description?: string | null;
   color_ids?: number[] | null;
   colors?: Array<{ id: number; name: string; hex_value: string }> | null;
+  matrix_columns?: string | null;
   status?: string | null;
   deadlineAt?: string | null;
   deadline_at?: string | null;
@@ -110,6 +111,7 @@ export function toFrontendTest(raw: ApiTest): Test {
     deadlineAt,
     colorIds,
     colors,
+    matrixColumns: raw.matrix_columns ?? null,
     status,
     createdAt,
     updatedAt,

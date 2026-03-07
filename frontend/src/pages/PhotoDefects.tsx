@@ -475,6 +475,11 @@ export function PhotoDefects() {
                       <option value="">None</option>
                       {PRINT_TYPES.map((pt) => (
                         <optgroup key={pt.key} label={pt.label}>
+                          {pt.methods.length > 1 && (
+                            <option value={pt.key}>
+                              {pt.label} – All methods
+                            </option>
+                          )}
                           {pt.methods.map((m) => (
                             <option key={m.key} value={m.key}>
                               {m.label}

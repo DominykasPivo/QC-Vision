@@ -53,6 +53,7 @@ class Tests(Base):
     requester = Column(String(100), nullable=False)
     assigned_to = Column("assigned_to", String(100), nullable=True)
     description = Column(Text, nullable=True)
+    matrix_columns = Column(Text, nullable=True)
     colors = relationship("Color", secondary=test_colors_table, lazy="joined")
     status = Column(String(50), nullable=False, default="pending")
     deadline_at = Column("deadline_at", DateTime(timezone=True), nullable=True)

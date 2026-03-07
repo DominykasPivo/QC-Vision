@@ -37,6 +37,16 @@ export const PRINT_TYPES = [
       { key: "schulze", label: "Schulze press" },
     ],
   },
+  {
+    key: "washing",
+    label: "Washing",
+    methods: [{ key: "washing", label: "Washing" }],
+  },
+  {
+    key: "dish_washer",
+    label: "Dish Washer",
+    methods: [{ key: "dish_washer", label: "Dish Washer" }],
+  },
 ] as const;
 
 type Method = (typeof PRINT_TYPES)[number]["methods"][number];
@@ -47,4 +57,8 @@ export const ALL_METHODS = PRINT_TYPES.flatMap((pt) => [
 
 export const METHOD_TO_TYPE: Record<string, string> = Object.fromEntries(
   PRINT_TYPES.flatMap((pt) => pt.methods.map((m) => [m.key, pt.label])),
+);
+
+export const METHOD_TO_TYPE_KEY: Record<string, string> = Object.fromEntries(
+  PRINT_TYPES.flatMap((pt) => pt.methods.map((m) => [m.key, pt.key])),
 );

@@ -44,6 +44,7 @@ class TestResponse(BaseModel):
     requester: str
     assigned_to: Optional[str] = None
     description: Optional[str] = None
+    matrix_columns: Optional[str] = None
     colors: List[ColorResponse] = Field(default_factory=list)
     status: str
     deadline_at: Optional[datetime] = None

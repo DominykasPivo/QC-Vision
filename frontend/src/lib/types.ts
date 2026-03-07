@@ -19,6 +19,7 @@ export interface Test {
   deadlineAt?: string | null;
   colorIds?: number[];
   colors?: { id: number; name: string; hexValue: string }[];
+  matrixColumns?: string | null;
   status: TestStatus;
   createdAt?: string | null;
   updatedAt?: string | null;

@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS quality_tests (
   requester     TEXT,
   assigned_to   TEXT,
   description   TEXT,
+  matrix_columns TEXT,
 
   status        test_status NOT NULL DEFAULT 'open',
   deadline_at   TIMESTAMPTZ,
@@ -156,7 +157,14 @@ VALUES
   ('Damage'),
   ('Print Errors'),
   ('Embroidery Issues'),
-  ('Other')
+  ('Other'),
+  ('Pretreatment Stains'),
+  ('Press Marks'),
+  ('Dye Migration'),
+  ('Peel of'),
+  ('Faded'),
+  ('Color fastness'),
+  ('Ink Absoption')
 ON CONFLICT (name) DO NOTHING;
 
 
