@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { isLoggedIn } from "@/lib/auth";
 
 export type CategoryRecord = { id: number; name: string; is_active: boolean };
 
@@ -7,10 +8,14 @@ export type CategoryRecord = { id: number; name: string; is_active: boolean };
  */
 export function useCategories() {
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => isLoggedIn());
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if (!isLoggedIn()) {
+      return;
+    }
+
     fetch("/api/v1/defects/categories")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch categories");

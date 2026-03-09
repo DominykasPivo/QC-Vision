@@ -4,6 +4,7 @@ import {
   type GalleryResponse,
   type GalleryFilters as APIFilters,
 } from "@/lib/api/gallery";
+import { isLoggedIn } from "@/lib/auth";
 
 /**
  * Custom hook for managing gallery data fetching and polling
@@ -17,6 +18,8 @@ export function useGalleryData(
   const [loading, setLoading] = useState(true);
 
   const loadGallery = useCallback(async () => {
+    if (!isLoggedIn()) return;
+
     setLoading(true);
     try {
       const data = await fetchGallery({

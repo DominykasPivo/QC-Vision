@@ -6,6 +6,7 @@ import {
   type PhotoRecord,
 } from "@/lib/api/defects";
 import { POLL_INTERVAL_MS } from "@/lib/constants/photoDefectsConstants";
+import { isLoggedIn } from "@/lib/auth";
 
 /**
  * Hook to load and manage photo data with defects
@@ -24,7 +25,7 @@ export function usePhotoDefects(photoId?: string) {
   }, [photoId]);
 
   const loadDefects = useCallback(async () => {
-    if (!photoId) {
+    if (!photoId || !isLoggedIn()) {
       return;
     }
     setIsLoading(true);
@@ -42,7 +43,7 @@ export function usePhotoDefects(photoId?: string) {
   }, [photoId]);
 
   const loadPhoto = useCallback(async () => {
-    if (!photoId) return;
+    if (!photoId || !isLoggedIn()) return;
     try {
       const data = await getPhoto(photoId);
       setPhoto(data);

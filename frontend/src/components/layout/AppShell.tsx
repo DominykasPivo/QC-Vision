@@ -132,6 +132,8 @@ export function AppShell() {
   }, [auditEvents, storageHydrated]);
 
   const refreshTests = useCallback(async () => {
+    if (!getStoredUsername()) return;
+
     try {
       const response = await fetch("/api/v1/tests/?limit=100");
       if (!response.ok) {
@@ -183,6 +185,8 @@ export function AppShell() {
 
   useEffect(() => {
     const loadAuditLogs = async () => {
+      if (!getStoredUsername()) return;
+
       try {
         const data = await fetchAuditLogs();
 

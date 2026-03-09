@@ -11,10 +11,13 @@ import { isLoggedIn } from "./lib/auth";
 import { Review } from "./pages/Review";
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
-  if (!isLoggedIn()) {
+  const loggedIn = isLoggedIn();
+
+  if (!loggedIn) {
     return <Navigate to="/login" replace />;
   }
-  return children;
+
+  return <>{children}</>;
 };
 
 const LoginRoute = () => {

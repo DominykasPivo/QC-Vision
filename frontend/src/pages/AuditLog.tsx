@@ -4,6 +4,7 @@ import type { AppDataContext } from "../components/layout/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { fetchAuditLogs } from "@/lib/api/audit";
+import { getStoredUsername } from "@/lib/auth";
 
 function formatTimestamp(isoString: string): string {
   const date = new Date(isoString);
@@ -99,6 +100,8 @@ export function AuditLog() {
   const [error, setError] = useState<string | null>(null);
 
   async function fetchLogs(opts?: { clearFilters?: boolean }) {
+    if (!getStoredUsername()) return;
+
     setLoading(true);
     setError(null);
 

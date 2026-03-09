@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import { request } from "@/lib/api/http";
-import { getStoredRole, getStoredUsername } from "@/lib/auth";
+import { getStoredRole, getStoredUsername, isReviewer } from "@/lib/auth";
 import type { ReviewStatus } from "@/lib/db-constants";
 import { fetchGallery } from "@/lib/api/gallery";
 import { updateVerificationStatus } from "@/lib/api/defects";
@@ -49,7 +49,9 @@ export function Review() {
     [username, role],
   );
 
-  async function loadPending() {
+  const loadPending = useCallback(async () => {
+    if (!username || !isReviewer()) return;
+
     setLoading(true);
     setError(null);
     try {
@@ -70,11 +72,11 @@ export function Review() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [username]);
 
   useEffect(() => {
     void loadPending();
-  }, []);
+  }, [loadPending]);
 
   // Poll for pending tests every 30 seconds when tab is visible
   useEffect(() => {
@@ -86,7 +88,7 @@ export function Review() {
     }, POLL_MS);
 
     return () => clearInterval(id);
-  }, []);
+  }, [loadPending]);
 
   const approveTest = async (id: number) => {
     try {
