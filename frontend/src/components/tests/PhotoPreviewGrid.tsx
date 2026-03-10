@@ -3,17 +3,20 @@ import { PhotoPreviewCard } from "./PhotoPreviewCard";
 interface PhotoPreview {
   file: File;
   url: string;
+  rotation?: number;
 }
 
 interface PhotoPreviewGridProps {
   photoPreviews: PhotoPreview[];
   onRemove: (index: number) => void;
+  onRotate?: (index: number) => void;
   disabled: boolean;
 }
 
 export function PhotoPreviewGrid({
   photoPreviews,
   onRemove,
+  onRotate,
   disabled,
 }: PhotoPreviewGridProps) {
   if (photoPreviews.length === 0) {
@@ -37,6 +40,9 @@ export function PhotoPreviewGrid({
           imageWrapClassName="aspect-square bg-slate-100"
           footerClassName="border-t border-slate-100 p-2"
           removeButtonClassName="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200"
+          rotation={preview.rotation}
+          onRotate={onRotate ? () => onRotate(index) : undefined}
+          showRotateButton={!!onRotate}
         />
       ))}
     </div>

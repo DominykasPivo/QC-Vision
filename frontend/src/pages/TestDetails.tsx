@@ -52,6 +52,7 @@ export function TestDetails() {
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
+    handleRotateNewPhoto,
     handleUpdateSave,
     handleColorCreated,
   } = useTestUpdate({
@@ -152,6 +153,7 @@ export function TestDetails() {
           setPhotosToDelete((prev) => [...prev, photoId])
         }
         onRemoveNewPhoto={handleRemoveNewPhoto}
+        onRotateNewPhoto={handleRotateNewPhoto}
         onColorCreated={handleColorCreated}
       />
 

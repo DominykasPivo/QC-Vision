@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { getStoredUsername } from "@/lib/auth";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import { SUBMIT_BUTTON_CLASS } from "@/lib/constants";
+import { rotateImageFile } from "@/lib/utils/image-rotation";
 import {
   useDeviceDetection,
   usePhotoUpload,
@@ -37,9 +38,11 @@ export function CreateTest() {
     handleRemovePhoto,
     setShowPhotoModal,
     clearPhotos,
+    replacePhoto,
   } = usePhotoUpload();
 
-  const photoPreviews = usePhotoPreview(selectedPhotos);
+  const { photoPreviews, rotatePhoto, getRotation, clearRotations } =
+    usePhotoPreview(selectedPhotos);
 
   const {
     formData,
@@ -58,8 +61,27 @@ export function CreateTest() {
     loggedInUser,
     addAuditEvent,
     refreshTests,
-    onPhotosClear: clearPhotos,
+    onPhotosClear: () => {
+      clearPhotos();
+      clearRotations();
+    },
   });
+
+  const handleRotatePhoto = async (index: number) => {
+    rotatePhoto(index);
+    const file = selectedPhotos[index];
+    const rotation = (getRotation(file) + 90) % 360;
+
+    // If rotation is not 0, apply it to the actual file
+    if (rotation !== 0) {
+      try {
+        const rotatedFile = await rotateImageFile(file, rotation);
+        replacePhoto(index, rotatedFile);
+      } catch (error) {
+        console.error("Failed to rotate image:", error);
+      }
+    }
+  };
 
   const onSubmit = (e: FormEvent) => {
     handleSubmit(e, selectedPhotos);
@@ -171,6 +193,7 @@ export function CreateTest() {
               <PhotoPreviewGrid
                 photoPreviews={photoPreviews}
                 onRemove={handleRemovePhoto}
+                onRotate={handleRotatePhoto}
                 disabled={isLoading}
               />
             </div>

@@ -39,7 +39,7 @@ interface UpdateTestModalProps {
   colors: Color[];
   apiPhotos: ApiPhoto[];
   photosToDelete: string[];
-  newPhotoPreviews: { file: File; url: string }[];
+  newPhotoPreviews: { file: File; url: string; rotation?: number }[];
   photoNotice: string | null;
   onClose: () => void;
   onSave: () => void;
@@ -48,6 +48,7 @@ interface UpdateTestModalProps {
   onPhotoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveExistingPhoto: (photoId: string) => void;
   onRemoveNewPhoto: (index: number) => void;
+  onRotateNewPhoto?: (index: number) => void;
   onColorCreated?: (color: Color) => void;
 }
 
@@ -67,6 +68,7 @@ export function UpdateTestModal({
   onPhotoSelect,
   onRemoveExistingPhoto,
   onRemoveNewPhoto,
+  onRotateNewPhoto,
   onColorCreated,
 }: UpdateTestModalProps) {
   if (!show) {
@@ -280,6 +282,7 @@ export function UpdateTestModal({
                   <NewPhotosGrid
                     newPhotoPreviews={newPhotoPreviews}
                     onRemoveNewPhoto={onRemoveNewPhoto}
+                    onRotateNewPhoto={onRotateNewPhoto}
                   />
                 </div>
               )}

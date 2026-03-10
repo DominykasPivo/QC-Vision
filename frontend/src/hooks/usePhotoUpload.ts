@@ -61,6 +61,14 @@ export function usePhotoUpload() {
     setPhotoNotice(null);
   };
 
+  const replacePhoto = (index: number, newFile: File) => {
+    setSelectedPhotos((prev) => {
+      const updated = [...prev];
+      updated[index] = newFile;
+      return updated;
+    });
+  };
+
   return {
     selectedPhotos,
     photoNotice,
@@ -73,5 +81,6 @@ export function usePhotoUpload() {
     handleRemovePhoto,
     setShowPhotoModal,
     clearPhotos,
+    replacePhoto,
   };
 }

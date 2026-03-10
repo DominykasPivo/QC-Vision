@@ -7,6 +7,7 @@ import { TEST_STATUSES, TEST_TYPES } from "@/lib/db-constants";
 import { fetchColors } from "@/lib/api/colors";
 import type { Color } from "@/lib/types";
 import { validateSelectedFiles } from "./test-update/photoValidation";
+import { rotateImageFile } from "@/lib/utils/image-rotation";
 import {
   deletePhotoById,
   updateTestById,
@@ -45,7 +46,12 @@ export function useTestUpdate({
       .catch(() => {});
   }, []);
 
-  const newPhotoPreviews = usePhotoPreview(newPhotos);
+  const {
+    photoPreviews: newPhotoPreviews,
+    rotatePhoto,
+    getRotation,
+    clearRotations,
+  } = usePhotoPreview(newPhotos);
 
   const [draft, setDraft] = useState({
     jiraId: test?.jiraId ?? "",
@@ -82,6 +88,7 @@ export function useTestUpdate({
     setNewPhotos([]);
     setPhotosToDelete([]);
     setPhotoNotice(null);
+    clearRotations();
     setShowUpdateModal(true);
   };
 
@@ -102,6 +109,26 @@ export function useTestUpdate({
 
   const handleRemoveNewPhoto = (index: number) => {
     setNewPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRotateNewPhoto = async (index: number) => {
+    rotatePhoto(index);
+    const file = newPhotos[index];
+    const rotation = (getRotation(file) + 90) % 360;
+
+    // If rotation is not 0, apply it to the actual file
+    if (rotation !== 0) {
+      try {
+        const rotatedFile = await rotateImageFile(file, rotation);
+        setNewPhotos((prev) => {
+          const updated = [...prev];
+          updated[index] = rotatedFile;
+          return updated;
+        });
+      } catch (error) {
+        console.error("Failed to rotate image:", error);
+      }
+    }
   };
 
   const handleUpdateSave = async () => {
@@ -229,6 +256,7 @@ export function useTestUpdate({
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
+    handleRotateNewPhoto,
     handleUpdateSave,
     handleColorCreated,
   };
