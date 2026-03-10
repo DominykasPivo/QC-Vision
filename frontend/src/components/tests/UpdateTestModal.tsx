@@ -49,6 +49,7 @@ interface UpdateTestModalProps {
   onRemoveExistingPhoto: (photoId: string) => void;
   onRemoveNewPhoto: (index: number) => void;
   onRotateNewPhoto?: (index: number) => void;
+  onCropNewPhoto?: (index: number) => void;
   onColorCreated?: (color: Color) => void;
 }
 
@@ -69,6 +70,7 @@ export function UpdateTestModal({
   onRemoveExistingPhoto,
   onRemoveNewPhoto,
   onRotateNewPhoto,
+  onCropNewPhoto,
   onColorCreated,
 }: UpdateTestModalProps) {
   if (!show) {
@@ -283,6 +285,7 @@ export function UpdateTestModal({
                     newPhotoPreviews={newPhotoPreviews}
                     onRemoveNewPhoto={onRemoveNewPhoto}
                     onRotateNewPhoto={onRotateNewPhoto}
+                    onCropNewPhoto={onCropNewPhoto}
                   />
                 </div>
               )}

@@ -1,4 +1,4 @@
-import { RotateCw } from "lucide-react";
+import { RotateCw, Scissors } from "lucide-react";
 
 interface PhotoPreviewCardProps {
   imageUrl?: string;
@@ -14,6 +14,8 @@ interface PhotoPreviewCardProps {
   rotation?: number;
   onRotate?: () => void;
   showRotateButton?: boolean;
+  onCrop?: () => void;
+  showCropButton?: boolean;
 }
 
 export function PhotoPreviewCard({
@@ -30,6 +32,8 @@ export function PhotoPreviewCard({
   rotation = 0,
   onRotate,
   showRotateButton = false,
+  onCrop,
+  showCropButton = false,
 }: PhotoPreviewCardProps) {
   return (
     <div className={cardClassName}>
@@ -44,16 +48,32 @@ export function PhotoPreviewCard({
                 transform: rotation ? `rotate(${rotation}deg)` : undefined,
               }}
             />
-            {showRotateButton && onRotate && (
-              <button
-                type="button"
-                className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                onClick={onRotate}
-                aria-label="Rotate photo 90 degrees"
-                title="Rotate"
-              >
-                <RotateCw className="h-4 w-4" />
-              </button>
+            {/* Button group at top-right */}
+            {(showCropButton || showRotateButton) && (
+              <div className="absolute top-2 right-2 flex gap-1">
+                {showCropButton && onCrop && (
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    onClick={onCrop}
+                    aria-label="Crop photo"
+                    title="Crop"
+                  >
+                    <Scissors className="h-4 w-4" />
+                  </button>
+                )}
+                {showRotateButton && onRotate && (
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-md backdrop-blur-sm transition-all hover:bg-white hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    onClick={onRotate}
+                    aria-label="Rotate photo 90 degrees"
+                    title="Rotate"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             )}
           </>
         ) : (

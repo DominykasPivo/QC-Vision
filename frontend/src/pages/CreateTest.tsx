@@ -7,12 +7,14 @@ import { getStoredUsername } from "@/lib/auth";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import { SUBMIT_BUTTON_CLASS } from "@/lib/constants";
 import { rotateImageFile } from "@/lib/utils/image-rotation";
+import { cropImageFile, type CropArea } from "@/lib/utils/image-crop";
 import {
   useDeviceDetection,
   usePhotoUpload,
   usePhotoPreview,
   useCreateTestForm,
 } from "@/hooks";
+import { useCropModal } from "@/hooks/useCropModal";
 import {
   TestFormFields,
   PhotoUploadButton,
@@ -20,6 +22,7 @@ import {
   PhotoUploadModal,
   SuccessToast,
 } from "@/components/tests";
+import { CropModal } from "@/components/tests/CropModal";
 
 export function CreateTest() {
   const { addAuditEvent, refreshTests } = useOutletContext<AppDataContext>();
@@ -43,6 +46,14 @@ export function CreateTest() {
 
   const { photoPreviews, rotatePhoto, getRotation, clearRotations } =
     usePhotoPreview(selectedPhotos);
+
+  const {
+    showCropModal,
+    cropImageUrl,
+    cropIndex,
+    openCropModal,
+    closeCropModal,
+  } = useCropModal();
 
   const {
     formData,
@@ -80,6 +91,27 @@ export function CreateTest() {
       } catch (error) {
         console.error("Failed to rotate image:", error);
       }
+    }
+  };
+
+  const handleOpenCrop = (index: number) => {
+    const preview = photoPreviews[index];
+    if (preview?.url) {
+      openCropModal(preview.url, index);
+    }
+  };
+
+  const handleApplyCrop = async (cropArea: CropArea) => {
+    if (cropIndex === null) return;
+
+    try {
+      const file = selectedPhotos[cropIndex];
+      const croppedFile = await cropImageFile(file, cropArea);
+      replacePhoto(cropIndex, croppedFile);
+      closeCropModal();
+    } catch (error) {
+      console.error("Failed to crop image:", error);
+      alert("Failed to crop image. Please try again.");
     }
   };
 
@@ -194,6 +226,7 @@ export function CreateTest() {
                 photoPreviews={photoPreviews}
                 onRemove={handleRemovePhoto}
                 onRotate={handleRotatePhoto}
+                onCrop={handleOpenCrop}
                 disabled={isLoading}
               />
             </div>
@@ -223,6 +256,15 @@ export function CreateTest() {
         onCameraClick={() => cameraInputRef.current?.click()}
         onGalleryClick={() => galleryInputRef.current?.click()}
       />
+
+      {cropImageUrl && (
+        <CropModal
+          show={showCropModal}
+          imageUrl={cropImageUrl}
+          onClose={closeCropModal}
+          onApply={handleApplyCrop}
+        />
+      )}
     </div>
   );
 }

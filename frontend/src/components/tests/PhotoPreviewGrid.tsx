@@ -10,6 +10,7 @@ interface PhotoPreviewGridProps {
   photoPreviews: PhotoPreview[];
   onRemove: (index: number) => void;
   onRotate?: (index: number) => void;
+  onCrop?: (index: number) => void;
   disabled: boolean;
 }
 
@@ -17,6 +18,7 @@ export function PhotoPreviewGrid({
   photoPreviews,
   onRemove,
   onRotate,
+  onCrop,
   disabled,
 }: PhotoPreviewGridProps) {
   if (photoPreviews.length === 0) {
@@ -42,6 +44,8 @@ export function PhotoPreviewGrid({
           removeButtonClassName="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 focus:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200"
           rotation={preview.rotation}
           onRotate={onRotate ? () => onRotate(index) : undefined}
+          onCrop={onCrop ? () => onCrop(index) : undefined}
+          showCropButton={!!onCrop}
           showRotateButton={!!onRotate}
         />
       ))}

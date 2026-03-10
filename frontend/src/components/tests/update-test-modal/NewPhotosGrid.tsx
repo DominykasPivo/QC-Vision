@@ -10,12 +10,14 @@ interface NewPhotosGridProps {
   newPhotoPreviews: PhotoPreview[];
   onRemoveNewPhoto: (index: number) => void;
   onRotateNewPhoto?: (index: number) => void;
+  onCropNewPhoto?: (index: number) => void;
 }
 
 export function NewPhotosGrid({
   newPhotoPreviews,
   onRemoveNewPhoto,
   onRotateNewPhoto,
+  onCropNewPhoto,
 }: NewPhotosGridProps) {
   if (newPhotoPreviews.length === 0) {
     return null;
@@ -40,6 +42,8 @@ export function NewPhotosGrid({
             onRotate={
               onRotateNewPhoto ? () => onRotateNewPhoto(index) : undefined
             }
+            onCrop={onCropNewPhoto ? () => onCropNewPhoto(index) : undefined}
+            showCropButton={!!onCropNewPhoto}
             showRotateButton={!!onRotateNewPhoto}
           />
         ))}
