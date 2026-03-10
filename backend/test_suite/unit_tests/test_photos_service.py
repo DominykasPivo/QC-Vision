@@ -111,6 +111,27 @@ class TestProcessImage:
         result = await svc.process_image(img)
         assert result.mode == "RGB"
 
+    async def test_exif_orientation_correction(self, svc):
+        # Create a 100x200 image (portrait)
+        img = Image.new("RGB", (100, 200), (255, 0, 0))
+
+        # Simulate EXIF orientation tag 6 (rotate 90 CW)
+        # In real photos, this would indicate the image needs to be rotated
+        exif = img.getexif()
+        exif[0x0112] = 6  # Orientation tag
+
+        # Save and reload with EXIF data
+        buffer = BytesIO()
+        img.save(buffer, format="JPEG", exif=exif)
+        buffer.seek(0)
+        img_with_exif = Image.open(buffer)
+
+        # Process the image - should correct orientation
+        result = await svc.process_image(img_with_exif)
+
+        # After correction, dimensions should be swapped (200x100 landscape)
+        assert result.size == (200, 100)
+
 
 # ---------------------------------------------------------------------------
 # image_to_bytes  –  serialisation sanity checks

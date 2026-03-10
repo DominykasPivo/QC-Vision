@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { type ApiPhoto } from "./useTestDetailPhotos";
 import { usePhotoPreview } from "./usePhotoPreview";
+import { useCropModal } from "./useCropModal";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import type { TestStatus, TestType, Test } from "@/lib/db-constants";
 import { TEST_STATUSES, TEST_TYPES } from "@/lib/db-constants";
 import { fetchColors } from "@/lib/api/colors";
 import type { Color } from "@/lib/types";
 import { validateSelectedFiles } from "./test-update/photoValidation";
+import { rotateImageFile } from "@/lib/utils/image-rotation";
+import { cropImageFile, type CropArea } from "@/lib/utils/image-crop";
 import {
   deletePhotoById,
   updateTestById,
@@ -45,7 +48,20 @@ export function useTestUpdate({
       .catch(() => {});
   }, []);
 
-  const newPhotoPreviews = usePhotoPreview(newPhotos);
+  const {
+    photoPreviews: newPhotoPreviews,
+    rotatePhoto,
+    getRotation,
+    clearRotations,
+  } = usePhotoPreview(newPhotos);
+
+  const {
+    showCropModal,
+    cropImageUrl,
+    cropIndex,
+    openCropModal,
+    closeCropModal,
+  } = useCropModal();
 
   const [draft, setDraft] = useState({
     jiraId: test?.jiraId ?? "",
@@ -82,6 +98,7 @@ export function useTestUpdate({
     setNewPhotos([]);
     setPhotosToDelete([]);
     setPhotoNotice(null);
+    clearRotations();
     setShowUpdateModal(true);
   };
 
@@ -102,6 +119,51 @@ export function useTestUpdate({
 
   const handleRemoveNewPhoto = (index: number) => {
     setNewPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRotateNewPhoto = async (index: number) => {
+    rotatePhoto(index);
+    const file = newPhotos[index];
+    const rotation = (getRotation(file) + 90) % 360;
+
+    // If rotation is not 0, apply it to the actual file
+    if (rotation !== 0) {
+      try {
+        const rotatedFile = await rotateImageFile(file, rotation);
+        setNewPhotos((prev) => {
+          const updated = [...prev];
+          updated[index] = rotatedFile;
+          return updated;
+        });
+      } catch (error) {
+        console.error("Failed to rotate image:", error);
+      }
+    }
+  };
+
+  const handleOpenCropNewPhoto = (index: number) => {
+    const preview = newPhotoPreviews[index];
+    if (preview?.url) {
+      openCropModal(preview.url, index);
+    }
+  };
+
+  const handleApplyCropNewPhoto = async (cropArea: CropArea) => {
+    if (cropIndex === null) return;
+
+    try {
+      const file = newPhotos[cropIndex];
+      const croppedFile = await cropImageFile(file, cropArea);
+      setNewPhotos((prev) => {
+        const updated = [...prev];
+        updated[cropIndex] = croppedFile;
+        return updated;
+      });
+      closeCropModal();
+    } catch (error) {
+      console.error("Failed to crop image:", error);
+      alert("Failed to crop image. Please try again.");
+    }
   };
 
   const handleUpdateSave = async () => {
@@ -229,7 +291,13 @@ export function useTestUpdate({
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
+    handleRotateNewPhoto,
+    handleOpenCropNewPhoto,
+    handleApplyCropNewPhoto,
     handleUpdateSave,
     handleColorCreated,
+    showCropModal,
+    cropImageUrl,
+    closeCropModal,
   };
 }

@@ -17,6 +17,7 @@ import {
   DeleteConfirmModal,
   UpdateTestModal,
   PhotoSourceModal,
+  CropModal,
   QCMatrixCard,
 } from "@/components/tests";
 
@@ -52,8 +53,14 @@ export function TestDetails() {
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
+    handleRotateNewPhoto,
+    handleOpenCropNewPhoto,
+    handleApplyCropNewPhoto,
     handleUpdateSave,
     handleColorCreated,
+    showCropModal,
+    cropImageUrl,
+    closeCropModal,
   } = useTestUpdate({
     test: test!,
     apiPhotos,
@@ -152,6 +159,8 @@ export function TestDetails() {
           setPhotosToDelete((prev) => [...prev, photoId])
         }
         onRemoveNewPhoto={handleRemoveNewPhoto}
+        onRotateNewPhoto={handleRotateNewPhoto}
+        onCropNewPhoto={handleOpenCropNewPhoto}
         onColorCreated={handleColorCreated}
       />
 
@@ -161,6 +170,15 @@ export function TestDetails() {
         onCameraClick={() => document.getElementById("camera-input")?.click()}
         onGalleryClick={() => document.getElementById("gallery-input")?.click()}
       />
+
+      {cropImageUrl && (
+        <CropModal
+          show={showCropModal}
+          imageUrl={cropImageUrl}
+          onClose={closeCropModal}
+          onApply={handleApplyCropNewPhoto}
+        />
+      )}
     </div>
   );
 }
