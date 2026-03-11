@@ -29,6 +29,9 @@ export function CameraCapturePage() {
   const [zoom, setZoom] = useState(1);
   const [showGrid, setShowGrid] = useState(false);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+  const [originalCapturedBlob, setOriginalCapturedBlob] = useState<Blob | null>(
+    null,
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isStreamActive, setIsStreamActive] = useState(false);
@@ -57,18 +60,19 @@ export function CameraCapturePage() {
     const blob = await captureFrame({ zoom, quality: 0.92 });
     if (blob) {
       setCapturedBlob(blob);
+      setOriginalCapturedBlob(blob); // Keep original for rotation
       setRotation(0); // Reset rotation on new capture
     }
   };
 
   const handleRotate = async () => {
-    if (!capturedBlob) return;
+    if (!originalCapturedBlob) return;
 
     const newRotation = (rotation + 90) % 360;
     setRotation(newRotation);
 
     try {
-      const file = new File([capturedBlob], `camera-capture.jpg`, {
+      const file = new File([originalCapturedBlob], `camera-capture.jpg`, {
         type: "image/jpeg",
       });
       const rotatedFile = await rotateImageFile(file, newRotation);
@@ -99,6 +103,7 @@ export function CameraCapturePage() {
         .arrayBuffer()
         .then((buffer) => new Blob([buffer], { type: "image/jpeg" }));
       setCapturedBlob(croppedBlob);
+      setOriginalCapturedBlob(croppedBlob); // Update original so rotations work on cropped image
       closeCropModal();
       setRotation(0); // Reset rotation after crop
     } catch (error) {
@@ -208,14 +213,14 @@ export function CameraCapturePage() {
               ) : (
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold">Preview</h2>
-                  <div className="relative">
+                  <div className="relative bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center w-full h-[500px] md:h-[600px] lg:h-[70vh]">
                     <img
                       src={previewUrl || ""}
                       alt="Captured"
-                      className="w-full rounded-lg"
+                      className="object-contain transition-all duration-300"
                       style={{
-                        transform: `rotate(${rotation}deg)`,
-                        transformOrigin: "center",
+                        maxWidth: "100%",
+                        maxHeight: "100%",
                       }}
                     />
                   </div>
@@ -253,7 +258,7 @@ export function CameraCapturePage() {
                     onZoomChange={setZoom}
                     onGridToggle={setShowGrid}
                     isCapturing={isCapturing}
-                    disabled={!selectedDeviceId}
+                    disabled={!isStreamActive}
                   />
                 </>
               ) : (

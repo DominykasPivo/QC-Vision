@@ -53,6 +53,17 @@ export function CameraPreview({
     }
   }, [isActive, stream, onStreamReady]);
 
+  // Auto-start camera when deviceId becomes available
+  useEffect(() => {
+    if (deviceId && !stream && !isLoading && !error) {
+      // Delay to ensure video element is properly laid out
+      const timer = setTimeout(() => {
+        startCamera();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [deviceId, stream, isLoading, error, startCamera]);
+
   useEffect(() => {
     return () => {
       stopCamera();
@@ -110,13 +121,12 @@ export function CameraPreview({
         autoPlay
         playsInline
         muted
-        width={width}
-        height={height}
         style={{
           transform: `scale(${zoom})`,
           transformOrigin: "center",
           width: "100%",
           height: "100%",
+          display: "block",
         }}
         className="object-cover rounded-lg bg-black"
       />

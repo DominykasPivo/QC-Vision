@@ -33,13 +33,42 @@ export function useCameraCapture(videoRef: React.RefObject<HTMLVideoElement>) {
       return null;
     }
 
+    // Ensure video dimensions are valid
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.error("Video dimensions not available yet");
+      return null;
+    }
+
     setIsCapturing(true);
 
     try {
-      // Create canvas with video dimensions
+      // Calculate 16:9 crop from video (matching object-cover behavior)
+      const targetAspect = 16 / 9;
+      const videoAspect = video.videoWidth / video.videoHeight;
+
+      let sourceX = 0;
+      let sourceY = 0;
+      let sourceWidth = video.videoWidth;
+      let sourceHeight = video.videoHeight;
+
+      if (videoAspect > targetAspect) {
+        // Video is wider - crop sides
+        sourceWidth = video.videoHeight * targetAspect;
+        sourceX = (video.videoWidth - sourceWidth) / 2;
+      } else {
+        // Video is taller - crop top/bottom
+        sourceHeight = video.videoWidth / targetAspect;
+        sourceY = (video.videoHeight - sourceHeight) / 2;
+      }
+
+      // Create canvas with 16:9 aspect ratio
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = sourceWidth;
+      canvas.height = sourceHeight;
+
+      console.log(
+        `Capturing frame: ${canvas.width}x${canvas.height} (cropped from ${video.videoWidth}x${video.videoHeight})`,
+      );
 
       const ctx = canvas.getContext("2d");
       if (!ctx) {
@@ -49,15 +78,15 @@ export function useCameraCapture(videoRef: React.RefObject<HTMLVideoElement>) {
       // Apply zoom if specified
       if (settings.zoom && settings.zoom > 1) {
         const scale = settings.zoom;
-        const scaledWidth = canvas.width / scale;
-        const scaledHeight = canvas.height / scale;
-        const x = (canvas.width - scaledWidth) / 2;
-        const y = (canvas.height - scaledHeight) / 2;
+        const scaledWidth = sourceWidth / scale;
+        const scaledHeight = sourceHeight / scale;
+        const zoomX = sourceX + (sourceWidth - scaledWidth) / 2;
+        const zoomY = sourceY + (sourceHeight - scaledHeight) / 2;
 
         ctx.drawImage(
           video,
-          x,
-          y,
+          zoomX,
+          zoomY,
           scaledWidth,
           scaledHeight,
           0,
@@ -66,7 +95,18 @@ export function useCameraCapture(videoRef: React.RefObject<HTMLVideoElement>) {
           canvas.height,
         );
       } else {
-        ctx.drawImage(video, 0, 0);
+        // Draw cropped 16:9 portion
+        ctx.drawImage(
+          video,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        );
       }
 
       // Convert canvas to blob
