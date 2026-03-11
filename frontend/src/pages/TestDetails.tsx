@@ -1,4 +1,4 @@
-import { useParams, useOutletContext } from "react-router-dom";
+import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import {
   useDeviceDetection,
@@ -25,6 +25,7 @@ export function TestDetails() {
   const { tests, addAuditEvent, removeTest, updateTest } =
     useOutletContext<AppDataContext>();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const test = tests.find((t) => t.id === id);
   const { isMobile } = useDeviceDetection();
 
@@ -88,6 +89,10 @@ export function TestDetails() {
     setShowPhotoModal(false);
   };
 
+  const handleOpenCamera = () => {
+    navigate(`/tests/${id}/camera`);
+  };
+
   return (
     <div
       className="test-details-page relative min-h-full bg-white pb-8 md:pb-36"
@@ -121,6 +126,7 @@ export function TestDetails() {
         <MobileActionButtons
           onUpdate={openUpdate}
           onDelete={() => setShowDeleteConfirm(true)}
+          onCamera={handleOpenCamera}
           isDeleting={isDeleting}
         />
       </div>
@@ -129,6 +135,7 @@ export function TestDetails() {
         test={test}
         onUpdate={openUpdate}
         onDelete={() => setShowDeleteConfirm(true)}
+        onCamera={handleOpenCamera}
         isDeleting={isDeleting}
       />
 

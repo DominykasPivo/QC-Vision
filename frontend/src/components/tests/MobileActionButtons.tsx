@@ -3,12 +3,14 @@ import { MaterialIcon } from "./MaterialIcon";
 interface MobileActionButtonsProps {
   onUpdate: () => void;
   onDelete: () => void;
+  onCamera?: () => void;
   isDeleting: boolean;
 }
 
 export function MobileActionButtons({
   onUpdate,
   onDelete,
+  onCamera,
   isDeleting,
 }: MobileActionButtonsProps) {
   return (
@@ -21,6 +23,16 @@ export function MobileActionButtons({
         <MaterialIcon name="edit" />
         UPDATE STATUS
       </button>
+      {onCamera && (
+        <button
+          type="button"
+          onClick={onCamera}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-green-600 px-6 py-4 text-lg font-bold text-green-600 transition-all hover:bg-green-50 active:scale-95"
+        >
+          <MaterialIcon name="photo_camera" className="text-2xl" />
+          Capture with Camera
+        </button>
+      )}
       <button
         type="button"
         onClick={onDelete}
