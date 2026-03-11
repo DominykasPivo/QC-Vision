@@ -234,3 +234,34 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT UNIQUE NOT NULL,
   role TEXT NOT NULL DEFAULT 'user'  -- user|reviewer|admin
 );
+
+
+-- Camera IoT Support Tables
+CREATE TABLE IF NOT EXISTS camera_devices (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL,  -- 'browser', 'droidcam', 'rtsp', 'onvif', 'wifi'
+  status VARCHAR(50) NOT NULL DEFAULT 'offline',  -- 'online', 'offline', 'error'
+  capabilities TEXT,  -- JSON string of camera capabilities
+  connection_info TEXT,  -- JSON string of connection details (IP, port, etc.)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ,
+  last_seen TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_camera_devices_type ON camera_devices(type);
+CREATE INDEX IF NOT EXISTS idx_camera_devices_status ON camera_devices(status);
+
+-- Add camera_id to photos table
+ALTER TABLE photos ADD COLUMN IF NOT EXISTS camera_id INT REFERENCES camera_devices(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_photos_camera_id ON photos(camera_id);
+
+-- Insert default browser camera
+INSERT INTO camera_devices (name, type, status, capabilities)
+VALUES (
+  'Browser Camera (Default)',
+  'browser',
+  'online',
+  '{"zoom": true, "focus": false, "flash": false, "resolution": ["1920x1080", "1280x720", "640x480"]}'
+)
+ON CONFLICT DO NOTHING;

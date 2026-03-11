@@ -19,6 +19,12 @@ class Photo(Base):
         nullable=False,
         index=True,
     )
+    camera_id = Column(
+        Integer,
+        ForeignKey("camera_devices.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     file_path = Column(Text, nullable=False)
     time_stamp = Column(

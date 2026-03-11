@@ -9,6 +9,7 @@ import { PhotoDefects } from "./pages/PhotoDefects";
 import { Login } from "./pages/Login";
 import { isLoggedIn } from "./lib/auth";
 import { Review } from "./pages/Review";
+import { CameraCapturePage } from "./components/camera";
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const loggedIn = isLoggedIn();
@@ -48,6 +49,10 @@ export const router = createBrowserRouter([
       {
         path: "tests/:id",
         element: <TestDetails />,
+      },
+      {
+        path: "tests/:testId/camera",
+        element: <CameraCapturePage />,
       },
       {
         path: "create",

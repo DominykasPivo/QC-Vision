@@ -5,6 +5,7 @@ interface DesktopActionBarProps {
   test: Test;
   onUpdate: () => void;
   onDelete: () => void;
+  onCamera?: () => void;
   isDeleting: boolean;
 }
 
@@ -12,6 +13,7 @@ export function DesktopActionBar({
   test,
   onUpdate,
   onDelete,
+  onCamera,
   isDeleting,
 }: DesktopActionBarProps) {
   return (
@@ -36,6 +38,16 @@ export function DesktopActionBar({
             <MaterialIcon name="edit" />
             UPDATE STATUS
           </button>
+          {onCamera && (
+            <button
+              type="button"
+              onClick={onCamera}
+              className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-green-600 text-xl font-bold text-green-600 transition-all hover:bg-green-600 hover:text-white active:scale-95 sm:h-auto sm:w-auto sm:px-8 sm:py-5"
+            >
+              <MaterialIcon name="photo_camera" className="sm:mr-2" />
+              <span className="hidden uppercase sm:inline">Camera</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={onDelete}
