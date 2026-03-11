@@ -11,7 +11,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCameraDevices, useCameraCapture, useCropModal } from "@/hooks";
 import { CameraSelector } from "./CameraSelector";
 import { CameraPreview } from "./CameraPreview";
+import { IPCameraPreview } from "./IPCameraPreview";
 import { CameraControls } from "./CameraControls";
+import { CAPTURE_CONFIG } from "./constants";
 import { CropModal } from "../tests/CropModal";
 import { ArrowLeft, Check, RotateCw, Crop } from "lucide-react";
 import { rotateImageFile } from "@/lib/utils/image-rotation";
@@ -22,9 +24,13 @@ export function CameraCapturePage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const { selectedDeviceId } = useCameraDevices();
+  const { devices, selectedDeviceId, setSelectedDeviceId } = useCameraDevices();
   const { captureFrame, isCapturing, clearLastImage } =
     useCameraCapture(videoRef);
+
+  // Get full device info to check if it's an IP camera
+  const selectedDevice = devices.find((d) => d.deviceId === selectedDeviceId);
+  const isIPCamera = selectedDevice?.kind === "ip_camera";
 
   const [zoom, setZoom] = useState(1);
   const [showGrid, setShowGrid] = useState(false);
@@ -41,9 +47,19 @@ export function CameraCapturePage() {
   const { showCropModal, cropImageUrl, openCropModal, closeCropModal } =
     useCropModal();
 
+  const handleCameraChange = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    setIsStreamActive(false);
+  };
+
   const handleStreamReady = () => {
     setIsStreamActive(true);
   };
+
+  // Reset stream state when camera device changes
+  useEffect(() => {
+    setIsStreamActive(false);
+  }, [selectedDeviceId]);
 
   // Update preview URL when captured blob changes
   useEffect(() => {
@@ -57,7 +73,34 @@ export function CameraCapturePage() {
   }, [capturedBlob]);
 
   const handleCapture = async () => {
-    const blob = await captureFrame({ zoom, quality: 0.92 });
+    // IP Camera capture - fetch from backend
+    if (isIPCamera && selectedDevice?.backendId) {
+      try {
+        const response = await fetch(
+          `/api/v1/cameras/${selectedDevice.backendId}/capture`,
+        );
+
+        if (!response.ok) {
+          throw new Error(`Capture failed: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        setCapturedBlob(blob);
+        setOriginalCapturedBlob(blob);
+        setRotation(0);
+        return;
+      } catch (error) {
+        console.error("IP camera capture failed:", error);
+        setUploadError("Failed to capture from IP camera");
+        return;
+      }
+    }
+
+    // Browser camera capture - use canvas
+    const blob = await captureFrame({
+      zoom,
+      quality: CAPTURE_CONFIG.DEFAULT_QUALITY,
+    });
     if (blob) {
       setCapturedBlob(blob);
       setOriginalCapturedBlob(blob); // Keep original for rotation
@@ -197,18 +240,67 @@ export function CameraCapturePage() {
               {!capturedBlob ? (
                 <>
                   <CameraSelector
-                    onDeviceChange={() => setIsStreamActive(false)}
+                    devices={devices}
+                    selectedDeviceId={selectedDeviceId}
+                    onDeviceChange={handleCameraChange}
                     isStreamActive={isStreamActive}
                     className="mb-4"
                   />
-                  <CameraPreview
-                    deviceId={selectedDeviceId}
-                    showGrid={showGrid}
-                    zoom={zoom}
-                    onStreamReady={handleStreamReady}
-                    videoRef={videoRef}
-                    className="aspect-video"
-                  />
+                  {isIPCamera && selectedDevice?.backendId ? (
+                    // IP Camera Preview - Show MJPEG stream
+                    selectedDevice.connectionInfo ? (
+                      (() => {
+                        try {
+                          const connectionData = JSON.parse(
+                            selectedDevice.connectionInfo,
+                          );
+                          // Use stream_url for live preview, fallback to url for backward compatibility
+                          const streamUrl =
+                            connectionData.stream_url ||
+                            connectionData.url ||
+                            "";
+
+                          return (
+                            <IPCameraPreview
+                              key={`ip-camera-${selectedDevice.backendId}`}
+                              streamUrl={streamUrl}
+                              showGrid={showGrid}
+                              zoom={zoom}
+                              onStreamReady={() => setIsStreamActive(true)}
+                              onStreamError={() => setIsStreamActive(false)}
+                              className="aspect-video"
+                            />
+                          );
+                        } catch (error) {
+                          return (
+                            <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                              <div className="text-white text-center p-4">
+                                <p>Error parsing camera connection info</p>
+                                <p className="text-sm mt-2">{String(error)}</p>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })()
+                    ) : (
+                      <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                        <div className="text-white">
+                          No connection info for IP camera
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    // Browser Camera Preview
+                    <CameraPreview
+                      key={`browser-camera-${selectedDeviceId}`}
+                      deviceId={selectedDeviceId}
+                      showGrid={showGrid}
+                      zoom={zoom}
+                      onStreamReady={handleStreamReady}
+                      videoRef={videoRef}
+                      className="aspect-video"
+                    />
+                  )}
                 </>
               ) : (
                 <div className="space-y-4">
@@ -258,7 +350,7 @@ export function CameraCapturePage() {
                     onZoomChange={setZoom}
                     onGridToggle={setShowGrid}
                     isCapturing={isCapturing}
-                    disabled={!isStreamActive}
+                    disabled={!isStreamActive && !isIPCamera}
                   />
                 </>
               ) : (

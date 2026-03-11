@@ -1,16 +1,22 @@
 /**
  * useCameraDevices - Hook for enumerating and selecting camera devices
  *
- * Provides device enumeration for USB webcams, built-in cameras, and DroidCam.
+ * Provides device enumeration for USB webcams, built-in cameras, DroidCam,
+ * and IP cameras registered in the backend database.
  * Follows Custom Hooks pattern for reusable React state logic.
  */
 
 import { useState, useEffect } from "react";
+import { fetchCameras } from "@/lib/api/cameras";
 
 export interface CameraDeviceInfo {
   deviceId: string;
   label: string;
-  kind: "videoinput";
+  kind: "videoinput" | "ip_camera";
+  // For IP cameras
+  backendId?: number;
+  connectionInfo?: string;
+  status?: string;
 }
 
 export function useCameraDevices() {
@@ -28,29 +34,65 @@ export function useCameraDevices() {
     setError(null);
 
     try {
-      // Request permission first
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const allCameras: CameraDeviceInfo[] = [];
 
-      // Stop permission stream immediately
-      stream.getTracks().forEach((track) => track.stop());
+      // 1. Get browser MediaStream devices (USB webcams, built-in, DroidCam)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+        stream.getTracks().forEach((track) => track.stop());
 
-      // Get all video input devices
-      const allDevices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = allDevices
-        .filter((device) => device.kind === "videoinput")
-        .map((device) => ({
-          deviceId: device.deviceId,
-          label: device.label || `Camera ${device.deviceId.slice(0, 5)}`,
-          kind: "videoinput" as const,
-        }));
+        const allDevices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = allDevices
+          .filter((device) => device.kind === "videoinput")
+          .map((device) => ({
+            deviceId: device.deviceId,
+            label: device.label || `Camera ${device.deviceId.slice(0, 5)}`,
+            kind: "videoinput" as const,
+          }));
 
-      setDevices(videoDevices);
+        allCameras.push(...videoDevices);
+      } catch (browserErr) {
+        console.warn(
+          "[useCameraDevices] Browser camera enumeration failed:",
+          browserErr,
+        );
+        // Continue even if browser cameras fail
+      }
 
-      // Auto-select DroidCam if available, otherwise first device
-      const droidcam = videoDevices.find((d) =>
+      // 2. Get IP cameras from backend
+      try {
+        const backendCameras = await fetchCameras();
+
+        const ipCameras: CameraDeviceInfo[] = backendCameras
+          .filter((cam) => cam.type === "ip_camera" || cam.type === "wifi")
+          .map((cam) => ({
+            deviceId: `ip-camera-${cam.id}`,
+            label: `${cam.name} (IP Camera)`,
+            kind: "ip_camera" as const,
+            backendId: cam.id,
+            connectionInfo: cam.connection_info ?? undefined,
+            status: cam.status,
+          }));
+
+        allCameras.push(...ipCameras);
+      } catch (backendErr) {
+        console.error(
+          "[useCameraDevices] Backend camera fetch failed:",
+          backendErr,
+        );
+        // Continue even if backend fetch fails
+      }
+
+      setDevices(allCameras);
+
+      // Auto-select priority: DroidCam > IP camera > first device
+      const droidcam = allCameras.find((d) =>
         d.label.toLowerCase().includes("droidcam"),
       );
-      const selected = droidcam || videoDevices[0];
+      const ipCamera = allCameras.find((d) => d.kind === "ip_camera");
+      const selected = droidcam || ipCamera || allCameras[0];
 
       if (selected) {
         setSelectedDeviceId(selected.deviceId);

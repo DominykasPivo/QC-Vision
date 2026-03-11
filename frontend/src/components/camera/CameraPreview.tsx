@@ -7,6 +7,7 @@
 
 import { useEffect } from "react";
 import { useCameraStream } from "@/hooks";
+import { GridOverlay } from "./GridOverlay";
 
 interface CameraPreviewProps {
   deviceId?: string;
@@ -131,46 +132,7 @@ export function CameraPreview({
         className="object-cover rounded-lg bg-black"
       />
 
-      {showGrid && (
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ opacity: 0.3 }}
-        >
-          {/* Rule of thirds grid */}
-          <line
-            x1="33.33%"
-            y1="0"
-            x2="33.33%"
-            y2="100%"
-            stroke="white"
-            strokeWidth="1"
-          />
-          <line
-            x1="66.66%"
-            y1="0"
-            x2="66.66%"
-            y2="100%"
-            stroke="white"
-            strokeWidth="1"
-          />
-          <line
-            x1="0"
-            y1="33.33%"
-            x2="100%"
-            y2="33.33%"
-            stroke="white"
-            strokeWidth="1"
-          />
-          <line
-            x1="0"
-            y1="66.66%"
-            x2="100%"
-            y2="66.66%"
-            stroke="white"
-            strokeWidth="1"
-          />
-        </svg>
-      )}
+      {showGrid && <GridOverlay />}
 
       {!stream && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 rounded-lg">

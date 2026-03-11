@@ -66,10 +66,6 @@ export function useCameraCapture(videoRef: React.RefObject<HTMLVideoElement>) {
       canvas.width = sourceWidth;
       canvas.height = sourceHeight;
 
-      console.log(
-        `Capturing frame: ${canvas.width}x${canvas.height} (cropped from ${video.videoWidth}x${video.videoHeight})`,
-      );
-
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         throw new Error("Failed to get canvas context");

@@ -117,6 +117,16 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
         );
         videoRef.current.srcObject = stream;
 
+        // Monitor stream tracks for disconnection
+        const tracks = stream.getTracks();
+        tracks.forEach((track) => {
+          track.onended = () => {
+            console.log("⚠️ Stream track ended - camera disconnected");
+            setIsActive(false);
+            setError("Camera disconnected");
+          };
+        });
+
         // Wait for metadata to load
         await new Promise<void>((resolve) => {
           if (videoRef.current) {
@@ -181,6 +191,62 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
 
     attachStreamToVideo();
   }, [stream, videoRef]);
+
+  // Continuously monitor stream health
+  useEffect(() => {
+    if (!isActive || !videoRef.current) return;
+
+    let lastCurrentTime = videoRef.current.currentTime;
+    let frozenFrameCount = 0;
+
+    const healthCheckInterval = setInterval(() => {
+      if (videoRef.current && stream) {
+        const video = videoRef.current;
+        const currentTime = video.currentTime;
+        const tracks = stream.getTracks();
+        const hasActiveTracks = tracks.some(
+          (track) => track.readyState === "live",
+        );
+
+        // Check if tracks are still live
+        if (!hasActiveTracks) {
+          console.log("⚠️ Stream tracks no longer live");
+          setIsActive(false);
+          setError("Camera disconnected");
+          clearInterval(healthCheckInterval);
+          return;
+        }
+
+        // Check if video dimensions are still valid
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          console.log("⚠️ Stream lost video dimensions");
+          setIsActive(false);
+          setError("Camera stream lost");
+          clearInterval(healthCheckInterval);
+          return;
+        }
+
+        // Check if frames are advancing
+        if (currentTime === lastCurrentTime) {
+          frozenFrameCount++;
+          console.log(`⚠️ Stream appears frozen (${frozenFrameCount}/3)`);
+
+          if (frozenFrameCount >= 3) {
+            console.log("⚠️ Stream frozen for too long - disconnecting");
+            setIsActive(false);
+            setError("Camera stream frozen");
+            clearInterval(healthCheckInterval);
+          }
+        } else {
+          frozenFrameCount = 0; // Reset if frames are advancing
+        }
+
+        lastCurrentTime = currentTime;
+      }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(healthCheckInterval);
+  }, [isActive, stream, videoRef]);
 
   return {
     stream,

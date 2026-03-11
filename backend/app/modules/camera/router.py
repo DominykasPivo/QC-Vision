@@ -6,6 +6,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -150,6 +151,38 @@ async def delete_camera(
     )
 
     return None
+
+
+@router.get("/{camera_id}/capture")
+async def capture_from_ip_camera(
+    camera_id: int,
+    db: Session = Depends(get_db),
+    actor: dict = Depends(get_actor),
+):
+    """
+    Capture a frame from an IP camera.
+
+    Camera must have connection_info with 'url' field pointing to IP camera stream.
+    Example connection_info: {"url": "http://192.168.1.100:8080/video"}
+    """
+    username = actor["username"]
+
+    image_bytes = camera_service.capture_frame_from_ip_camera(db, camera_id)
+    if not image_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to capture frame from IP camera",
+        )
+
+    log_action(
+        db,
+        action="CAPTURE",
+        entity_type="Camera",
+        entity_id=camera_id,
+        username=username,
+    )
+
+    return Response(content=image_bytes, media_type="image/jpeg")
 
 
 @router.get("/online", response_model=CameraListResponse)

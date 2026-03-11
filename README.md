@@ -98,6 +98,7 @@ QC-Vision/
 │   │   ├── database.py     # Database configuration
 │   │   └── modules/        # Feature modules
 │   │       ├── audit/      # Audit logging
+│   │       ├── camera/     # IP camera integration
 │   │       ├── defects/    # Defect management
 │   │       ├── photos/     # Photo handling
 │   │       └── tests/      # QC tests
@@ -115,6 +116,7 @@ QC-Vision/
 │       ├── api/            # API client
 │       ├── components/     # React components
 │       │   ├── annotations/
+│       │   ├── camera/     # Camera capture & IP camera
 │       │   ├── layout/
 │       │   └── ui/
 │       ├── lib/            # Utilities and types
@@ -127,6 +129,7 @@ QC-Vision/
 └── docs/
     ├── API-spec.md
     ├── detailed_architecture.md
+    ├── IP_CAMERA_SETUP.md  # IP camera configuration guide
     ├── sprint-1-plan.md
     └── diagrams/
 ```
@@ -202,6 +205,86 @@ NocoDB provides a spreadsheet-like interface to view and document the PostgreSQL
 - **Schema reference**: See column types, constraints, and relationships
 
 > **Note**: NocoDB is a read/exploration tool for this project. All data modifications should go through the application API to maintain data integrity and audit trails.
+
+## IP Camera Setup
+
+QC Vision supports capturing photos from IP cameras (such as smartphones running camera apps) in addition to browser webcams. This is useful for dedicated camera stations in production environments.
+
+### Quick Setup
+
+```bash
+# 1. Install "IP Webcam" app on Android phone, start server, note IP address
+
+# 2. Add camera to database (replace 192.168.1.100:8080 with your phone's IP)
+# IMPORTANT: Use double quotes for JSON format (not single quotes)
+# connection_info requires both stream_url (for live preview) and snapshot_url (for capture)
+docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{\"stream_url\": \"http://192.168.1.100:8080/video\", \"snapshot_url\": \"http://192.168.1.100:8080/shot.jpg\"}', '{\"resolution\": \"1920x1080\", \"fps\": 30}', NOW(), NOW(), NOW());"
+
+# 3. Get camera ID
+docker-compose exec postgres psql -U qc_user -d qc_vision -c "SELECT id, name, type FROM camera_devices WHERE type='ip_camera';"
+
+# 4. Test capture (replace {id} with actual camera ID, e.g., 1)
+curl http://localhost:8000/api/cameras/{id}/capture \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o test_capture.jpg
+```
+
+### Supported Apps
+
+- **IP Webcam** (Android) - Recommended, free on Play Store
+- **DroidCam** (Android/iOS) - WiFi/USB mode
+- Any MJPEG/HTTP camera stream
+
+### Detailed Documentation
+
+For complete IP camera setup instructions, configuration options, and troubleshooting, see:
+- [IP Camera Setup Guide](docs/IP_CAMERA_SETUP.md)
+
+## DroidCam Setup
+
+QC Vision supports DroidCam cameras that appear as browser webcams. DroidCam is easier to set up than IP cameras - no database registration needed!
+
+### Quick Setup
+
+```bash
+# 1. Install "DroidCam" app on your phone (Android/iOS)
+
+# 2. Install DroidCam Client on Windows
+#    Download from: https://www.dev47apps.com/droidcam/windows/
+
+# 3. Connect in DroidCam Client
+#    - WiFi mode: Enter phone IP and port 4747
+#    - USB mode: Connect phone via cable
+#    - Click "Connect" button
+
+# 4. Verify connection - video shows in DroidCam Client window
+
+# 5. Use in QC Vision
+#    - Navigate to Camera Capture page
+#    - Select "DroidCam Source X" from camera dropdown
+#    - No database setup needed - works as browser camera!
+```
+
+### Key Features
+
+- **Zero Configuration**: No database registration required
+- **WiFi or USB**: Connect via network or USB cable
+- **Browser Integration**: Appears as standard webcam in browser
+- **Zoom & Grid**: Full support for zoom (1x-3x) and composition grid overlay
+
+### Detailed Documentation
+
+For complete DroidCam setup instructions, troubleshooting, and best practices, see:
+- [DroidCam Setup Guide](docs/DROIDCAM_SETUP.md)
+
+### DroidCam vs IP Camera
+
+| Feature | DroidCam | IP Camera |
+|---------|----------|-----------|
+| Setup | Easy (no database) | Moderate (database config) |
+| Windows Client | Required | Not needed |
+| Connection | WiFi/USB same network | Any network via IP |
+| Use Case | Local development | Production/multi-station |
 
 ## Development
 
