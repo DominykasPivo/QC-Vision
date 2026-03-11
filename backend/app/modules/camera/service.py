@@ -7,6 +7,9 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
+import cv2
+import numpy as np
+import requests
 from sqlalchemy.orm import Session
 
 from .models import CameraDevice
@@ -144,6 +147,51 @@ class CameraService:
             .order_by(CameraDevice.last_seen.desc())
             .all()
         )
+
+    def capture_frame_from_ip_camera(
+        self, db: Session, camera_id: int
+    ) -> Optional[bytes]:
+        """
+        Capture a single frame from an IP camera.
+
+        Args:
+            db: Database session
+            camera_id: Camera ID with connection_info containing URL
+
+        Returns:
+            JPEG image bytes or None if failed
+        """
+        camera = self.get_camera(db, camera_id)
+        if not camera or not camera.connection_info:
+            return None
+
+        try:
+            info = json.loads(camera.connection_info)
+            # Prefer snapshot_url for capturing, fallback to url for backward compatibility
+            url = info.get("snapshot_url") or info.get("url")
+            if not url:
+                logger.error(f"Camera {camera_id} missing URL in connection_info")
+                return None
+
+            # Fetch frame from IP camera
+            response = requests.get(url, timeout=5, stream=True)
+            response.raise_for_status()
+
+            # Convert to image bytes
+            img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+            if img is None:
+                logger.error(f"Failed to decode image from {url}")
+                return None
+
+            # Convert to JPEG
+            _, buffer = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 92])
+            return buffer.tobytes()
+
+        except Exception as e:
+            logger.error(f"Failed to capture from camera {camera_id}: {e}")
+            return None
 
     def _serialize_capabilities(self, capabilities: Optional[object]) -> Optional[str]:
         """Serialize capabilities object to JSON string."""

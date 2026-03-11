@@ -5,31 +5,43 @@
  * Follows Composite pattern for component composition.
  */
 
-import { useCameraDevices } from "@/hooks";
+import { useCameraDevices, type CameraDeviceInfo } from "@/hooks";
 
 interface CameraSelectorProps {
+  // Optional: pass hook data from parent to share state
+  devices?: CameraDeviceInfo[];
+  selectedDeviceId?: string;
   onDeviceChange?: (deviceId: string) => void;
   isStreamActive?: boolean;
   className?: string;
 }
 
 export function CameraSelector({
+  devices: externalDevices,
+  selectedDeviceId: externalSelectedDeviceId,
   onDeviceChange,
   isStreamActive = false,
   className = "",
 }: CameraSelectorProps) {
-  const {
-    devices,
-    selectedDeviceId,
-    setSelectedDeviceId,
-    isLoading,
-    error,
-    reload,
-  } = useCameraDevices();
+  // Use internal hook only if external props not provided
+  const internalHook = useCameraDevices();
+
+  const devices = externalDevices ?? internalHook.devices;
+  const selectedDeviceId =
+    externalSelectedDeviceId ?? internalHook.selectedDeviceId;
+  const setSelectedDeviceId = internalHook.setSelectedDeviceId;
+  // Only show loading when using internal hook (not external props)
+  const isLoading = externalDevices ? false : internalHook.isLoading;
+  const error = externalDevices ? null : internalHook.error;
+  const reload = internalHook.reload;
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const deviceId = event.target.value;
-    setSelectedDeviceId(deviceId);
+    // If using external props, only call the callback
+    // Otherwise, update internal state
+    if (!externalDevices && !externalSelectedDeviceId) {
+      setSelectedDeviceId(deviceId);
+    }
     onDeviceChange?.(deviceId);
   };
 
@@ -87,26 +99,62 @@ export function CameraSelector({
       </select>
       <div className="mt-2 text-xs space-y-1">
         <p className="text-gray-500">{devices.length} device(s) found</p>
-        {devices.some((d) => d.label.toLowerCase().includes("droidcam")) && (
-          <div
-            className={`flex items-center gap-1 ${isStreamActive ? "text-green-600" : "text-amber-600"}`}
-          >
-            {isStreamActive ? (
-              <>
-                <span>✓</span>
-                <span>DroidCam connected and streaming</span>
-              </>
-            ) : (
-              <>
-                <span>⚠️</span>
-                <span>
-                  DroidCam detected - Ensure DroidCam app is running and
-                  connected
-                </span>
-              </>
-            )}
-          </div>
-        )}
+        {(() => {
+          const currentDevice = devices.find(
+            (d) => d.deviceId === selectedDeviceId,
+          );
+          if (!currentDevice) return null;
+
+          const isDroidCam = currentDevice.label
+            .toLowerCase()
+            .includes("droidcam");
+          const isIPCamera = currentDevice.kind === "ip_camera";
+
+          if (isDroidCam) {
+            return (
+              <div
+                className={`flex items-center gap-1 ${isStreamActive ? "text-green-600" : "text-amber-600"}`}
+              >
+                {isStreamActive ? (
+                  <>
+                    <span>✓</span>
+                    <span>DroidCam connected and streaming</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚠️</span>
+                    <span>
+                      DroidCam detected - Ensure DroidCam app is running and
+                      connected
+                    </span>
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          if (isIPCamera) {
+            return (
+              <div
+                className={`flex items-center gap-1 ${isStreamActive ? "text-green-600" : "text-amber-600"}`}
+              >
+                {isStreamActive ? (
+                  <>
+                    <span>✓</span>
+                    <span>IP Camera connected and streaming</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚠️</span>
+                    <span>Connecting to IP Camera...</span>
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          return null;
+        })()}
       </div>
     </div>
   );
