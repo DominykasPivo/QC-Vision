@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { Navigate, useOutletContext } from "react-router-dom";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import { request } from "@/lib/api/http";
 import { getStoredRole, getStoredUsername, isReviewer } from "@/lib/auth";
@@ -8,6 +8,8 @@ import { fetchGallery } from "@/lib/api/gallery";
 import { updateVerificationStatus } from "@/lib/api/defects";
 import { VerificationStatusBar } from "@/components/photo-defects";
 import type { GalleryPhoto } from "@/lib/api/gallery";
+import { spacing } from "@/lib/ui/spacing";
+import { cn } from "@/lib/utils";
 
 type TestResponse = {
   id: number;
@@ -37,8 +39,9 @@ export function Review() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const username = useMemo(() => getStoredUsername(), []);
-  const role = useMemo(() => getStoredRole?.() ?? "user", []);
+  const canReview = isReviewer();
+  const username = getStoredUsername();
+  const role = getStoredRole();
 
   const headers = useMemo(
     () => ({
@@ -50,7 +53,7 @@ export function Review() {
   );
 
   const loadPending = useCallback(async () => {
-    if (!username || !isReviewer()) return;
+    if (!username || !canReview) return;
 
     setLoading(true);
     setError(null);
@@ -72,7 +75,7 @@ export function Review() {
     } finally {
       setLoading(false);
     }
-  }, [username]);
+  }, [canReview, username]);
 
   useEffect(() => {
     void loadPending();
@@ -89,6 +92,10 @@ export function Review() {
 
     return () => clearInterval(id);
   }, [loadPending]);
+
+  if (!canReview) {
+    return <Navigate to="/tests" replace />;
+  }
 
   const approveTest = async (id: number) => {
     try {
@@ -184,11 +191,18 @@ export function Review() {
     }
   };
 
-  if (loading) return <div className="p-6">Loading review queue…</div>;
-  if (error) return <div className="p-6">Error: {error}</div>;
+  if (loading) {
+    return (
+      <div className={spacing.shellPageContainer}>Loading review queue…</div>
+    );
+  }
+
+  if (error) {
+    return <div className={spacing.shellPageContainer}>Error: {error}</div>;
+  }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className={cn(spacing.shellPageContainer, spacing.pageStack)}>
       <h2 className="mb-1 text-xl font-semibold">Review</h2>
       <p className="mt-0 text-sm text-muted-foreground">
         Tests and Photos for review and decision changes.

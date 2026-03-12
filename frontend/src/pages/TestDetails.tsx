@@ -6,6 +6,7 @@ import {
   useTestDelete,
   useTestUpdate,
 } from "@/hooks";
+import { spacing } from "@/lib/ui/spacing";
 import {
   TestNotFound,
   TestDetailHeader,
@@ -100,7 +101,7 @@ export function TestDetails() {
     >
       <TestDetailHeader test={test} />
 
-      <div className="mx-auto max-w-7xl px-6 md:px-10">
+      <div className={spacing.pageFrame}>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <section>
             <TestInformationCard test={test} />

@@ -58,7 +58,7 @@ export function GalleryFilters({
   };
 
   return (
-    <div className="mt-4 hidden md:block">
+    <div className="mt-4 hidden lg:block">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
         {/* Severity Filter */}
         <Select

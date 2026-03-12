@@ -122,8 +122,8 @@ export function CreateTest() {
   return (
     <div
       className={cn(
-        spacing.pageContainer,
-        "min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] pb-24 md:pb-8",
+        spacing.shellPageContainer,
+        "min-h-[calc(100dvh-var(--header-height)-var(--nav-height))]",
       )}
     >
       <div className="mx-auto w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">

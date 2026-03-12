@@ -69,7 +69,7 @@ export function GalleryFiltersMobile({
   return (
     <>
       {/* Mobile Filter Toggle */}
-      <div className="mt-4 flex items-center gap-3 md:hidden">
+      <div className="mt-4 flex items-center gap-3 lg:hidden">
         <div className="min-w-0 flex-1">
           <Select
             value={testStatusFilter || "all"}
@@ -106,7 +106,7 @@ export function GalleryFiltersMobile({
 
       {/* Mobile Filter Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-slate-900/45"

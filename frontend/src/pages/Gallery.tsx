@@ -52,9 +52,9 @@ export function Gallery() {
   return (
     <div
       className={cn(
-        spacing.pageContainer,
+        spacing.shellPageContainer,
         spacing.pageStack,
-        "max-w-none pb-24 md:pb-8",
+        "max-w-none",
       )}
     >
       {/* Header */}

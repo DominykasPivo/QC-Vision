@@ -195,6 +195,7 @@ body {
   font-size: var(--font-size-sm);
   color: var(--text);
   margin-left: auto;
+  margin-right: var(--space-3);
   order: 2;
 }
 
@@ -211,6 +212,34 @@ body {
 
 .logout-button:active {
   background: #b91c1c;
+}
+
+@media (max-width: 1023px) {
+  .mobile-role-selector .role-select {
+    min-height: 44px;
+    min-width: 140px;
+    padding: 0 14px;
+    border: 1px solid #dbe4ef;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  .mobile-role-selector .role-select:hover:not(:disabled) {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+  }
+
+  .logout-button {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
 }
 
 .app-content {
