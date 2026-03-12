@@ -31,7 +31,7 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
     setIsActive(false);
 
     try {
-      // Stop existing stream if any (access stream via state updater)
+      // Stop existing stream if any
       setStream((prevStream) => {
         if (prevStream) {
           prevStream.getTracks().forEach((track) => track.stop());
@@ -39,38 +39,84 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
         return prevStream;
       });
 
-      const constraints: MediaStreamConstraints = {
-        video: {
-          width: { ideal: options.width || 1920 },
-          height: { ideal: options.height || 1080 },
-        },
-      };
+      // Try progressively lower resolutions in case hardware can't negotiate high resolution
+      const resolutionOptions = [
+        { width: options.width || 1920, height: options.height || 1080 },
+        { width: 1280, height: 720 },
+        { width: 640, height: 480 },
+        { width: 320, height: 240 },
+      ];
 
-      // Use specific device if provided
-      if (options.deviceId) {
-        (constraints.video as MediaTrackConstraints).deviceId = {
-          exact: options.deviceId,
-        };
-      } else if (options.facingMode) {
-        (constraints.video as MediaTrackConstraints).facingMode =
-          options.facingMode;
+      let mediaStream: MediaStream | null = null;
+
+      for (const resolution of resolutionOptions) {
+        try {
+          const constraints: MediaStreamConstraints = {
+            video: {
+              width: { ideal: resolution.width },
+              height: { ideal: resolution.height },
+            },
+          };
+
+          if (options.deviceId) {
+            (constraints.video as MediaTrackConstraints).deviceId = {
+              exact: options.deviceId,
+            };
+          } else if (options.facingMode) {
+            (constraints.video as MediaTrackConstraints).facingMode =
+              options.facingMode;
+          }
+
+          mediaStream =
+            await navigator.mediaDevices.getUserMedia(constraints);
+          console.log(
+            `✓ MediaStream obtained at ${resolution.width}x${resolution.height}`,
+          );
+          break; // Successfully got stream, exit retry loop
+        } catch (err) {
+          console.warn(
+            `⚠️ Failed to get camera at ${resolution.width}x${resolution.height}, trying lower resolution...`,
+          );
+          continue;
+        }
       }
 
-      const mediaStream =
-        await navigator.mediaDevices.getUserMedia(constraints);
-      console.log(
-        "MediaStream obtained:",
-        mediaStream,
-        "Active tracks:",
-        mediaStream.getVideoTracks(),
-      );
+      // If all resolution attempts failed, try without resolution constraints
+      if (!mediaStream) {
+        try {
+          const constraints: MediaStreamConstraints = { video: true };
+
+          if (options.deviceId) {
+            (constraints.video as MediaTrackConstraints).deviceId = {
+              exact: options.deviceId,
+            };
+          } else if (options.facingMode) {
+            (constraints.video as MediaTrackConstraints).facingMode =
+              options.facingMode;
+          }
+
+          mediaStream =
+            await navigator.mediaDevices.getUserMedia(constraints);
+          console.log(
+            "✓ MediaStream obtained with default constraints",
+          );
+        } catch (err) {
+          const errorMessage =
+            err instanceof Error ? err.message : "Failed to access camera";
+          setError(errorMessage);
+          setIsActive(false);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       setStream(mediaStream);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to access camera";
       setError(errorMessage);
       setIsActive(false);
-      console.error("Camera start error:", err);
+      console.error("Camera error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -94,9 +140,8 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
       startCamera();
     }
 
-    // Cleanup on unmount - capture stream at effect setup time
+    // Cleanup on unmount
     return () => {
-      // Access current stream via state
       setStream((currentStream) => {
         if (currentStream) {
           currentStream.getTracks().forEach((track) => track.stop());
@@ -153,36 +198,45 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
           console.log("Video playing successfully");
 
           // Check if video is actually rendering frames
-          setTimeout(() => {
-            if (videoRef.current) {
-              const videoState = {
-                paused: videoRef.current.paused,
-                currentTime: videoRef.current.currentTime,
-                videoWidth: videoRef.current.videoWidth,
-                videoHeight: videoRef.current.videoHeight,
-                readyState: videoRef.current.readyState,
-              };
-              console.log("Video element state:", videoState);
+          let frameCheckTimeout: ReturnType<typeof setTimeout> | null = null;
+          let isCancelled = false;
 
-              // Detect if camera isn't actually streaming (green screen issue)
-              if (videoState.videoWidth === 0 || videoState.videoHeight === 0) {
-                console.error(
-                  "⚠️ Camera device found but not streaming video. Is DroidCam app running?",
-                );
-                setError(
-                  "Camera detected but not streaming. Please ensure DroidCam app is running and connected.",
-                );
-                setStream(null);
-                setIsActive(false);
-              } else if (!videoState.paused && videoState.currentTime === 0) {
-                console.warn("⚠️ Video not advancing. Stream may be inactive.");
-                setIsActive(false);
-              } else {
-                console.log("✓ Camera is actively streaming");
-                setIsActive(true);
-              }
+          frameCheckTimeout = setTimeout(() => {
+            if (isCancelled || !videoRef.current || videoRef.current.srcObject !== stream) {
+              return;
+            }
+
+            const videoState = {
+              paused: videoRef.current.paused,
+              currentTime: videoRef.current.currentTime,
+              videoWidth: videoRef.current.videoWidth,
+              videoHeight: videoRef.current.videoHeight,
+              readyState: videoRef.current.readyState,
+            };
+            console.log("Video element state:", videoState);
+
+            if (videoState.videoWidth === 0 || videoState.videoHeight === 0) {
+              console.error(
+                "⚠️ Camera device found but not streaming video. Please ensure camera app is running.",
+              );
+              setError(
+                "Camera detected but not streaming. Please ensure camera app is running.",
+              );
+              setStream(null);
+              setIsActive(false);
+            } else if (!videoState.paused && videoState.currentTime === 0) {
+              console.warn("⚠️ Video not advancing. Stream may be inactive.");
+              setIsActive(false);
+            } else {
+              console.log("✓ Camera is actively streaming");
+              setIsActive(true);
             }
           }, 1000);
+
+          return () => {
+            isCancelled = true;
+            if (frameCheckTimeout) clearTimeout(frameCheckTimeout);
+          };
         } catch (playErr) {
           console.error("Video play failed:", playErr);
         }

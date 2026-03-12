@@ -25,6 +25,16 @@ export function useCameraDevices() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  function mapVideoDevices(devices: MediaDeviceInfo[]): CameraDeviceInfo[] {
+    return devices
+      .filter((device) => device.kind === "videoinput")
+      .map((device, index) => ({
+        deviceId: device.deviceId,
+        label: device.label || `Camera ${index + 1}`,
+        kind: "videoinput" as const,
+      }));
+  }
+
   useEffect(() => {
     loadDevices();
   }, []);
@@ -38,19 +48,30 @@ export function useCameraDevices() {
 
       // 1. Get browser MediaStream devices (USB webcams, built-in, DroidCam)
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
-        stream.getTracks().forEach((track) => track.stop());
+        let allDevices = await navigator.mediaDevices.enumerateDevices();
+        let videoDevices = mapVideoDevices(allDevices);
 
-        const allDevices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = allDevices
-          .filter((device) => device.kind === "videoinput")
-          .map((device) => ({
-            deviceId: device.deviceId,
-            label: device.label || `Camera ${device.deviceId.slice(0, 5)}`,
-            kind: "videoinput" as const,
-          }));
+        // Only request a stream when labels are missing. Some laptops fail on the
+        // default device with NotReadableError, but enumerateDevices can still work.
+        const needsPermissionRefresh =
+          videoDevices.length > 0 && videoDevices.every((device) => !device.label);
+
+        if (needsPermissionRefresh) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+            });
+            stream.getTracks().forEach((track) => track.stop());
+
+            allDevices = await navigator.mediaDevices.enumerateDevices();
+            videoDevices = mapVideoDevices(allDevices);
+          } catch (permissionErr) {
+            console.warn(
+              "[useCameraDevices] Camera permission refresh failed; using enumerated devices without labels:",
+              permissionErr,
+            );
+          }
+        }
 
         allCameras.push(...videoDevices);
       } catch (browserErr) {

@@ -6,8 +6,12 @@
 # 1. Install "IP Webcam" app on Android phone, start server, note IP address
 
 # 2. Add camera to database (replace 192.168.1.100:8080 with your phone's IP)
-# IMPORTANT: Use double quotes for JSON format (not single quotes)
-docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{\"url\": \"http://192.168.1.100:8080/video\"}', '{\"resolution\": \"1920x1080\", \"fps\": 30}', NOW(), NOW(), NOW());"
+
+# Bash / Linux / Git Bash:
+docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{\"stream_url\": \"http://192.168.1.100:8080/video\", \"snapshot_url\": \"http://192.168.1.100:8080/shot.jpg\"}', '{\"resolution\": \"1920x1080\", \"fps\": 30}', NOW(), NOW(), NOW());"
+
+# PowerShell (use backtick escaping):
+docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{`"stream_url`": `"http://192.168.1.100:8080/video`", `"snapshot_url`": `"http://192.168.1.100:8080/shot.jpg`"}', '{`"resolution`": `"1920x1080`", `"fps`": 30}', NOW(), NOW(), NOW());"
 
 # 3. Get camera ID
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "SELECT id, name, type FROM camera_devices WHERE type='ip_camera';"
@@ -77,10 +81,13 @@ curl -X POST http://localhost:8000/api/cameras/register \
 ### Option C: Using SQL
 
 ```bash
-# Add IP camera to database (Windows & Linux compatible)
+# Bash / Linux / Git Bash:
 # IMPORTANT: connection_info MUST use double quotes for valid JSON
 # Requires both stream_url (live MJPEG stream) and snapshot_url (single frame capture)
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{\"stream_url\": \"http://192.168.1.100:8080/video\", \"snapshot_url\": \"http://192.168.1.100:8080/shot.jpg\"}', '{\"resolution\": \"1920x1080\", \"fps\": 30}', NOW(), NOW(), NOW());"
+
+# PowerShell (use backtick escaping for quotes):
+docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{`"stream_url`": `"http://192.168.1.100:8080/video`", `"snapshot_url`": `"http://192.168.1.100:8080/shot.jpg`"}', '{`"resolution`": `"1920x1080`", `"fps`": 30}', NOW(), NOW(), NOW());"
 
 # Verify the camera was added
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "SELECT id, name, type, connection_info FROM camera_devices WHERE type='ip_camera';"

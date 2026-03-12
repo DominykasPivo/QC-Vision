@@ -216,9 +216,12 @@ QC Vision supports capturing photos from IP cameras (such as smartphones running
 # 1. Install "IP Webcam" app on Android phone, start server, note IP address
 
 # 2. Add camera to database (replace 192.168.1.100:8080 with your phone's IP)
-# IMPORTANT: Use double quotes for JSON format (not single quotes)
-# connection_info requires both stream_url (for live preview) and snapshot_url (for capture)
+# IMPORTANT: connection_info requires both stream_url (for live preview) and snapshot_url (for capture)
+# Bash / Linux / Git Bash:
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{\"stream_url\": \"http://192.168.1.100:8080/video\", \"snapshot_url\": \"http://192.168.1.100:8080/shot.jpg\"}', '{\"resolution\": \"1920x1080\", \"fps\": 30}', NOW(), NOW(), NOW());"
+
+# PowerShell (use backtick escaping instead of backslashes):
+docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{`"stream_url`": `"http://192.168.1.100:8080/video`", `"snapshot_url`": `"http://192.168.1.100:8080/shot.jpg`"}', '{`"resolution`": `"1920x1080`", `"fps`": 30}', NOW(), NOW(), NOW());"
 
 # 3. Get camera ID
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "SELECT id, name, type FROM camera_devices WHERE type='ip_camera';"
@@ -272,10 +275,16 @@ QC Vision supports DroidCam cameras that appear as browser webcams. DroidCam is 
 - **Browser Integration**: Appears as standard webcam in browser
 - **Zoom & Grid**: Full support for zoom (1x-3x) and composition grid overlay
 
-### Detailed Documentation
+### Common Laptop Issue
 
-For complete DroidCam setup instructions, troubleshooting, and best practices, see:
-- [DroidCam Setup Guide](docs/DROIDCAM_SETUP.md)
+If DroidCam works in the DroidCam Client but does not appear in QC Vision, or if the browser logs `NotReadableError: Could not start video source`, the built-in laptop camera may be failing first and interfering with browser camera enumeration.
+
+Try this order:
+
+1. Close apps that may hold camera access: Camera, Teams, Zoom, Discord, OBS, browser tabs.
+2. Disable the built-in laptop camera temporarily in Windows Device Manager.
+3. Keep DroidCam Client connected, then reload QC Vision and select DroidCam.
+4. If Windows Camera itself shows a green screen, update or reinstall the laptop camera and graphics drivers.
 
 ### DroidCam vs IP Camera
 
