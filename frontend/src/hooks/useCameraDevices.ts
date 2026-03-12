@@ -6,7 +6,7 @@
  * Follows Custom Hooks pattern for reusable React state logic.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchCameras } from "@/lib/api/cameras";
 
 export interface CameraDeviceInfo {
@@ -35,11 +35,7 @@ export function useCameraDevices() {
       }));
   }
 
-  useEffect(() => {
-    loadDevices();
-  }, []);
-
-  async function loadDevices() {
+  const loadDevices = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -54,7 +50,8 @@ export function useCameraDevices() {
         // Only request a stream when labels are missing. Some laptops fail on the
         // default device with NotReadableError, but enumerateDevices can still work.
         const needsPermissionRefresh =
-          videoDevices.length > 0 && videoDevices.every((device) => !device.label);
+          videoDevices.length > 0 &&
+          videoDevices.every((device) => !device.label);
 
         if (needsPermissionRefresh) {
           try {
@@ -126,7 +123,11 @@ export function useCameraDevices() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadDevices();
+  }, [loadDevices]);
 
   return {
     devices,

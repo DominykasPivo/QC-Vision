@@ -483,7 +483,14 @@ mypy backend/app --ignore-missing-imports  # Type checking
 
 **All backend checks in one command:**
 ```bash
+# From project root - Bash/cmd:
 cd backend && pytest && black --check . && isort --check-only . && flake8 .
+
+# From project root - PowerShell:
+cd backend; pytest; black --check .; isort --check-only .; flake8 .
+
+# Already in backend/ directory:
+pytest; black --check .; isort --check-only .; flake8 .
 ```
 
 ### Local Frontend Testing
@@ -507,7 +514,14 @@ npm audit fix            #fix vulnerabilities
 
 **All frontend checks in one command:**
 ```bash
+# From project root - Bash/cmd:
 cd frontend && npm run lint && npm run format:check && npx tsc --noEmit && npm run build
+
+# From project root - PowerShell:
+cd frontend; npm run lint; npm run format:check; npx tsc --noEmit; npm run build
+
+# Already in frontend/ directory:
+npm run lint; npm run format:check; npx tsc --noEmit; npm run build
 ```
 
 ### CI Pipeline

@@ -67,13 +67,12 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
               options.facingMode;
           }
 
-          mediaStream =
-            await navigator.mediaDevices.getUserMedia(constraints);
+          mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
           console.log(
             `✓ MediaStream obtained at ${resolution.width}x${resolution.height}`,
           );
           break; // Successfully got stream, exit retry loop
-        } catch (err) {
+        } catch {
           console.warn(
             `⚠️ Failed to get camera at ${resolution.width}x${resolution.height}, trying lower resolution...`,
           );
@@ -95,11 +94,8 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
               options.facingMode;
           }
 
-          mediaStream =
-            await navigator.mediaDevices.getUserMedia(constraints);
-          console.log(
-            "✓ MediaStream obtained with default constraints",
-          );
+          mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+          console.log("✓ MediaStream obtained with default constraints");
         } catch (err) {
           const errorMessage =
             err instanceof Error ? err.message : "Failed to access camera";
@@ -202,7 +198,11 @@ export function useCameraStream(options: CameraStreamOptions = {}) {
           let isCancelled = false;
 
           frameCheckTimeout = setTimeout(() => {
-            if (isCancelled || !videoRef.current || videoRef.current.srcObject !== stream) {
+            if (
+              isCancelled ||
+              !videoRef.current ||
+              videoRef.current.srcObject !== stream
+            ) {
               return;
             }
 
