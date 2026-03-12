@@ -220,8 +220,8 @@ QC Vision supports capturing photos from IP cameras (such as smartphones running
 # Bash / Linux / Git Bash:
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{\"stream_url\": \"http://192.168.1.100:8080/video\", \"snapshot_url\": \"http://192.168.1.100:8080/shot.jpg\"}', '{\"resolution\": \"1920x1080\", \"fps\": 30}', NOW(), NOW(), NOW());"
 
-# PowerShell (use backtick escaping instead of backslashes):
-docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{`"stream_url`": `"http://192.168.1.100:8080/video`", `"snapshot_url`": `"http://192.168.1.100:8080/shot.jpg`"}', '{`"resolution`": `"1920x1080`", `"fps`": 30}', NOW(), NOW(), NOW());"
+# PowerShell (pipe the SQL string to avoid Docker quote-escaping issues):
+"INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{`"stream_url`": `"http://192.168.1.100:8080/video`", `"snapshot_url`": `"http://192.168.1.100:8080/shot.jpg`"}', '{`"resolution`": `"1920x1080`", `"fps`": 30}', NOW(), NOW(), NOW());" | docker-compose exec -T postgres psql -U qc_user -d qc_vision
 
 # 3. Get camera ID
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "SELECT id, name, type FROM camera_devices WHERE type='ip_camera';"
@@ -252,8 +252,8 @@ QC Vision supports DroidCam cameras that appear as browser webcams. DroidCam is 
 ```bash
 # 1. Install "DroidCam" app on your phone (Android/iOS)
 
-# 2. Install DroidCam Client on Windows
-#    Download from: https://www.dev47apps.com/droidcam/windows/
+# 2. Install DroidCam Client on Windows/Linux
+#    Download from: https://droidcam.app/
 
 # 3. Connect in DroidCam Client
 #    - WiFi mode: Enter phone IP and port 4747

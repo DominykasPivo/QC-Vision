@@ -86,8 +86,8 @@ curl -X POST http://localhost:8000/api/cameras/register \
 # Requires both stream_url (live MJPEG stream) and snapshot_url (single frame capture)
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{\"stream_url\": \"http://192.168.1.100:8080/video\", \"snapshot_url\": \"http://192.168.1.100:8080/shot.jpg\"}', '{\"resolution\": \"1920x1080\", \"fps\": 30}', NOW(), NOW(), NOW());"
 
-# PowerShell (use backtick escaping for quotes):
-docker-compose exec postgres psql -U qc_user -d qc_vision -c "INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{`"stream_url`": `"http://192.168.1.100:8080/video`", `"snapshot_url`": `"http://192.168.1.100:8080/shot.jpg`"}', '{`"resolution`": `"1920x1080`", `"fps`": 30}', NOW(), NOW(), NOW());"
+# PowerShell (pipe the SQL string to avoid Docker quote-escaping issues):
+"INSERT INTO camera_devices (name, type, status, connection_info, capabilities, created_at, updated_at, last_seen) VALUES ('Phone Camera Workshop', 'ip_camera', 'online', '{`"stream_url`": `"http://192.168.1.100:8080/video`", `"snapshot_url`": `"http://192.168.1.100:8080/shot.jpg`"}', '{`"resolution`": `"1920x1080`", `"fps`": 30}', NOW(), NOW(), NOW());" | docker-compose exec -T postgres psql -U qc_user -d qc_vision
 
 # Verify the camera was added
 docker-compose exec postgres psql -U qc_user -d qc_vision -c "SELECT id, name, type, connection_info FROM camera_devices WHERE type='ip_camera';"
