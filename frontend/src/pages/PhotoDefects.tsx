@@ -590,14 +590,6 @@ export function PhotoDefects() {
               </div>
             )}
 
-            {photo?.file_path ? (
-              <div className="text-sm text-slate-600">
-                File: {photo.file_path}
-              </div>
-            ) : (
-              <div className="text-sm text-slate-600">Photo ID: {photoId}</div>
-            )}
-
             {actionError && (
               <div className="text-red-600 text-sm font-medium">
                 {actionError}

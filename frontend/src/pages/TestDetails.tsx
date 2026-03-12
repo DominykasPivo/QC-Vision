@@ -95,7 +95,7 @@ export function TestDetails() {
 
   return (
     <div
-      className="test-details-page relative min-h-full bg-white pb-8 md:pb-36"
+      className="test-details-page relative min-h-full bg-white pb-8 lg:pb-36"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <TestDetailHeader test={test} />

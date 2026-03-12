@@ -14,7 +14,7 @@ export function MobileActionButtons({
   isDeleting,
 }: MobileActionButtonsProps) {
   return (
-    <div className="mt-8 flex flex-col gap-4 md:hidden">
+    <div className="mt-8 flex flex-col gap-4 lg:hidden">
       <button
         type="button"
         onClick={onUpdate}
