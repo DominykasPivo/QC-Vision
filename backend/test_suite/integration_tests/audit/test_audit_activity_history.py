@@ -99,10 +99,7 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
         is_related = x.get("test_id") == 1
         assert is_direct or is_related
 
-    assert all(
-        ((x.get("test_id") != 2 and x["entity_id"] != 2))
-        for x in items
-    )
+    assert all(((x.get("test_id") != 2 and x["entity_id"] != 2)) for x in items)
 
 
 def test_excludes_system_get_logs_correctly(client, db_session):

@@ -288,7 +288,10 @@ class TestUpdateTestRoute:
         assert audit_response.status_code == 200
 
         items = audit_response.json()["items"]
-        assert {item["attribute"] for item in items[:2]} == {"description", "product_name"}
+        assert {item["attribute"] for item in items[:2]} == {
+            "description",
+            "product_name",
+        }
         assert all(item["test_id"] == test_id for item in items[:2])
         assert all(item["updated_at"] is not None for item in items[:2])
 

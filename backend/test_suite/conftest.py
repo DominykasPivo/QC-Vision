@@ -88,6 +88,7 @@ _tests_cleanup_utils_mod = sys.modules["app.modules.tests.cleanup_utils"]
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def db_session():
     """

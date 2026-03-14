@@ -117,7 +117,11 @@ class TestCreateDefectRoute:
         test_id, photo_id, cat_id = _seed(db_session)
         body = client.post(
             f"/api/v1/defects/photo/{photo_id}",
-            json={"category_id": cat_id, "description": "Ink smear", "severity": "high"},
+            json={
+                "category_id": cat_id,
+                "description": "Ink smear",
+                "severity": "high",
+            },
         ).json()
 
         audit_log = (
