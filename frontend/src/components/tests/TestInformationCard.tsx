@@ -118,26 +118,21 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
         ? item.meta
         : ({} as Record<string, unknown>);
     const actor = item.username || "system";
-    const fromValue = meta.from;
-    const toValue = meta.to;
-    const updatedFields = Array.isArray(meta.updated_fields)
-      ? meta.updated_fields
-      : [];
     const safe = (value: unknown) =>
       value == null || value === "" ? "none" : String(value);
 
     switch (item.action) {
       case "STATUS_CHANGE":
-        return `${actor} changed status from ${safe(fromValue)} to ${safe(toValue)}`;
+        return `${actor} changed status from ${safe(item.old_value)} to ${safe(item.new_value)}`;
       case "ASSIGN":
-        return `${actor} changed assignee from ${safe(fromValue)} to ${safe(toValue)}`;
+        return `${actor} changed assignee from ${safe(item.old_value)} to ${safe(item.new_value)}`;
       case "UNASSIGN":
-        return `${actor} unassigned ${safe(fromValue)}`;
+        return `${actor} unassigned ${safe(item.old_value)}`;
       case "TEST_TYPE_CHANGE":
-        return `${actor} changed test type from ${safe(fromValue)} to ${safe(toValue)}`;
+        return `${actor} changed test type from ${safe(item.old_value)} to ${safe(item.new_value)}`;
       case "UPDATE":
-        return updatedFields.length > 0
-          ? `${actor} updated fields: ${updatedFields.map(String).join(", ")}`
+        return item.attribute
+          ? `${actor} updated ${item.attribute}: ${safe(item.old_value)} -> ${safe(item.new_value)}`
           : `${actor} updated this test`;
       case "UPLOAD":
         return (
@@ -151,6 +146,48 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
             </Link>
           </>
         );
+      case "CREATE":
+        if (item.entity_type === "Defect") {
+          return (
+            <>
+              {actor} created defect #{item.entity_id}
+              {meta.photo_id ? (
+                <>
+                  {" "}
+                  on{" "}
+                  <Link
+                    to={`/photos/${String(meta.photo_id)}`}
+                    className="font-semibold text-[#2563eb] underline-offset-2 hover:underline"
+                  >
+                    photo #{String(meta.photo_id)}
+                  </Link>
+                </>
+              ) : null}
+            </>
+          );
+        }
+        return `${actor} created this test`;
+      case "DELETE":
+        if (item.entity_type === "Defect") {
+          return (
+            <>
+              {actor} deleted defect #{item.entity_id}
+              {meta.photo_id ? (
+                <>
+                  {" "}
+                  from{" "}
+                  <Link
+                    to={`/photos/${String(meta.photo_id)}`}
+                    className="font-semibold text-[#2563eb] underline-offset-2 hover:underline"
+                  >
+                    photo #{String(meta.photo_id)}
+                  </Link>
+                </>
+              ) : null}
+            </>
+          );
+        }
+        return `${actor} deleted this test`;
       case "ADD_DEFECT":
         return (
           <>
@@ -169,28 +206,6 @@ export function TestInformationCard({ test }: TestInformationCardProps) {
             ) : null}
           </>
         );
-      case "REMOVE_DEFECT":
-        return (
-          <>
-            {actor} removed defect #{item.entity_id}
-            {meta.photo_id ? (
-              <>
-                {" "}
-                from{" "}
-                <Link
-                  to={`/photos/${String(meta.photo_id)}`}
-                  className="font-semibold text-[#2563eb] underline-offset-2 hover:underline"
-                >
-                  photo #{String(meta.photo_id)}
-                </Link>
-              </>
-            ) : null}
-          </>
-        );
-      case "CREATE":
-        return `${actor} created this test`;
-      case "DELETE":
-        return `${actor} deleted this test`;
       default:
         return `${actor} performed ${item.action.toLowerCase().replace(/_/g, " ")}`;
     }

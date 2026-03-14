@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.modules.audit.service import log_action
+from app.modules.audit.service import log_action, log_changes
 from app.security import get_actor
 
 from .models import Photo
@@ -19,6 +19,10 @@ logger = logging.getLogger("backend_photos_router")
 router = APIRouter(prefix="/photos", tags=["photos"])
 
 photo_storage = photo_service.storage
+
+
+def _serialize_photo(photo: Photo) -> dict:
+    return PhotoResponse.model_validate(photo).model_dump(mode="json")
 
 
 @router.get("/test/{test_id}", response_model=List[PhotoResponse])
@@ -135,11 +139,13 @@ async def upload_photo(
             action="UPLOAD",
             entity_type="Photo",
             entity_id=int(photo.id),
+            test_id=test_id,
+            attribute="filename",
+            old_value=None,
+            new_value=file.filename,
             username=username,
             meta={
-                "filename": file.filename,
                 "content_type": file.content_type,
-                "test_id": test_id,
                 "file_path": getattr(photo, "file_path", None),
             },
         )
@@ -193,6 +199,14 @@ async def update_verification_status(
         raise HTTPException(status_code=400, detail="verification_status is required")
 
     try:
+        existing_photo = db.query(Photo).filter(Photo.id == photo_id).first()
+        if not existing_photo:
+            raise HTTPException(status_code=404, detail="Photo not found")
+
+        before_values = {
+            "verification_status": getattr(existing_photo, "verification_status", None)
+        }
+        test_id = getattr(existing_photo, "test_id", None)
         photo = photo_service.update_verification_status(
             db, photo_id, verification_status
         )
@@ -202,13 +216,14 @@ async def update_verification_status(
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
-    log_action(
+    log_changes(
         db,
-        action="UPDATE",
         entity_type="Photo",
         entity_id=photo_id,
+        test_id=test_id,
         username=actor["username"],
-        meta={"verification_status": verification_status},
+        before=before_values,
+        after={"verification_status": getattr(photo, "verification_status", None)},
     )
 
     return photo
@@ -228,6 +243,7 @@ async def update_photo(
 
     # Get only the fields that were explicitly set in the request
     update_dict = update_data.model_dump(exclude_unset=True)
+    before_values = {field: getattr(photo, field, None) for field in update_dict.keys()}
 
     # Update photo with provided fields (including null values to clear)
     for field, value in update_dict.items():
@@ -237,13 +253,14 @@ async def update_photo(
     db.commit()
     db.refresh(photo)
 
-    log_action(
+    log_changes(
         db,
-        action="UPDATE",
         entity_type="Photo",
         entity_id=photo_id,
+        test_id=photo.test_id,
         username=actor["username"],
-        meta=update_dict,
+        before=before_values,
+        after={field: getattr(photo, field, None) for field in update_dict.keys()},
     )
 
     return photo
@@ -272,6 +289,7 @@ async def delete_photo(
 
         photo_path = photo.file_path
         test_id = getattr(photo, "test_id", None)
+        deleted_value = _serialize_photo(photo)
 
         minio_deleted = False
         try:
@@ -288,10 +306,11 @@ async def delete_photo(
             action="DELETE",
             entity_type="Photo",
             entity_id=photo_id,
+            test_id=test_id,
+            old_value=deleted_value,
             username=username,
             meta={
                 "file_path": photo_path,
-                "test_id": test_id,
                 "minio_deleted": minio_deleted,
             },
         )

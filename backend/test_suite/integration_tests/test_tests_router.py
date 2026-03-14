@@ -12,6 +12,8 @@ Response keys use the *alias* names defined in TestResponse
 because FastAPI's jsonable_encoder defaults to ``by_alias=True``.
 """
 
+from app.modules.audit.models import AuditLog
+
 # ---------------------------------------------------------------------------
 # Helper – build multipart form-field tuples
 # ---------------------------------------------------------------------------
@@ -252,6 +254,50 @@ class TestUpdateTestRoute:
         resp = client.patch("/api/v1/tests/9999", json={"status": "open"})
         assert resp.status_code == 404
 
+    def test_update_audit_log_includes_old_and_new_values(self, client):
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-110",
+                productName="Original Product",
+                testType="incoming",
+                requester="Carol",
+                description="Original description",
+            ),
+        ).json()["test"]["id"]
+
+        resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={
+                "product_name": "Updated Product",
+                "description": "Updated description",
+            },
+        )
+        assert resp.status_code == 200
+
+        audit_response = client.get(
+            "/api/v1/audit/logs",
+            params={
+                "action": "UPDATE",
+                "entity_type": "Test",
+                "entity_id": test_id,
+                "limit": 10,
+                "offset": 0,
+            },
+        )
+        assert audit_response.status_code == 200
+
+        items = audit_response.json()["items"]
+        assert {item["attribute"] for item in items[:2]} == {"description", "product_name"}
+        assert all(item["test_id"] == test_id for item in items[:2])
+        assert all(item["updated_at"] is not None for item in items[:2])
+
+        changes = {item["attribute"]: item for item in items[:2]}
+        assert changes["product_name"]["old_value"] == "Original Product"
+        assert changes["product_name"]["new_value"] == "Updated Product"
+        assert changes["description"]["old_value"] == "Original description"
+        assert changes["description"]["new_value"] == "Updated description"
+
 
 # ---------------------------------------------------------------------------
 # DELETE /api/v1/tests/{test_id}
@@ -275,3 +321,25 @@ class TestDeleteTestRoute:
 
     def test_404_for_nonexistent_test(self, client):
         assert client.delete("/api/v1/tests/9999").status_code == 404
+
+    def test_delete_test_log_includes_deleted_row_snapshot(self, client):
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-401",
+                productName="Delete Product",
+                testType="incoming",
+                requester="Mona",
+            ),
+        ).json()["test"]["id"]
+
+        resp = client.delete(f"/api/v1/tests/{test_id}")
+        assert resp.status_code == 204
+
+        audit_response = client.get(
+            "/api/v1/audit/logs",
+            params={"action": "DELETE", "entity_type": "Test", "entity_id": test_id},
+        )
+        item = audit_response.json()["items"][0]
+        assert item["old_value"]["jira_id"] == "GY-401"
+        assert item["new_value"] is None

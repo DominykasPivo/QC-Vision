@@ -12,33 +12,41 @@ export function formatAuditEventText(
   log: ApiAuditLog,
   testId: number | string,
 ): string {
-  if (log.action === "STATUS_CHANGE" && log.meta?.from !== undefined) {
-    return `Test ${testId}: Status changed: ${log.meta.from} → ${log.meta.to}`;
+  const safe = (value: unknown) =>
+    value == null || value === "" ? "none" : String(value);
+
+  if (log.action === "STATUS_CHANGE" && log.attribute === "status") {
+    return `Test ${testId}: Status changed: ${safe(log.old_value)} → ${safe(log.new_value)}`;
   }
 
-  if (log.action === "ASSIGN") {
-    return `Test ${testId}: Assigned: ${log.meta?.from ?? "none"} → ${log.meta?.to ?? "none"}`;
+  if (log.action === "ASSIGN" && log.attribute === "assigned_to") {
+    return `Test ${testId}: Assigned: ${safe(log.old_value)} → ${safe(log.new_value)}`;
   }
 
-  if (log.action === "UNASSIGN") {
-    return `Test ${testId}: Unassigned: ${log.meta?.from ?? "none"} → none`;
+  if (log.action === "UNASSIGN" && log.attribute === "assigned_to") {
+    return `Test ${testId}: Unassigned: ${safe(log.old_value)} → ${safe(log.new_value)}`;
   }
 
-  if (log.action === "TEST_TYPE_CHANGE" && log.meta?.from !== undefined) {
-    return `Test ${testId}: Test type changed: ${log.meta.from} → ${log.meta.to}`;
+  if (log.action === "TEST_TYPE_CHANGE" && log.attribute === "test_type") {
+    return `Test ${testId}: Test type changed: ${safe(log.old_value)} → ${safe(log.new_value)}`;
   }
 
-  if (log.action === "UPLOAD") {
+  if (log.action === "UPLOAD" && log.attribute === "filename") {
     return `Test ${testId}: Uploaded Photo${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
   }
 
   if (log.action === "UPDATE") {
-    const fields = Array.isArray(log.meta?.updated_fields)
-      ? log.meta.updated_fields
-      : null;
-    return fields?.length
-      ? `Test ${testId}: Updated fields: ${fields.join(", ")}`
+    return log.attribute
+      ? `Test ${testId}: Updated ${log.attribute}: ${safe(log.old_value)} → ${safe(log.new_value)}`
       : `Test ${testId}: UPDATE ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
+  }
+
+  if (log.action === "CREATE" && log.entity_type === "Defect") {
+    return `Test ${testId}: Created Defect${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
+  }
+
+  if (log.action === "DELETE" && log.entity_type === "Defect") {
+    return `Test ${testId}: Deleted Defect${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
   }
 
   return `Test ${testId}: ${log.action} ${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ""} by ${log.username ?? "system"}`;
@@ -52,12 +60,13 @@ export function processAuditLogs(rawLogs: ApiAuditLog[]): AuditEvent[] {
     .filter((log) => log?.meta?.user_visible !== false)
     .map((log) => {
       const testId =
-        log.entity_type === "Test"
+        log.test_id ??
+        (log.entity_type === "Test"
           ? log.entity_id
           : typeof log?.meta?.test_id === "number" ||
               typeof log?.meta?.test_id === "string"
             ? log.meta.test_id
-            : null;
+            : null);
 
       if (!testId) return null;
 

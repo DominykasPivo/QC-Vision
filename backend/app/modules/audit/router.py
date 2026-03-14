@@ -22,6 +22,7 @@ def get_audit_logs(
     action: Optional[str] = Query(default=None),
     entity_type: Optional[str] = Query(default=None),
     entity_id: Optional[int] = Query(default=None),
+    test_id: Optional[int] = Query(default=None),
     username: Optional[str] = Query(default=None),
     created_from: Optional[datetime] = Query(default=None),
     created_to: Optional[datetime] = Query(default=None),
@@ -33,6 +34,7 @@ def get_audit_logs(
         action = None
         entity_type = None
         entity_id = None
+        test_id = None
         username = None
         created_from = None
         created_to = None
@@ -42,6 +44,7 @@ def get_audit_logs(
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
+        test_id=test_id,
         username=username,
         created_from=created_from,
         created_to=created_to,

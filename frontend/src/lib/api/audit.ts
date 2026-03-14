@@ -2,6 +2,7 @@ export type FetchAuditParams = {
   action?: string;
   entity_type?: string;
   entity_id?: string | number;
+  test_id?: string | number;
   username?: string;
   clear_filters?: boolean;
   limit?: number;
@@ -13,8 +14,13 @@ export type AuditActivityItem = {
   action: string;
   entity_type: string;
   entity_id: number | string;
+  test_id?: number | string | null;
+  attribute?: string | null;
+  old_value?: unknown;
+  new_value?: unknown;
   username?: string | null;
   created_at: string;
+  updated_at: string;
   meta?: Record<string, unknown> | null;
 };
 
@@ -38,6 +44,9 @@ export async function fetchAuditLogs(params: FetchAuditParams = {}) {
     if (params.entity_type) searchParams.set("entity_type", params.entity_type);
     if (params.entity_id !== undefined && params.entity_id !== "") {
       searchParams.set("entity_id", String(params.entity_id));
+    }
+    if (params.test_id !== undefined && params.test_id !== "") {
+      searchParams.set("test_id", String(params.test_id));
     }
     if (params.username) searchParams.set("username", params.username);
   }

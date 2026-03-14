@@ -38,16 +38,18 @@ export type ApiTest = {
 export type ApiAuditLog = {
   id: string | number;
   created_at: string;
+  updated_at: string;
   action: string;
   entity_type: string;
   entity_id?: number | string | null;
+  test_id?: number | string | null;
+  attribute?: string | null;
+  old_value?: unknown;
+  new_value?: unknown;
   username?: string | null;
   meta?: {
     user_visible?: boolean;
     test_id?: number | string;
-    updated_fields?: string[];
-    from?: string;
-    to?: string;
     [key: string]: unknown;
   } | null;
 };
@@ -138,14 +140,13 @@ export function toFrontendAuditEvent(raw: ApiAuditLog): {
   const entity = raw.entity_type?.toLowerCase() ?? "item";
   const entityId = raw.entity_id ?? "?";
   const username = raw.username ?? "system";
+  const attribute = raw.attribute;
 
   // Build event message
   let event = `${username} ${actionLabel} ${entity} #${entityId}`;
 
-  // Add update details if available
-  if (raw.action === "UPDATE" && raw.meta?.updated_fields) {
-    const fields = raw.meta.updated_fields.join(", ");
-    event += ` (${fields})`;
+  if (raw.action === "UPDATE" && attribute) {
+    event += ` (${attribute})`;
   }
 
   return {

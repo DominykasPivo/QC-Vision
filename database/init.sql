@@ -217,16 +217,22 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   action      TEXT NOT NULL,
   entity_type TEXT NOT NULL,
   entity_id   INT  NOT NULL,
+  test_id     INT,
+  attribute   TEXT,
+  old_value   JSONB,
+  new_value   JSONB,
 
   meta        JSONB NOT NULL DEFAULT '{}'::jsonb,
 
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   username    TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action     ON audit_logs(action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity     ON audit_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_test_id    ON audit_logs(test_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_username   ON audit_logs(username);
 
 CREATE TABLE IF NOT EXISTS users (

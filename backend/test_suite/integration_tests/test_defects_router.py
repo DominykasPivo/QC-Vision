@@ -8,6 +8,8 @@ DefectResponse / AnnotationResponse / CategoryResponse have no Field
 aliases, so their JSON keys match the Python field names exactly.
 """
 
+from app.modules.audit.models import AuditLog
+
 from app.modules.defects.models import DefectCategory
 from app.modules.photos.models import Photo
 from app.modules.tests.models import Tests
@@ -110,6 +112,28 @@ class TestCreateDefectRoute:
         )
         assert resp.status_code == 201
         assert resp.json()["annotations"] == []
+
+    def test_create_defect_writes_normalized_audit_log(self, client, db_session):
+        test_id, photo_id, cat_id = _seed(db_session)
+        body = client.post(
+            f"/api/v1/defects/photo/{photo_id}",
+            json={"category_id": cat_id, "description": "Ink smear", "severity": "high"},
+        ).json()
+
+        audit_log = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "CREATE",
+                AuditLog.entity_type == "Defect",
+                AuditLog.entity_id == body["id"],
+            )
+            .first()
+        )
+        assert audit_log is not None
+        assert audit_log.test_id == test_id
+        assert audit_log.old_value is None
+        assert audit_log.new_value["description"] == "Ink smear"
+        assert audit_log.updated_at is not None
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +251,37 @@ class TestUpdateDefectRoute:
         resp = client.put("/api/v1/defects/9999", json={"severity": "low"})
         assert resp.status_code == 404
 
+    def test_update_defect_writes_attribute_level_audit_rows(self, client, db_session):
+        test_id, photo_id, cat_id = _seed(db_session)
+        defect_id = client.post(
+            f"/api/v1/defects/photo/{photo_id}",
+            json={"category_id": cat_id, "severity": "low", "description": "Original"},
+        ).json()["id"]
+
+        resp = client.put(
+            f"/api/v1/defects/{defect_id}",
+            json={"severity": "critical", "description": "Updated"},
+        )
+        assert resp.status_code == 200
+
+        rows = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "UPDATE",
+                AuditLog.entity_type == "Defect",
+                AuditLog.entity_id == defect_id,
+            )
+            .order_by(AuditLog.attribute.asc())
+            .all()
+        )
+        assert len(rows) == 2
+        assert all(row.test_id == test_id for row in rows)
+        changes = {row.attribute: row for row in rows}
+        assert changes["description"].old_value == "Original"
+        assert changes["description"].new_value == "Updated"
+        assert changes["severity"].old_value == "low"
+        assert changes["severity"].new_value == "critical"
+
 
 # ---------------------------------------------------------------------------
 # DELETE /api/v1/defects/{defect_id}
@@ -247,6 +302,30 @@ class TestDeleteDefectRoute:
 
         # 404 for nonexistent
         assert client.delete("/api/v1/defects/9999").status_code == 404
+
+    def test_delete_defect_writes_delete_log(self, client, db_session):
+        test_id, photo_id, cat_id = _seed(db_session)
+        defect_id = client.post(
+            f"/api/v1/defects/photo/{photo_id}",
+            json={"category_id": cat_id, "severity": "low", "description": "To delete"},
+        ).json()["id"]
+
+        resp = client.delete(f"/api/v1/defects/{defect_id}")
+        assert resp.status_code == 204
+
+        audit_log = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "DELETE",
+                AuditLog.entity_type == "Defect",
+                AuditLog.entity_id == defect_id,
+            )
+            .first()
+        )
+        assert audit_log is not None
+        assert audit_log.test_id == test_id
+        assert audit_log.old_value["description"] == "To delete"
+        assert audit_log.new_value is None
 
 
 # ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.modules.audit.service import log_action
+from app.modules.audit.service import log_action, log_changes
 from app.modules.photos.models import Photo
 from app.security import get_actor, require_reviewer
 
@@ -25,6 +25,34 @@ logger = logging.getLogger("backend_defects_router")
 
 # ✅ Correct prefix so tests hit /api/v1/defects/...
 router = APIRouter(prefix="/defects", tags=["defects"])
+
+
+def _serialize_defect(defect) -> dict:
+    return DefectResponse.model_validate(defect).model_dump(mode="json")
+
+
+def _defect_field_values(defect, payload_data: dict) -> dict:
+    values: dict = {}
+    for field in payload_data.keys():
+        if field == "category_id":
+            annotations = getattr(defect, "annotations", []) or []
+            values[field] = annotations[0].category_id if annotations else None
+        elif field == "color":
+            annotations = getattr(defect, "annotations", []) or []
+            values[field] = annotations[0].color if annotations else None
+        elif field == "annotations":
+            annotations = getattr(defect, "annotations", []) or []
+            values[field] = [
+                {
+                    "category_id": annotation.category_id,
+                    "geometry": annotation.geometry,
+                    "color": annotation.color,
+                }
+                for annotation in annotations
+            ]
+        else:
+            values[field] = getattr(defect, field, None)
+    return values
 
 
 @router.get("/categories", response_model=List[CategoryResponse])
@@ -52,14 +80,14 @@ async def create_defect(
         test_id = getattr(photo, "test_id", None) if photo else None
         log_action(
             db,
-            action="ADD_DEFECT",
+            action="CREATE",
             entity_type="Defect",
             entity_id=defect.id,
+            test_id=test_id,
+            new_value=_serialize_defect(defect),
             username=actor["username"],
             meta={
                 "photo_id": photo_id,
-                "test_id": test_id,
-                "severity": payload.severity,
             },
         )
         return defect
@@ -131,12 +159,33 @@ async def add_annotation(
 
 @router.put("/{defect_id}", response_model=DefectResponse)
 async def update_defect(
-    defect_id: int, payload: DefectUpdate, db: Session = Depends(get_db)
+    defect_id: int,
+    payload: DefectUpdate,
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
     """Update an existing defect."""
+    current = await defects_service.get_defect(db, defect_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="Defect not found")
+
+    payload_data = payload.model_dump(exclude_unset=True)
+    before_values = _defect_field_values(current, payload_data)
     defect = await defects_service.update_defect(db, defect_id, payload)
     if not defect:
         raise HTTPException(status_code=404, detail="Defect not found")
+    photo = db.query(Photo).filter(Photo.id == defect.photo_id).first()
+    test_id = getattr(photo, "test_id", None) if photo else None
+    log_changes(
+        db,
+        entity_type="Defect",
+        entity_id=defect_id,
+        test_id=test_id,
+        username=actor["username"],
+        before=before_values,
+        after=_defect_field_values(defect, payload_data),
+        meta={"photo_id": defect.photo_id},
+    )
     logger.info(f"Updated defect {defect_id}")
     return defect
 
@@ -154,6 +203,7 @@ async def delete_defect(
 
     photo = db.query(Photo).filter(Photo.id == defect.photo_id).first()
     test_id = getattr(photo, "test_id", None) if photo else None
+    deleted_value = _serialize_defect(defect)
 
     success = await defects_service.delete_defect(db, defect_id)
     if not success:
@@ -161,13 +211,14 @@ async def delete_defect(
     logger.info(f"Deleted defect {defect_id}")
     log_action(
         db,
-        action="REMOVE_DEFECT",
+        action="DELETE",
         entity_type="Defect",
         entity_id=defect_id,
+        test_id=test_id,
+        old_value=deleted_value,
         username=actor["username"],
         meta={
             "photo_id": defect.photo_id,
-            "test_id": test_id,
         },
     )
 

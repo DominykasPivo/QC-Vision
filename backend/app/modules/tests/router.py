@@ -15,7 +15,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.modules.audit.service import log_action
+from app.modules.audit.service import log_action, log_changes
 from app.modules.photos.schemas import PhotoResponse
 from app.modules.photos.service import photo_service
 from app.security import get_actor, require_reviewer
@@ -35,6 +35,20 @@ logger = logging.getLogger("backend_tests_router")
 
 # ✅ Correct prefix so tests hit /api/v1/tests/...
 router = APIRouter(prefix="/tests", tags=["tests"])
+
+
+def _serialize_test(test: Tests) -> dict:
+    return TestResponse.model_validate(test).model_dump(mode="json")
+
+
+def _test_field_values(test: Tests, fields: list[str]) -> dict:
+    values = {}
+    for field in fields:
+        if field == "color_ids":
+            values[field] = [color.id for color in getattr(test, "colors", []) or []]
+        else:
+            values[field] = getattr(test, field, None)
+    return values
 
 
 @router.get("/colors", response_model=List[ColorResponse])
@@ -132,19 +146,10 @@ async def create_test(
             action="CREATE",
             entity_type="Test",
             entity_id=test_id_int,
+            test_id=test_id_int,
             username=username,
-            meta={
-                "jiraId": jiraId,
-                "productName": productName,
-                "testType": testType,
-                "requester": requester,
-                "assignedTo": assignedTo,
-                "description": description,
-                "status": status_field,
-                "deadlineAt": deadlineAt,
-                "color_ids": colorIds,
-                "photo_count": len(photos) if photos else 0,
-            },
+            new_value=_serialize_test(test),
+            meta={"photo_count": len(photos) if photos else 0},
         )
 
         uploaded_photos: List[PhotoResponse] = []
@@ -195,11 +200,13 @@ async def create_test(
                         action="UPLOAD",
                         entity_type="Photo",
                         entity_id=cast(int, photo.id),
+                        test_id=test_id_int,
+                        attribute="filename",
+                        old_value=None,
+                        new_value=filename_str,
                         username=username,
                         meta={
-                            "filename": filename_str,
                             "content_type": photo_file.content_type,
-                            "test_id": test_id_int,
                             "file_path": getattr(photo, "file_path", None),
                             "source": "tests.create_test",
                         },
@@ -353,12 +360,14 @@ async def update_test(
         before_status = getattr(current, "status", None)
         before_assigned_to = getattr(current, "assigned_to", None)
         before_test_type = getattr(current, "test_type", None)
+        before_values = _test_field_values(current, list(test_data.keys()))
 
         updated = await tests_service.update_test(db, test_id, test_data)
 
         after_status = getattr(updated, "status", None)
         after_assigned_to = getattr(updated, "assigned_to", None)
         after_test_type = getattr(updated, "test_type", None)
+        after_values = _test_field_values(updated, list(test_data.keys()))
 
         if "status" in test_data and before_status != after_status:
             log_action(
@@ -366,8 +375,11 @@ async def update_test(
                 action="STATUS_CHANGE",
                 entity_type="Test",
                 entity_id=test_id,
+                test_id=test_id,
+                attribute="status",
+                old_value=before_status,
+                new_value=after_status,
                 username=username,
-                meta={"from": before_status, "to": after_status},
             )
 
         if "assigned_to" in test_data and before_assigned_to != after_assigned_to:
@@ -383,8 +395,11 @@ async def update_test(
                 action=action,
                 entity_type="Test",
                 entity_id=test_id,
+                test_id=test_id,
+                attribute="assigned_to",
+                old_value=before_assigned_to,
+                new_value=after_assigned_to,
                 username=username,
-                meta={"from": before_assigned_to, "to": after_assigned_to},
             )
 
         if "test_type" in test_data and before_test_type != after_test_type:
@@ -393,17 +408,21 @@ async def update_test(
                 action="TEST_TYPE_CHANGE",
                 entity_type="Test",
                 entity_id=test_id,
+                test_id=test_id,
+                attribute="test_type",
+                old_value=before_test_type,
+                new_value=after_test_type,
                 username=username,
-                meta={"from": before_test_type, "to": after_test_type},
             )
 
-        log_action(
+        log_changes(
             db,
-            action="UPDATE",
             entity_type="Test",
             entity_id=test_id,
+            test_id=test_id,
             username=username,
-            meta={"updated_fields": list(test_data.keys())},
+            before=before_values,
+            after=after_values,
         )
 
         return updated
@@ -432,6 +451,11 @@ async def delete_test(
 ):
     username = actor["username"]
     try:
+        current = await tests_service.get_test(db, test_id)
+        if not current:
+            raise ValueError("Test not found")
+
+        deleted_value = _serialize_test(current)
         await tests_service.delete_test(db, test_id)
 
         log_action(
@@ -439,8 +463,9 @@ async def delete_test(
             action="DELETE",
             entity_type="Test",
             entity_id=test_id,
+            test_id=test_id,
+            old_value=deleted_value,
             username=username,
-            meta={},
         )
         return
 

@@ -35,3 +35,8 @@ def test_create_test_writes_audit_log(client):
     )
 
     assert match is not None
+    assert match["test_id"] == created_id
+    assert match["old_value"] is None
+    assert match["new_value"]["jira_id"] == "99999"
+    assert "jiraId" not in match["new_value"]
+    assert match["updated_at"] is not None

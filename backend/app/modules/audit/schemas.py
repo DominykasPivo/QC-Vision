@@ -10,6 +10,10 @@ class AuditLogCreate(BaseModel):
     action: str
     entity_type: str
     entity_id: int
+    test_id: Optional[int] = None
+    attribute: Optional[str] = None
+    old_value: Any = None
+    new_value: Any = None
     username: str = "system"
     meta: Dict[str, Any] = Field(default_factory=dict)
     actor_user_id: Optional[str] = None
@@ -29,8 +33,13 @@ class AuditLogOut(BaseModel):
     action: str
     entity_type: str
     entity_id: int
+    test_id: Optional[int] = None
+    attribute: Optional[str] = None
+    old_value: Any = None
+    new_value: Any = None
     meta: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
+    updated_at: datetime
     username: str
 
     model_config = ConfigDict(from_attributes=True)

@@ -15,6 +15,10 @@ def _insert_log(
     action: str,
     entity_type: str,
     entity_id: int,
+    test_id: int | None = None,
+    attribute: str | None = None,
+    old_value=None,
+    new_value=None,
     username: str = "system",
     meta: dict | None = None,
     created_at: datetime | None = None,
@@ -23,6 +27,10 @@ def _insert_log(
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,
+        test_id=test_id,
+        attribute=attribute,
+        old_value=old_value,
+        new_value=new_value,
         username=username,
         meta=meta or {},
     )
@@ -42,7 +50,7 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
         action="CREATE",
         entity_type="Test",
         entity_id=1,
-        meta={"test_id": 1},
+        test_id=1,
         created_at=_dt(10),
     )
     _insert_log(
@@ -50,7 +58,9 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
         action="UPLOAD",
         entity_type="Photo",
         entity_id=101,
-        meta={"test_id": 1},
+        test_id=1,
+        attribute="filename",
+        new_value="p1.jpg",
         created_at=_dt(9),
     )
 
@@ -60,7 +70,7 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
         action="CREATE",
         entity_type="Test",
         entity_id=2,
-        meta={"test_id": 2},
+        test_id=2,
         created_at=_dt(8),
     )
     _insert_log(
@@ -68,7 +78,9 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
         action="UPLOAD",
         entity_type="Photo",
         entity_id=202,
-        meta={"test_id": 2},
+        test_id=2,
+        attribute="filename",
+        new_value="p2.jpg",
         created_at=_dt(7),
     )
 
@@ -84,11 +96,11 @@ def test_returns_only_logs_for_given_test_id(client, db_session):
 
     for x in items:
         is_direct = (x["entity_type"] == "Test") and (x["entity_id"] == 1)
-        is_related = (x.get("meta") or {}).get("test_id") == 1
+        is_related = x.get("test_id") == 1
         assert is_direct or is_related
 
     assert all(
-        ((x.get("meta") or {}).get("test_id") != 2 and x["entity_id"] != 2)
+        ((x.get("test_id") != 2 and x["entity_id"] != 2))
         for x in items
     )
 
@@ -99,7 +111,8 @@ def test_excludes_system_get_logs_correctly(client, db_session):
         action="CREATE",
         entity_type="Test",
         entity_id=1,
-        meta={"test_id": 1, "user_visible": True},
+        test_id=1,
+        meta={"user_visible": True},
         created_at=_dt(10),
     )
 
@@ -109,7 +122,8 @@ def test_excludes_system_get_logs_correctly(client, db_session):
         action="READ",
         entity_type="Test",
         entity_id=1,
-        meta={"test_id": 1, "user_visible": True},
+        test_id=1,
+        meta={"user_visible": True},
         created_at=_dt(9),
     )
 
@@ -119,7 +133,8 @@ def test_excludes_system_get_logs_correctly(client, db_session):
         action="UPDATE",
         entity_type="Test",
         entity_id=1,
-        meta={"test_id": 1, "user_visible": False},
+        test_id=1,
+        meta={"user_visible": False},
         created_at=_dt(8),
     )
 
@@ -140,7 +155,7 @@ def test_returns_correct_order_newest_first(client, db_session):
         action="CREATE",
         entity_type="Test",
         entity_id=1,
-        meta={"test_id": 1},
+        test_id=1,
         created_at=_dt(30),
     )
     middle = _insert_log(
@@ -148,7 +163,10 @@ def test_returns_correct_order_newest_first(client, db_session):
         action="UPDATE",
         entity_type="Test",
         entity_id=1,
-        meta={"test_id": 1},
+        test_id=1,
+        attribute="status",
+        old_value="pending",
+        new_value="open",
         created_at=_dt(20),
     )
     newest = _insert_log(
@@ -156,7 +174,10 @@ def test_returns_correct_order_newest_first(client, db_session):
         action="STATUS_CHANGE",
         entity_type="Test",
         entity_id=1,
-        meta={"test_id": 1},
+        test_id=1,
+        attribute="status",
+        old_value="open",
+        new_value="closed",
         created_at=_dt(10),
     )
 
@@ -177,7 +198,10 @@ def test_pagination_if_implemented(client, db_session):
             action="UPDATE",
             entity_type="Test",
             entity_id=1,
-            meta={"test_id": 1},
+            test_id=1,
+            attribute="description",
+            old_value=f"old-{i}",
+            new_value=f"new-{i}",
             created_at=_dt(100 - i),
         )
         ids.append(log.id)
