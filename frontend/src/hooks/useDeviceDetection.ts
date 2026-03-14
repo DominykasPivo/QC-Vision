@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
  * Hook to detect whether the app is in the mobile shell layout.
  */
 export function useDeviceDetection() {
-  const [isMobile, setIsMobile] = useState(
-    () => window.innerWidth < 1024,
-  );
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 1023px)");
