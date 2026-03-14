@@ -9,7 +9,6 @@ aliases, so their JSON keys match the Python field names exactly.
 """
 
 from app.modules.audit.models import AuditLog
-
 from app.modules.defects.models import DefectCategory
 from app.modules.photos.models import Photo
 from app.modules.tests.models import Tests
