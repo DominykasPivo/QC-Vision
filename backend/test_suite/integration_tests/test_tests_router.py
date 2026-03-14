@@ -12,7 +12,6 @@ Response keys use the *alias* names defined in TestResponse
 because FastAPI's jsonable_encoder defaults to ``by_alias=True``.
 """
 
-from app.modules.audit.models import AuditLog
 
 # ---------------------------------------------------------------------------
 # Helper – build multipart form-field tuples
