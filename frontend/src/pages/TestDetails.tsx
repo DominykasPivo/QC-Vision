@@ -30,7 +30,7 @@ export function TestDetails() {
   const test = tests.find((t) => t.id === id);
   const { isMobile } = useDeviceDetection();
 
-  const { apiPhotos, setApiPhotos, photosWithDefects } =
+  const { apiPhotos, setApiPhotos, photosWithDefects, loadPhotos } =
     useTestDetailPhotos(id);
 
   const { isDeleting, showDeleteConfirm, setShowDeleteConfirm, handleDelete } =
@@ -69,6 +69,7 @@ export function TestDetails() {
     setApiPhotos,
     updateTest,
     addAuditEvent,
+    loadPhotos,
   });
 
   if (!test) {

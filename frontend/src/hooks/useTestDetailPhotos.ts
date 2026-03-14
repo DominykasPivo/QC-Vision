@@ -126,5 +126,6 @@ export function useTestDetailPhotos(testId?: string) {
     apiPhotos,
     setApiPhotos,
     photosWithDefects,
+    loadPhotos,
   };
 }

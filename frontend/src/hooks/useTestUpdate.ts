@@ -23,6 +23,7 @@ interface UseTestUpdateParams {
   setApiPhotos: React.Dispatch<React.SetStateAction<ApiPhoto[]>>;
   updateTest: AppDataContext["updateTest"];
   addAuditEvent: AppDataContext["addAuditEvent"];
+  loadPhotos?: () => Promise<void>;
 }
 
 /**
@@ -34,6 +35,7 @@ export function useTestUpdate({
   setApiPhotos,
   updateTest,
   addAuditEvent,
+  loadPhotos,
 }: UseTestUpdateParams) {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -253,6 +255,11 @@ export function useTestUpdate({
             const errorText = await photoResponse.text();
             console.error(`Failed to upload ${file.name}:`, errorText);
           }
+        }
+
+        // Refresh photos to update QC Matrix with newly uploaded photos
+        if (loadPhotos) {
+          await loadPhotos();
         }
       }
 

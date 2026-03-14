@@ -16,6 +16,8 @@ import { useDefectActions } from "@/hooks/useDefectActions";
 import { updatePhoto } from "@/lib/api/defects";
 import { PRINT_TYPES } from "@/lib/constants/printTypes";
 import type { Color } from "@/lib/types";
+import { parseColumns } from "@/components/tests/qc-matrix/QCMatrixCard.helpers";
+import type { CustomColumnDef } from "@/components/tests/qc-matrix/QCMatrixCard.types";
 import {
   VerificationStatusBar,
   PhotoDescriptionSection,
@@ -116,6 +118,7 @@ export function PhotoDefects() {
 
   // Print tag state
   const [testColors, setTestColors] = useState<Color[]>([]);
+  const [customColumns, setCustomColumns] = useState<CustomColumnDef[]>([]);
   const [tagColorId, setTagColorId] = useState<number | null>(null);
   const [tagMethod, setTagMethod] = useState<string>("");
   const [tagSaving, setTagSaving] = useState(false);
@@ -131,7 +134,7 @@ export function PhotoDefects() {
     }
   }, [photo, hasUnsavedTagChanges]);
 
-  // Fetch test colors when test_id is available
+  // Fetch test colors and custom columns when test_id is available
   useEffect(() => {
     const testId = photo?.test_id;
     if (!testId) return;
@@ -151,6 +154,10 @@ export function PhotoDefects() {
             isActive: true,
           })),
         );
+        // Parse custom columns from matrix_columns
+        const matrixColumns = data.matrix_columns ?? null;
+        const parsed = parseColumns(matrixColumns);
+        setCustomColumns(parsed.customColumns);
       })
       .catch(() => {});
   }, [photo?.test_id]);
@@ -482,6 +489,20 @@ export function PhotoDefects() {
                           )}
                           {pt.methods.map((m) => (
                             <option key={m.key} value={m.key}>
+                              {m.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                      {customColumns.map((col) => (
+                        <optgroup key={col.key} label={col.label}>
+                          {col.methods.length > 1 && (
+                            <option value={`custom_${col.key}`}>
+                              {col.label} – All methods
+                            </option>
+                          )}
+                          {col.methods.map((m) => (
+                            <option key={m.key} value={`${col.key}_${m.key}`}>
                               {m.label}
                             </option>
                           ))}

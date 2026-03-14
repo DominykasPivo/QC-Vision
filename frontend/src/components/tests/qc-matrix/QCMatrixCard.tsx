@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { MaterialIcon } from "./MaterialIcon";
+import { MaterialIcon } from "../MaterialIcon";
 import { useMatrixColumns } from "@/hooks/useMatrixColumns";
-import { MatrixTable } from "./qc-matrix/MatrixTable";
-import { ColumnDropdown } from "./qc-matrix/ColumnDropdown";
-import type { QCMatrixCardProps } from "./qc-matrix/QCMatrixCard.types";
+import { MatrixTable } from "./MatrixTable";
+import { ColumnDropdown } from "./ColumnDropdown";
+import type { QCMatrixCardProps } from "./QCMatrixCard.types";
 
 export function QCMatrixCard({
   testId,
