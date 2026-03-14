@@ -29,6 +29,7 @@ type ApiAuditEventItem = {
   new_value?: unknown;
   created_at: string;
   updated_at?: string;
+  username?: string | null;
   meta?: {
     summary?: string;
     message?: string;
