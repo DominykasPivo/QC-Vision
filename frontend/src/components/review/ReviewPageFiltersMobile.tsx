@@ -1,5 +1,6 @@
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -22,10 +23,16 @@ interface ReviewPageFiltersMobileProps {
   testTypeFilter: string;
   reviewStatusFilter: string;
   verificationStatusFilter: string;
+  assignedToFilter: string;
+  jiraIdFilter: string;
+  productNameFilter: string;
   hasAdvancedFilters: boolean;
   onTestTypeChange: (value: string) => void;
   onReviewStatusChange: (value: string) => void;
   onVerificationStatusChange: (value: string) => void;
+  onAssignedToChange: (value: string) => void;
+  onJiraIdChange: (value: string) => void;
+  onProductNameChange: (value: string) => void;
   onPageReset: () => void;
 }
 
@@ -35,10 +42,16 @@ export function ReviewPageFiltersMobile({
   testTypeFilter,
   reviewStatusFilter,
   verificationStatusFilter,
+  assignedToFilter,
+  jiraIdFilter,
+  productNameFilter,
   hasAdvancedFilters,
   onTestTypeChange,
   onReviewStatusChange,
   onVerificationStatusChange,
+  onAssignedToChange,
+  onJiraIdChange,
+  onProductNameChange,
   onPageReset,
 }: ReviewPageFiltersMobileProps) {
   const handleFilterChange = (
@@ -90,7 +103,7 @@ export function ReviewPageFiltersMobile({
 
       {/* Mobile Filter Drawer */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center md:hidden">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50"
@@ -99,7 +112,7 @@ export function ReviewPageFiltersMobile({
           />
 
           {/* Panel */}
-          <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-2xl bg-white p-6">
+          <div className="relative m-4 max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Filters</h2>
               <Button
@@ -187,6 +200,57 @@ export function ReviewPageFiltersMobile({
                   </Select>
                 </div>
               )}
+
+              {/* Assigned To Filter */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Assigned To
+                </label>
+                <Input
+                  type="text"
+                  value={assignedToFilter}
+                  onChange={(event) => {
+                    onAssignedToChange(event.target.value);
+                    onPageReset();
+                  }}
+                  placeholder="Assigned To..."
+                  className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                />
+              </div>
+
+              {/* Jira ID / Test ID Filter */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Gyra ID
+                </label>
+                <Input
+                  type="text"
+                  value={jiraIdFilter}
+                  onChange={(event) => {
+                    onJiraIdChange(event.target.value);
+                    onPageReset();
+                  }}
+                  placeholder="Gyra ID..."
+                  className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                />
+              </div>
+
+              {/* Product Name Filter */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Product Name
+                </label>
+                <Input
+                  type="text"
+                  value={productNameFilter}
+                  onChange={(event) => {
+                    onProductNameChange(event.target.value);
+                    onPageReset();
+                  }}
+                  placeholder="Product Name..."
+                  className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                />
+              </div>
             </div>
           </div>
         </div>
