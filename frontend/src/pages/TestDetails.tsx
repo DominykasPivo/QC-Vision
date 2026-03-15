@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import {
@@ -29,6 +30,13 @@ export function TestDetails() {
   const navigate = useNavigate();
   const test = tests.find((t) => t.id === id);
   const { isMobile } = useDeviceDetection();
+
+  useLayoutEffect(() => {
+    const appContent = document.querySelector<HTMLElement>(".app-content");
+
+    appContent?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [id]);
 
   const { apiPhotos, setApiPhotos, photosWithDefects, loadPhotos } =
     useTestDetailPhotos(id);

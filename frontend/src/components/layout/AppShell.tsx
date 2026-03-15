@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Check, ChevronDown } from "lucide-react";
 import type { AuditEvent, Photo, Test } from "@/lib/types";
 import {
   logoutUser,
@@ -41,10 +42,12 @@ export type AppDataContext = {
 export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
+  const mobileRoleMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [currentRole, setCurrentRole] = useState<string>("user");
   const [isChangingRole, setIsChangingRole] = useState(false);
   const [canReview, setCanReview] = useState(false);
+  const [isMobileRoleMenuOpen, setIsMobileRoleMenuOpen] = useState(false);
 
   const [tests, setTests] = useState<Test[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
@@ -93,6 +96,31 @@ export function AppShell() {
     },
     [currentRole],
   );
+
+  useEffect(() => {
+    if (!isMobileRoleMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (
+        mobileRoleMenuRef.current &&
+        !mobileRoleMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsMobileRoleMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [isMobileRoleMenuOpen]);
+
+  useEffect(() => {
+    setIsMobileRoleMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const storedPhotos = readStoredJson<Photo[]>(STORAGE_KEYS.photos);
@@ -289,8 +317,29 @@ export function AppShell() {
   );
 
   const navItems = useMemo(() => buildNavItems(canReview), [canReview]);
+  const currentUsername = getStoredUsername().trim();
+  const roleOptions = useMemo(() => {
+    const options = [
+      { value: "user", label: "User" },
+      { value: "reviewer", label: "Reviewer" },
+    ];
+
+    if (currentRole === "admin") {
+      options.push({ value: "admin", label: "Admin" });
+    }
+
+    return options;
+  }, [currentRole]);
 
   const detailsRoute = isTestDetailsRoute(location.pathname);
+
+  const handleMobileRoleSelect = useCallback(
+    (newRole: string) => {
+      setIsMobileRoleMenuOpen(false);
+      void handleRoleChange(newRole);
+    },
+    [handleRoleChange],
+  );
 
   return (
     <div className="app-shell">
@@ -315,6 +364,13 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar-role-selector">
+          <div className="sidebar-user-summary">
+            <span className="sidebar-user-label">Signed in as</span>
+            <span className="sidebar-user-name">
+              {currentUsername || "Unknown user"}
+            </span>
+          </div>
+
           <select
             id="role-select"
             value={currentRole}
@@ -322,8 +378,11 @@ export function AppShell() {
             disabled={isChangingRole}
             className="role-select"
           >
-            <option value="user">User</option>
-            <option value="reviewer">Reviewer</option>
+            {roleOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
       </aside>
@@ -332,17 +391,56 @@ export function AppShell() {
         <header className="app-header">
           <h1>QC Vision</h1>
 
-          <div className="mobile-role-selector">
-            <select
-              id="role-select-mobile"
-              value={currentRole}
-              onChange={(e) => handleRoleChange(e.target.value)}
+          <div className="mobile-role-selector" ref={mobileRoleMenuRef}>
+            <button
+              type="button"
+              className={`mobile-identity-trigger ${
+                isMobileRoleMenuOpen ? "is-open" : ""
+              }`}
+              onClick={() =>
+                setIsMobileRoleMenuOpen((isOpen) => !isOpen)
+              }
               disabled={isChangingRole}
-              className="role-select"
+              aria-haspopup="menu"
+              aria-expanded={isMobileRoleMenuOpen}
             >
-              <option value="user">User</option>
-              <option value="reviewer">Reviewer</option>
-            </select>
+              <span className="mobile-identity-value">
+                {currentUsername || "User ID"}
+              </span>
+              <ChevronDown className="mobile-identity-chevron" />
+            </button>
+
+            {isMobileRoleMenuOpen && (
+              <div className="mobile-role-menu" role="menu" aria-label="Role">
+                {roleOptions.map((option) => {
+                  const isActive = option.value === currentRole;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={isActive}
+                      className={`mobile-role-menu-item ${
+                        isActive ? "is-active" : ""
+                      }`}
+                      onClick={() => handleMobileRoleSelect(option.value)}
+                    >
+                      <span className="mobile-role-menu-label">
+                        {option.label}
+                      </span>
+
+                      {isActive && (
+                        <span className="mobile-role-menu-status">
+                          <Check className="mobile-role-menu-check" />
+                          Current
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="header-controls">
