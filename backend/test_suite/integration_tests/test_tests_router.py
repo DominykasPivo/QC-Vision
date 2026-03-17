@@ -344,3 +344,112 @@ class TestDeleteTestRoute:
         item = audit_response.json()["items"][0]
         assert item["old_value"]["jira_id"] == "GY-401"
         assert item["new_value"] is None
+
+
+# ---------------------------------------------------------------------------
+# Matrix Columns Tests
+# ---------------------------------------------------------------------------
+
+
+class TestMatrixColumnsFeature:
+    """Tests for QC-Matrix functionality with matrix_columns field."""
+
+    def test_create_test_with_matrix_columns(self, client):
+        """Create test then add matrix_columns via PATCH."""
+        # Create test without matrix_columns
+        resp = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-MATRIX-001",
+                productName="T-Shirt Product Line",
+                testType="final",
+                requester="QA Manager",
+            ),
+        )
+        assert resp.status_code == 201
+        test_id = resp.json()["test"]["id"]
+
+        # Add matrix_columns via PATCH
+        matrix_config = '["S", "M", "L", "XL"]'
+        update_resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": matrix_config},
+        )
+        assert update_resp.status_code == 200
+
+        test = update_resp.json()
+        assert test["matrix_columns"] == matrix_config
+        assert test["jira_id"] == "GY-MATRIX-001"
+
+        # Verify matrix columns can be parsed as valid JSON
+        import json
+
+        parsed = json.loads(test["matrix_columns"])
+        assert parsed == ["S", "M", "L", "XL"]
+
+    def test_update_test_matrix_columns(self, client):
+        """Update existing test to add/modify matrix_columns."""
+        # Create test without matrix_columns
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-MATRIX-002",
+                productName="Shoe Product",
+                testType="incoming",
+                requester="Alice",
+            ),
+        ).json()["test"]["id"]
+
+        # Update to add matrix_columns
+        matrix_config = '["Size 7", "Size 8", "Size 9", "Size 10"]'
+        resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": matrix_config},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["matrix_columns"] == matrix_config
+
+        # Update to modify matrix_columns
+        updated_matrix = '["Size 7", "Size 8", "Size 9", "Size 10", "Size 11"]'
+        resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": updated_matrix},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["matrix_columns"] == updated_matrix
+
+    def test_retrieve_test_with_matrix_columns(self, client):
+        """Retrieve test and verify matrix_columns structure."""
+        # Create test
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-MATRIX-003",
+                productName="Multi-variant Product",
+                testType="final",
+                requester="Bob",
+            ),
+        ).json()["test"]["id"]
+
+        # Add matrix_columns via PATCH
+        matrix_config = '{"rows": ["Red", "Blue", "Green"], "cols": ["S", "M", "L"]}'
+        client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": matrix_config},
+        )
+
+        # Retrieve test details
+        resp = client.get(f"/api/v1/tests/{test_id}")
+        assert resp.status_code == 200
+
+        test = resp.json()
+        assert test["matrix_columns"] == matrix_config
+
+        # Verify complex JSON structure
+        import json
+
+        parsed = json.loads(test["matrix_columns"])
+        assert "rows" in parsed
+        assert "cols" in parsed
+        assert len(parsed["rows"]) == 3
+        assert len(parsed["cols"]) == 3
