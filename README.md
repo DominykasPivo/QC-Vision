@@ -137,20 +137,39 @@ QC-Vision/
 ## Architecture
 
 ```
-┌─────────────┐     ┌─────────────┐
-│   Frontend  │────▶│   Backend   │
-│  (React)    │     │  (FastAPI)  │
-│   :3000     │     │   :8000     │
-└─────────────┘     └──────┬──────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-        ┌──────────┐ ┌──────────┐ ┌──────────┐
-        │PostgreSQL│ │  MinIO   │ │  MinIO   │
-        │  :5432   │ │  :9000   │ │  Console │
-        │          │ │ (Storage)│ │  :9001   │
-        └──────────┘ └──────────┘ └──────────┘
+┌─────────────────────────────────────────────────────────┐
+│              CLIENT (Desktop/Mobile Browser)             │
+│                    http://localhost:3000                 │
+└─────────────────────┬───────────────────────────────────┘
+                      │
+                      ▼
+          ┌───────────────────────┐
+          │   Frontend (React)    │
+          │   Vite Dev Server     │
+          │        :3000          │
+          └───────────┬───────────┘
+                      │ REST API (Polling 15-30s)
+                      ▼
+          ┌───────────────────────┐
+          │  Backend (FastAPI)    │
+          │  - Tests Management   │
+          │  - Photos Management  │
+          │  - Defects Tracking   │
+          │  - Audit Logging      │
+          │  - Camera Management ─┼───────────────────┐
+          │        :8000          │                   │  HTTP Snapshot Request
+          └─────┬─────────────┬───┘                   │
+                │             │                       ▼
+       ┌────────┴──────┐  ┌──┴─────────┐     ┌──────────────────┐
+       ▼               ▼  ▼            ▼     │  External Systems│
+  ┌─────────┐   ┌─────────────┐  ┌─────────┐ │                  │
+  │PostgreSQL│  │    MinIO    │  │ NocoDB  │ │   IP Cameras     │
+  │  :5432  │   │  :9000,:9001│  │  :8080  │ │  (Smartphones,   │
+  │         │   │ (S3 Storage)│  │ (Admin) │ │   RTSP, etc.)    │
+  └─────────┘   └─────────────┘  └─────────┘ └──────────────────┘
 ```
+
+For a detailed architecture diagram with data flows, see [docs/detailed_architecture.md](docs/detailed_architecture.md).
 
 ## Services
 
