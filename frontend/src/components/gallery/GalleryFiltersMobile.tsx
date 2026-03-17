@@ -1,13 +1,6 @@
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DEFECT_SEVERITIES,
   TEST_STATUSES,
   TEST_TYPES,
@@ -16,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { isReviewer } from "@/lib/auth";
 import { MOBILE_TRIGGER_CLS, VERIFICATION_STATUSES } from "@/lib/constants";
+import { FilterSelect } from "@/components/filters/FilterSelect";
 import type { CategoryRecord } from "@/hooks/useCategories";
 
 interface GalleryFiltersMobileProps {
@@ -57,36 +51,24 @@ export function GalleryFiltersMobile({
   onVerificationChange,
   onPageReset,
 }: GalleryFiltersMobileProps) {
-  const handleFilterChange = (
-    filterSetter: (value: string) => void,
-    value: string,
-  ): void => {
-    const actualValue = value === "all" ? "" : value;
-    filterSetter(actualValue);
-    onPageReset();
-  };
-
   return (
     <>
       {/* Mobile Filter Toggle */}
       <div className="mt-4 flex items-center gap-3 md:hidden">
         <div className="min-w-0 flex-1">
-          <Select
-            value={testStatusFilter || "all"}
-            onValueChange={(v) => handleFilterChange(onTestStatusChange, v)}
-          >
-            <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {TEST_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {formatEnumLabel(s)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FilterSelect
+            value={testStatusFilter}
+            placeholder="All Statuses"
+            options={TEST_STATUSES.map((s) => ({
+              value: s,
+              label: formatEnumLabel(s),
+            }))}
+            onChange={(v) => {
+              onTestStatusChange(v);
+              onPageReset();
+            }}
+            className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
+          />
         </div>
         <Button
           type="button"
@@ -143,24 +125,19 @@ export function GalleryFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Severity
                   </p>
-                  <Select
-                    value={severityFilter || "all"}
-                    onValueChange={(v) =>
-                      handleFilterChange(onSeverityChange, v)
-                    }
-                  >
-                    <SelectTrigger className={MOBILE_TRIGGER_CLS}>
-                      <SelectValue placeholder="Severity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Severities</SelectItem>
-                      {DEFECT_SEVERITIES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {formatEnumLabel(s)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect
+                    value={severityFilter}
+                    placeholder="Severity"
+                    options={DEFECT_SEVERITIES.map((s) => ({
+                      value: s,
+                      label: formatEnumLabel(s),
+                    }))}
+                    onChange={(v) => {
+                      onSeverityChange(v);
+                      onPageReset();
+                    }}
+                    className={MOBILE_TRIGGER_CLS}
+                  />
                 </div>
 
                 {/* Category */}
@@ -168,24 +145,19 @@ export function GalleryFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Category
                   </p>
-                  <Select
-                    value={categoryFilter || "all"}
-                    onValueChange={(v) =>
-                      handleFilterChange(onCategoryChange, v)
-                    }
-                  >
-                    <SelectTrigger className={MOBILE_TRIGGER_CLS}>
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={String(c.id)}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect
+                    value={categoryFilter}
+                    placeholder="Category"
+                    options={categories.map((c) => ({
+                      value: String(c.id),
+                      label: c.name,
+                    }))}
+                    onChange={(v) => {
+                      onCategoryChange(v);
+                      onPageReset();
+                    }}
+                    className={MOBILE_TRIGGER_CLS}
+                  />
                 </div>
 
                 {/* Test Type */}
@@ -193,24 +165,19 @@ export function GalleryFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Test Type
                   </p>
-                  <Select
-                    value={testTypeFilter || "all"}
-                    onValueChange={(v) =>
-                      handleFilterChange(onTestTypeChange, v)
-                    }
-                  >
-                    <SelectTrigger className={MOBILE_TRIGGER_CLS}>
-                      <SelectValue placeholder="Test Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {TEST_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {formatEnumLabel(t)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect
+                    value={testTypeFilter}
+                    placeholder="Test Type"
+                    options={TEST_TYPES.map((t) => ({
+                      value: t,
+                      label: formatEnumLabel(t),
+                    }))}
+                    onChange={(v) => {
+                      onTestTypeChange(v);
+                      onPageReset();
+                    }}
+                    className={MOBILE_TRIGGER_CLS}
+                  />
                 </div>
 
                 {/* Has Defects */}
@@ -218,21 +185,19 @@ export function GalleryFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Defects
                   </p>
-                  <Select
-                    value={hasDefectsFilter || "all"}
-                    onValueChange={(v) =>
-                      handleFilterChange(onHasDefectsChange, v)
-                    }
-                  >
-                    <SelectTrigger className={MOBILE_TRIGGER_CLS}>
-                      <SelectValue placeholder="Defects" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Photos</SelectItem>
-                      <SelectItem value="true">With Defects</SelectItem>
-                      <SelectItem value="false">Without Defects</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect
+                    value={hasDefectsFilter}
+                    placeholder="Defects"
+                    options={[
+                      { value: "true", label: "With Defects" },
+                      { value: "false", label: "Without Defects" },
+                    ]}
+                    onChange={(v) => {
+                      onHasDefectsChange(v);
+                      onPageReset();
+                    }}
+                    className={MOBILE_TRIGGER_CLS}
+                  />
                 </div>
 
                 {/* Verification - Only for Reviewers */}
@@ -241,24 +206,19 @@ export function GalleryFiltersMobile({
                     <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                       Verification
                     </p>
-                    <Select
-                      value={verificationFilter || "all"}
-                      onValueChange={(v) =>
-                        handleFilterChange(onVerificationChange, v)
-                      }
-                    >
-                      <SelectTrigger className={MOBILE_TRIGGER_CLS}>
-                        <SelectValue placeholder="Verification" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Verifications</SelectItem>
-                        {VERIFICATION_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {formatEnumLabel(s)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FilterSelect
+                      value={verificationFilter}
+                      placeholder="Verification"
+                      options={VERIFICATION_STATUSES.map((s) => ({
+                        value: s,
+                        label: formatEnumLabel(s),
+                      }))}
+                      onChange={(v) => {
+                        onVerificationChange(v);
+                        onPageReset();
+                      }}
+                      className={MOBILE_TRIGGER_CLS}
+                    />
                   </div>
                 )}
               </div>

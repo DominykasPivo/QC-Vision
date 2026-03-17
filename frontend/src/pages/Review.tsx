@@ -8,11 +8,7 @@ import type { ReviewStatus } from "@/lib/db-constants";
 import { fetchGallery } from "@/lib/api/gallery";
 import { updateVerificationStatus } from "@/lib/api/defects";
 import type { GalleryPhoto } from "@/lib/api/gallery";
-import {
-  ReviewFilters,
-  ReviewPageFilters,
-  ReviewPageFiltersMobile,
-} from "@/components/review";
+import { ReviewFilters, ReviewFiltersMobile } from "@/components/review";
 import { useReviewFilters } from "@/hooks";
 
 type TestResponse = {
@@ -61,7 +57,6 @@ export function Review() {
   } = useReviewFilters();
 
   // Legacy filter states (keeping for backward compatibility with ReviewFilters component)
-  const [reviewStatusFilterOld, setReviewStatusFilterOld] = useState("");
   const [assignedToFilter, setAssignedToFilter] = useState("");
   const [jiraIdFilter, setJiraIdFilter] = useState("");
   const [productNameFilter, setProductNameFilter] = useState("");
@@ -345,8 +340,8 @@ export function Review() {
   );
 
   return (
-    <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] px-3 py-4 pb-24 md:px-4 md:py-5 md:pb-8">
-      <section className="w-full rounded-[28px] border-2 border-slate-200 bg-white px-5 py-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] md:px-8 md:py-8 xl:px-[52px] xl:py-[48px]">
+    <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] pb-24 md:pb-8">
+      <section className="w-full bg-white px-5 py-6 md:px-8 md:py-8 xl:px-[52px] xl:py-[48px]">
         <div className="flex flex-col gap-5 xl:gap-8">
           {/* Header */}
           <div className="space-y-2">
@@ -363,8 +358,8 @@ export function Review() {
 
           {/* Search Bar and Filters */}
           <div className="space-y-3">
-            {/* Mobile Filters - Page Filters */}
-            <ReviewPageFiltersMobile
+            {/* Mobile Filters */}
+            <ReviewFiltersMobile
               isOpen={mobileFiltersOpen}
               onClose={() => setMobileFiltersOpen((prev) => !prev)}
               testTypeFilter={filters.testType}
@@ -383,24 +378,17 @@ export function Review() {
               onPageReset={() => {}}
             />
 
-            {/* Desktop Filters - Page Filters */}
-            <ReviewPageFilters
+            {/* Desktop Filters */}
+            <ReviewFilters
               testTypeFilter={filters.testType}
               reviewStatusFilter={filters.reviewStatus}
               verificationStatusFilter={filters.verificationStatus}
-              onTestTypeChange={setTestTypeFilter}
-              onReviewStatusChange={setReviewStatusFilter}
-              onVerificationStatusChange={setVerificationStatusFilter}
-              onPageReset={() => {}}
-            />
-
-            {/* Legacy Filters */}
-            <ReviewFilters
-              reviewStatusFilter={reviewStatusFilterOld}
               assignedToFilter={assignedToFilter}
               jiraIdFilter={jiraIdFilter}
               productNameFilter={productNameFilter}
-              onReviewStatusChange={setReviewStatusFilterOld}
+              onTestTypeChange={setTestTypeFilter}
+              onReviewStatusChange={setReviewStatusFilter}
+              onVerificationStatusChange={setVerificationStatusFilter}
               onAssignedToChange={setAssignedToFilter}
               onJiraIdChange={setJiraIdFilter}
               onProductNameChange={setProductNameFilter}

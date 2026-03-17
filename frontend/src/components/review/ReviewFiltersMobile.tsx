@@ -1,25 +1,30 @@
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { REVIEW_STATUSES, type ReviewStatus } from "@/lib/db-constants";
+import { FilterSelect } from "@/components/filters/FilterSelect";
+import { FilterInput } from "@/components/filters/FilterInput";
+import {
+  REVIEW_STATUSES,
+  TEST_TYPES,
+  type ReviewStatus,
+  formatEnumLabel,
+} from "@/lib/db-constants";
+import { VERIFICATION_STATUSES } from "@/lib/constants";
+import { isReviewer } from "@/lib/auth";
 
 interface ReviewFiltersMobileProps {
   isOpen: boolean;
   onClose: () => void;
+  testTypeFilter: string;
   reviewStatusFilter: string;
+  verificationStatusFilter: string;
   assignedToFilter: string;
   jiraIdFilter: string;
   productNameFilter: string;
   hasAdvancedFilters: boolean;
+  onTestTypeChange: (value: string) => void;
   onReviewStatusChange: (value: string) => void;
+  onVerificationStatusChange: (value: string) => void;
   onAssignedToChange: (value: string) => void;
   onJiraIdChange: (value: string) => void;
   onProductNameChange: (value: string) => void;
@@ -35,26 +40,21 @@ const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
 export function ReviewFiltersMobile({
   isOpen,
   onClose,
+  testTypeFilter,
   reviewStatusFilter,
+  verificationStatusFilter,
   assignedToFilter,
   jiraIdFilter,
   productNameFilter,
   hasAdvancedFilters,
+  onTestTypeChange,
   onReviewStatusChange,
+  onVerificationStatusChange,
   onAssignedToChange,
   onJiraIdChange,
   onProductNameChange,
   onPageReset,
 }: ReviewFiltersMobileProps) {
-  const handleFilterChange = <T extends string>(
-    filterSetter: (value: T) => void,
-    value: string,
-  ): void => {
-    const actualValue = (value === "all" ? "" : value) as T;
-    filterSetter(actualValue);
-    onPageReset();
-  };
-
   return (
     <>
       {/* Mobile Filter Toggle */}
@@ -109,45 +109,81 @@ export function ReviewFiltersMobile({
 
               {/* Filter Content */}
               <div className="flex-1 space-y-4 overflow-y-auto bg-[#F8FAFF] px-5 py-5">
+                {/* Test Type Filter */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                    Test Type
+                  </p>
+                  <FilterSelect
+                    value={testTypeFilter}
+                    placeholder="All Types"
+                    options={TEST_TYPES.map((t) => ({
+                      value: t,
+                      label: formatEnumLabel(t),
+                    }))}
+                    onChange={(v) => {
+                      onTestTypeChange(v);
+                      onPageReset();
+                    }}
+                    className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
+                  />
+                </div>
+
                 {/* Review Status Filter */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-                    All Statuses
+                    Review Status
                   </p>
-                  <Select
-                    value={reviewStatusFilter || "all"}
-                    onValueChange={(value) =>
-                      handleFilterChange(onReviewStatusChange, value)
-                    }
-                  >
-                    <SelectTrigger className="h-11 rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]">
-                      <SelectValue placeholder="All Statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      {REVIEW_STATUSES.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {REVIEW_STATUS_LABELS[status]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect
+                    value={reviewStatusFilter}
+                    placeholder="All Statuses"
+                    options={REVIEW_STATUSES.map((status) => ({
+                      value: status,
+                      label: REVIEW_STATUS_LABELS[status],
+                    }))}
+                    onChange={(v) => {
+                      onReviewStatusChange(v);
+                      onPageReset();
+                    }}
+                    className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
+                  />
                 </div>
+
+                {/* Verification Status Filter - Only for Reviewers */}
+                {isReviewer() && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Photo Verification
+                    </p>
+                    <FilterSelect
+                      value={verificationStatusFilter}
+                      placeholder="All Verifications"
+                      options={VERIFICATION_STATUSES.map((s) => ({
+                        value: s,
+                        label: formatEnumLabel(s),
+                      }))}
+                      onChange={(v) => {
+                        onVerificationStatusChange(v);
+                        onPageReset();
+                      }}
+                      className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
+                    />
+                  </div>
+                )}
 
                 {/* Assigned To Filter */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Assigned To
                   </p>
-                  <Input
-                    type="text"
+                  <FilterInput
                     value={assignedToFilter}
-                    onChange={(event) => {
-                      onAssignedToChange(event.target.value);
+                    placeholder="Assigned To..."
+                    onChange={(v) => {
+                      onAssignedToChange(v);
                       onPageReset();
                     }}
-                    placeholder="Assigned To..."
-                    className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
                   />
                 </div>
 
@@ -156,15 +192,14 @@ export function ReviewFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Gyra ID
                   </p>
-                  <Input
-                    type="text"
+                  <FilterInput
                     value={jiraIdFilter}
-                    onChange={(event) => {
-                      onJiraIdChange(event.target.value);
+                    placeholder="Gyra ID..."
+                    onChange={(v) => {
+                      onJiraIdChange(v);
                       onPageReset();
                     }}
-                    placeholder="Gyra ID..."
-                    className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
                   />
                 </div>
 
@@ -173,15 +208,14 @@ export function ReviewFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Product Name
                   </p>
-                  <Input
-                    type="text"
+                  <FilterInput
                     value={productNameFilter}
-                    onChange={(event) => {
-                      onProductNameChange(event.target.value);
+                    placeholder="Product Name..."
+                    onChange={(v) => {
+                      onProductNameChange(v);
                       onPageReset();
                     }}
-                    placeholder="Product Name..."
-                    className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
                   />
                 </div>
               </div>
