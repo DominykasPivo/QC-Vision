@@ -101,7 +101,7 @@ export function buildNavItems(canReview: boolean): NavItem[] {
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 0 0 1 18 0Z"
+            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.5 5.5a7.5 7.5 0 0 0 10.5 10.5Z"
           />
         </svg>
       ),

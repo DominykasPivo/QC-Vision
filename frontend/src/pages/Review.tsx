@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Navigate, useOutletContext } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import { Search, ChevronDown } from "lucide-react";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import { request } from "@/lib/api/http";
-import { getStoredRole, getStoredUsername, isReviewer } from "@/lib/auth";
+import { getStoredRole, getStoredUsername } from "@/lib/auth";
 import type { ReviewStatus } from "@/lib/db-constants";
 import { fetchGallery } from "@/lib/api/gallery";
 import { updateVerificationStatus } from "@/lib/api/defects";
-import { VerificationStatusBar } from "@/components/photo-defects";
 import type { GalleryPhoto } from "@/lib/api/gallery";
-import { spacing } from "@/lib/ui/spacing";
-import { cn } from "@/lib/utils";
+import { ReviewFilters, ReviewFiltersMobile } from "@/components/review";
+import { useReviewFilters } from "@/hooks";
 
 type TestResponse = {
   id: number;
+  jira_id: string;
   product_id: number;
+  product_name: string;
   test_type: string;
   requester: string;
   assigned_to: string | null;
@@ -33,15 +35,34 @@ const getErrorMessage = (e: unknown) =>
       : "Something went wrong";
 
 export function Review() {
+  const navigate = useNavigate();
   const { updateTest } = useOutletContext<AppDataContext>();
   const [tests, setTests] = useState<TestResponse[]>([]);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [pendingTestsOpen, setPendingTestsOpen] = useState(true);
+  const [reviewedTestsOpen, setReviewedTestsOpen] = useState(true);
+  const [photoVerificationsOpen, setPhotoVerificationsOpen] = useState(true);
 
-  const canReview = isReviewer();
-  const username = getStoredUsername();
-  const role = getStoredRole();
+  // Gallery-style filters
+  const {
+    filters,
+    hasActiveFilters,
+    hasAdvancedFilters,
+    setTestTypeFilter,
+    setVerificationStatusFilter,
+    setReviewStatusFilter,
+  } = useReviewFilters();
+
+  // Legacy filter states (keeping for backward compatibility with ReviewFilters component)
+  const [assignedToFilter, setAssignedToFilter] = useState("");
+  const [jiraIdFilter, setJiraIdFilter] = useState("");
+  const [productNameFilter, setProductNameFilter] = useState("");
+
+  const username = useMemo(() => getStoredUsername(), []);
+  const role = getStoredRole?.() ?? "user";
 
   const headers = useMemo(
     () => ({
@@ -49,12 +70,49 @@ export function Review() {
       "X-User": username || "system",
       "X-Role": role || "user",
     }),
-    [username, role],
+    [role],
   );
 
-  const loadPending = useCallback(async () => {
-    if (!username || !canReview) return;
+  // Redirect non-reviewers away from the Review page
+  useEffect(() => {
+    const currentRole = getStoredRole?.() ?? "user";
+    if (currentRole !== "reviewer") {
+      navigate("/tests");
+    }
+  }, [navigate]);
 
+  // Listen for role changes from other tabs/windows via storage events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === null || e.key.includes("role")) {
+        const currentRole = getStoredRole?.() ?? "user";
+        if (currentRole !== "reviewer") {
+          navigate("/tests");
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [navigate]);
+
+  // Periodic check for role changes within the same tab
+  useEffect(() => {
+    let lastRole = getStoredRole?.() ?? "user";
+    const interval = setInterval(() => {
+      const currentRole = getStoredRole?.() ?? "user";
+      if (currentRole !== lastRole) {
+        lastRole = currentRole;
+        if (currentRole !== "reviewer") {
+          navigate("/tests");
+        }
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [navigate]);
+
+  async function loadPending() {
     setLoading(true);
     setError(null);
     try {
@@ -64,9 +122,8 @@ export function Review() {
       );
       setTests(res.items ?? []);
 
-      // Load pending photos
+      // Load all photos (pending, approved, and rejected) - no status filter
       const photosRes = await fetchGallery({
-        verification_status: "pending",
         page_size: 100,
       });
       setPhotos(photosRes.items ?? []);
@@ -75,27 +132,11 @@ export function Review() {
     } finally {
       setLoading(false);
     }
-  }, [canReview, username]);
+  }
 
   useEffect(() => {
     void loadPending();
-  }, [loadPending]);
-
-  // Poll for pending tests every 30 seconds when tab is visible
-  useEffect(() => {
-    const POLL_MS = 30_000; // 30 seconds
-    const id = setInterval(() => {
-      if (!document.hidden) {
-        void loadPending();
-      }
-    }, POLL_MS);
-
-    return () => clearInterval(id);
-  }, [loadPending]);
-
-  if (!canReview) {
-    return <Navigate to="/tests" replace />;
-  }
+  }, []);
 
   const approveTest = async (id: number) => {
     try {
@@ -176,7 +217,12 @@ export function Review() {
   const approvePhoto = async (photoId: number) => {
     try {
       await updateVerificationStatus(photoId, "approved");
-      setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+      // Update photo status instead of removing it
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === photoId ? { ...p, verification_status: "approved" } : p,
+        ),
+      );
     } catch (e: unknown) {
       alert(getErrorMessage(e) || "Approve photo failed");
     }
@@ -185,258 +231,550 @@ export function Review() {
   const rejectPhoto = async (photoId: number) => {
     try {
       await updateVerificationStatus(photoId, "rejected");
-      setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+      // Update photo status instead of removing it
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === photoId ? { ...p, verification_status: "rejected" } : p,
+        ),
+      );
     } catch (e: unknown) {
       alert(getErrorMessage(e) || "Reject photo failed");
     }
   };
 
-  if (loading) {
-    return (
-      <div className={spacing.shellPageContainer}>Loading review queue…</div>
-    );
-  }
+  // Apply filters to tests
+  const filteredTests = useMemo(() => {
+    return tests.filter((test) => {
+      // Review status filter (new)
+      if (
+        filters.reviewStatus &&
+        filters.reviewStatus !== "all" &&
+        test.review_status !== filters.reviewStatus
+      ) {
+        return false;
+      }
 
-  if (error) {
-    return <div className={spacing.shellPageContainer}>Error: {error}</div>;
-  }
+      // Test type filter (new)
+      if (
+        filters.testType &&
+        (!test.test_type ||
+          test.test_type.toLowerCase() !== filters.testType.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Legacy filters (keeping for backward compatibility)
+      // Assigned to filter (case-insensitive)
+      if (
+        assignedToFilter &&
+        (!test.assigned_to ||
+          !test.assigned_to
+            .toLowerCase()
+            .includes(assignedToFilter.toLowerCase()))
+      ) {
+        return false;
+      }
+
+      // Jira ID / Test ID filter (case-insensitive)
+      if (
+        jiraIdFilter &&
+        (!test.jira_id ||
+          !test.jira_id
+            .toString()
+            .toLowerCase()
+            .includes(jiraIdFilter.toLowerCase()))
+      ) {
+        return false;
+      }
+
+      // Product name filter (case-insensitive)
+      if (
+        productNameFilter &&
+        (!test.product_name ||
+          !test.product_name
+            .toLowerCase()
+            .includes(productNameFilter.toLowerCase()))
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    tests,
+    filters.reviewStatus,
+    filters.testType,
+    assignedToFilter,
+    jiraIdFilter,
+    productNameFilter,
+  ]);
+
+  const filteredPhotos = useMemo(() => {
+    return photos.filter((photo) => {
+      // Verification status filter (new)
+      if (
+        filters.verificationStatus &&
+        photo.verification_status !== filters.verificationStatus
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [photos, filters.verificationStatus]);
+
+  // Check if there are any active filters
+  const anyFiltersActive = Boolean(
+    hasActiveFilters || assignedToFilter || jiraIdFilter || productNameFilter,
+  );
+
+  const handleVerificationStatusChange = (value: string) => {
+    setVerificationStatusFilter(value);
+    setPendingTestsOpen(false);
+    setReviewedTestsOpen(false);
+    setPhotoVerificationsOpen(true);
+  };
+
+  const handleReviewStatusChange = (value: string) => {
+    setReviewStatusFilter(value);
+
+    if (value === "pending") {
+      setPendingTestsOpen(true);
+      setReviewedTestsOpen(false);
+    } else if (value === "" || value === "all") {
+      setPendingTestsOpen(true);
+      setReviewedTestsOpen(true);
+    } else {
+      setPendingTestsOpen(false);
+      setReviewedTestsOpen(true);
+    }
+
+    setPhotoVerificationsOpen(false);
+  };
+
+  if (loading) return <div className="p-6">Loading review queue…</div>;
+  if (error) return <div className="p-6">Error: {error}</div>;
+
+  // Separate tests by review status for display
+  const pendingTests = filteredTests.filter(
+    (t) => t.review_status === "pending",
+  );
+  const reviewedTests = filteredTests.filter(
+    (t) => t.review_status !== "pending",
+  );
 
   return (
-    <div className={cn(spacing.shellPageContainer, spacing.pageStack)}>
-      <h2 className="mb-1 text-xl font-semibold">Review</h2>
-      <p className="mt-0 text-sm text-muted-foreground">
-        Tests and Photos for review and decision changes.
-      </p>
+    <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] pb-24 md:pb-8">
+      <section className="w-full bg-white px-5 py-6 md:px-8 md:py-8 xl:px-[52px] xl:py-[48px]">
+        <div className="flex flex-col gap-5 xl:gap-8">
+          {/* Header */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Search className="w-8 h-8 text-[#0F172A]" />
+              <h1 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-[#0F172A] md:text-4xl xl:text-[42px]">
+                Review
+              </h1>
+            </div>
+            <p className="text-base font-medium text-[#64748B] md:text-base xl:text-[16px]">
+              Review and manage quality control tests and photos
+            </p>
+          </div>
 
-      {/* Pending Tests Section */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4">Pending Tests</h3>
-        {tests.filter((t) => t.review_status === "pending").length === 0 ? (
-          <div className="text-sm text-muted-foreground">No pending tests.</div>
-        ) : (
-          <div className="grid gap-4">
-            {tests
-              .filter((t) => t.review_status === "pending")
-              .map((t) => (
-                <div
-                  key={t.id}
-                  className="border border-border rounded-xl p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-                >
-                  <div>
-                    <div className="text-sm text-muted-foreground">
-                      Test #{t.id}
-                    </div>
+          {/* Search Bar and Filters */}
+          <div className="space-y-3">
+            {/* Mobile Filters */}
+            <ReviewFiltersMobile
+              isOpen={mobileFiltersOpen}
+              onClose={() => setMobileFiltersOpen((prev) => !prev)}
+              testTypeFilter={filters.testType}
+              reviewStatusFilter={filters.reviewStatus}
+              verificationStatusFilter={filters.verificationStatus}
+              assignedToFilter={assignedToFilter}
+              jiraIdFilter={jiraIdFilter}
+              productNameFilter={productNameFilter}
+              hasAdvancedFilters={hasAdvancedFilters}
+              onTestTypeChange={setTestTypeFilter}
+              onReviewStatusChange={handleReviewStatusChange}
+              onVerificationStatusChange={handleVerificationStatusChange}
+              onAssignedToChange={setAssignedToFilter}
+              onJiraIdChange={setJiraIdFilter}
+              onProductNameChange={setProductNameFilter}
+              onPageReset={() => {}}
+            />
 
-                    <div className="text-2xl font-bold mt-1 mb-3">
-                      Product {t.product_id}
-                    </div>
+            {/* Desktop Filters */}
+            <ReviewFilters
+              testTypeFilter={filters.testType}
+              reviewStatusFilter={filters.reviewStatus}
+              verificationStatusFilter={filters.verificationStatus}
+              assignedToFilter={assignedToFilter}
+              jiraIdFilter={jiraIdFilter}
+              productNameFilter={productNameFilter}
+              onTestTypeChange={setTestTypeFilter}
+              onReviewStatusChange={handleReviewStatusChange}
+              onVerificationStatusChange={handleVerificationStatusChange}
+              onAssignedToChange={setAssignedToFilter}
+              onJiraIdChange={setJiraIdFilter}
+              onProductNameChange={setProductNameFilter}
+              onPageReset={() => {}}
+            />
+          </div>
 
-                    <div className="flex flex-wrap gap-4">
-                      <div>
-                        <span className="font-semibold">Type:</span>{" "}
-                        {t.test_type}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Status:</span>{" "}
-                        {t.status}
-                      </div>
-                    </div>
+          {/* Results Count */}
+          {anyFiltersActive && (
+            <div className="text-sm text-[#64748B]">
+              Showing {filteredTests.length} of {tests.length} tests and{" "}
+              {filteredPhotos.length} of {photos.length} photos
+            </div>
+          )}
 
-                    <div className="flex flex-wrap gap-4 mt-2">
-                      <div>
-                        <span className="font-semibold">Requester:</span>{" "}
-                        {t.requester}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Assigned:</span>{" "}
-                        {t.assigned_to ?? "—"}
-                      </div>
-                    </div>
-
-                    <div className="mt-2">
-                      <span className="font-semibold">Description:</span>{" "}
-                      {t.description ?? "—"}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
-                    <button
-                      type="button"
-                      onClick={() => approveTest(t.id)}
-                      className="px-4 py-2 rounded-lg border border-green-600 bg-white font-semibold hover:bg-green-50"
+          {/* Pending Tests Section */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setPendingTestsOpen(!pendingTestsOpen)}
+              className="flex items-center gap-2 mb-1 hover:opacity-80 transition"
+            >
+              <ChevronDown
+                className={`w-5 h-5 text-[#0F172A] transition-transform ${
+                  pendingTestsOpen ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+              <h3 className="text-lg font-semibold">Pending Tests</h3>
+            </button>
+            {pendingTestsOpen &&
+              (pendingTests.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  No pending tests
+                  {anyFiltersActive ? " matching your filters." : "."}
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {pendingTests.map((t) => (
+                    <div
+                      key={t.id}
+                      className="border border-border rounded-xl p-5 flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer hover:bg-slate-50 transition"
+                      onClick={() => navigate(`/tests/${t.id}`)}
                     >
-                      Approve
-                    </button>
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Gyra ID: #{t.jira_id} | Test ID: {t.id}
+                        </div>
 
-                    <button
-                      type="button"
-                      onClick={() => rejectTest(t.id)}
-                      className="px-4 py-2 rounded-lg border border-red-500 bg-white font-semibold hover:bg-red-50"
-                    >
-                      Reject
-                    </button>
-                  </div>
+                        <div className="text-lg font-semibold mb-3">
+                          {t.product_name}
+                        </div>
+
+                        <div className="flex flex-wrap gap-4">
+                          <div>
+                            <span className="font-semibold">Type:</span>{" "}
+                            {t.test_type}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Status:</span>{" "}
+                            {t.status}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 mt-2">
+                          <div>
+                            <span className="font-semibold">Requester:</span>{" "}
+                            {t.requester}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Assigned:</span>{" "}
+                            {t.assigned_to ?? "—"}
+                          </div>
+                        </div>
+
+                        <div className="mt-2">
+                          <span className="font-semibold">Description:</span>{" "}
+                          {t.description ?? "—"}
+                        </div>
+                      </div>
+
+                      <div className="flex md:flex-col gap-2 md:flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approveTest(t.id);
+                          }}
+                          className="flex-1 md:flex-none px-4 py-2 rounded-lg border border-green-600 bg-white font-semibold hover:bg-green-50"
+                        >
+                          Approve
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rejectTest(t.id);
+                          }}
+                          className="flex-1 md:flex-none px-4 py-2 rounded-lg border border-red-500 bg-white font-semibold hover:bg-red-50"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
           </div>
-        )}
-      </div>
 
-      {/* Reviewed Tests Section */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4">Reviewed Tests</h3>
-        {tests.filter((t) => t.review_status !== "pending").length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No reviewed tests.
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {tests
-              .filter((t) => t.review_status !== "pending")
-              .map((t) => (
-                <div
-                  key={t.id}
-                  className="border border-border rounded-xl p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-                >
-                  <div>
-                    <div className="text-sm text-muted-foreground">
-                      Test #{t.id}
-                    </div>
-
-                    <div className="text-2xl font-bold mt-1 mb-3">
-                      Product {t.product_id}
-                    </div>
-
-                    <div className="flex flex-wrap gap-4">
+          {/* Reviewed Tests Section */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setReviewedTestsOpen(!reviewedTestsOpen)}
+              className="flex items-center gap-2 mb-1 hover:opacity-80 transition"
+            >
+              <ChevronDown
+                className={`w-5 h-5 text-[#0F172A] transition-transform ${
+                  reviewedTestsOpen ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+              <h3 className="text-lg font-semibold">Reviewed Tests</h3>
+            </button>
+            {reviewedTestsOpen &&
+              (reviewedTests.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  No reviewed tests
+                  {anyFiltersActive ? " matching your filters." : "."}
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {reviewedTests.map((t) => (
+                    <div
+                      key={t.id}
+                      className="border border-border rounded-xl p-5 flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer hover:bg-slate-50 transition"
+                      onClick={() => navigate(`/tests/${t.id}`)}
+                    >
                       <div>
-                        <span className="font-semibold">Type:</span>{" "}
-                        {t.test_type}
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Gyra ID: #{t.jira_id} | Test ID: {t.id}
+                        </div>
+
+                        <div className="text-lg font-semibold mb-3">
+                          {t.product_name}
+                        </div>
+
+                        <div className="flex flex-wrap gap-4">
+                          <div>
+                            <span className="font-semibold">Type:</span>{" "}
+                            {t.test_type}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Status:</span>{" "}
+                            {t.status}
+                          </div>
+                          <div>
+                            <span
+                              className={`font-semibold px-3 py-1 rounded-full text-sm ${
+                                t.review_status === "approved"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {t.review_status === "approved"
+                                ? "✓ Approved"
+                                : "✗ Rejected"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 mt-2">
+                          <div>
+                            <span className="font-semibold">Requester:</span>{" "}
+                            {t.requester}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Assigned:</span>{" "}
+                            {t.assigned_to ?? "—"}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Reviewed by:</span>{" "}
+                            {t.reviewed_by ?? "—"}
+                          </div>
+                        </div>
+
+                        <div className="mt-2">
+                          <span className="font-semibold">Description:</span>{" "}
+                          {t.description ?? "—"}
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-semibold">Status:</span>{" "}
-                        {t.status}
-                      </div>
-                      <div>
-                        <span
-                          className={`font-semibold px-3 py-1 rounded-full text-sm ${
+
+                      <div className="flex md:flex-col gap-2 md:flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approveTest(t.id);
+                          }}
+                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold ${
                             t.review_status === "approved"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                              ? "border-green-600 bg-green-50 text-green-800 hover:bg-green-100"
+                              : "border-green-600 bg-white text-green-600 hover:bg-green-50"
                           }`}
                         >
                           {t.review_status === "approved"
                             ? "✓ Approved"
-                            : "✗ Rejected"}
-                        </span>
+                            : "Approve"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rejectTest(t.id);
+                          }}
+                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold ${
+                            t.review_status === "rejected"
+                              ? "border-red-600 bg-red-50 text-red-800 hover:bg-red-100"
+                              : "border-red-600 bg-white text-red-600 hover:bg-red-50"
+                          }`}
+                        >
+                          {t.review_status === "rejected"
+                            ? "✗ Rejected"
+                            : "Reject"}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex flex-wrap gap-4 mt-2">
-                      <div>
-                        <span className="font-semibold">Requester:</span>{" "}
-                        {t.requester}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Assigned:</span>{" "}
-                        {t.assigned_to ?? "—"}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Reviewed by:</span>{" "}
-                        {t.reviewed_by ?? "—"}
-                      </div>
-                    </div>
-
-                    <div className="mt-2">
-                      <span className="font-semibold">Description:</span>{" "}
-                      {t.description ?? "—"}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-1">
-                    <button
-                      type="button"
-                      onClick={() => approveTest(t.id)}
-                      className={`px-4 py-2 rounded-lg border font-semibold ${
-                        t.review_status === "approved"
-                          ? "border-green-600 bg-green-50 text-green-800 hover:bg-green-100"
-                          : "border-green-600 bg-white text-green-600 hover:bg-green-50"
-                      }`}
-                    >
-                      {t.review_status === "approved"
-                        ? "✓ Approved"
-                        : "Approve"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => rejectTest(t.id)}
-                      className={`px-4 py-2 rounded-lg border font-semibold ${
-                        t.review_status === "rejected"
-                          ? "border-red-600 bg-red-50 text-red-800 hover:bg-red-100"
-                          : "border-red-600 bg-white text-red-600 hover:bg-red-50"
-                      }`}
-                    >
-                      {t.review_status === "rejected" ? "✗ Rejected" : "Reject"}
-                    </button>
-                  </div>
+                  ))}
                 </div>
               ))}
           </div>
-        )}
-      </div>
 
-      {/* Photos Section */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4">
-          Pending Photo Verifications
-        </h3>
-        {photos.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            No pending photo verifications.
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {photos.map((photo) => (
-              <div
-                key={photo.id}
-                className="border border-border rounded-xl p-5"
-              >
-                <div>
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Photo #{photo.id}
-                  </div>
-                  <div className="text-sm mb-3">
-                    <span className="font-semibold">Test ID:</span>{" "}
-                    {photo.test_id}
-                  </div>
-                  <div className="text-sm mb-3">
-                    <span className="font-semibold">Type:</span>{" "}
-                    {photo.test_type}
-                  </div>
-                  {photo.description && (
-                    <div className="text-sm mb-3">
-                      <span className="font-semibold">Description:</span>{" "}
-                      {photo.description}
-                    </div>
-                  )}
+          {/* Photos Section */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setPhotoVerificationsOpen(!photoVerificationsOpen)}
+              className="flex items-center gap-2 mb-1 hover:opacity-80 transition"
+            >
+              <ChevronDown
+                className={`w-5 h-5 text-[#0F172A] transition-transform ${
+                  photoVerificationsOpen ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+              <h3 className="text-lg font-semibold">Photo Verifications</h3>
+            </button>
+            {photoVerificationsOpen &&
+              (filteredPhotos.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  No photo verifications
+                  {anyFiltersActive ? " matching your filters." : "."}
                 </div>
-                <VerificationStatusBar
-                  isApproved={photo.verification_status === "approved"}
-                  isRejected={photo.verification_status === "rejected"}
-                  isSaving={false}
-                  onVerify={(status) => {
-                    if (status === "approved") {
-                      approvePhoto(photo.id);
-                    } else if (status === "rejected") {
-                      rejectPhoto(photo.id);
-                    }
-                  }}
-                />
-              </div>
-            ))}
+              ) : (
+                <div className="grid gap-4">
+                  {filteredPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="border border-border rounded-xl p-5 flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer hover:bg-slate-50 transition"
+                      onClick={() => navigate(`/photos/${photo.id}`)}
+                    >
+                      {/* Image and Info Section */}
+                      <div className="flex flex-col md:flex-row gap-4 flex-1">
+                        {/* Thumbnail Image */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/photos/${photo.id}`);
+                          }}
+                          className="flex-shrink-0 hover:opacity-80 transition cursor-pointer"
+                        >
+                          <img
+                            src={`/api/v1/photos/${photo.id}/image`}
+                            alt={`Photo #${photo.id}`}
+                            className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-lg border border-border"
+                          />
+                        </button>
+
+                        {/* Info Section */}
+                        <div className="flex-1">
+                          <div className="text-sm text-muted-foreground mb-1">
+                            Photo #{photo.id}
+                          </div>
+                          <div className="text-sm mb-2">
+                            <span className="font-semibold">Test ID:</span>{" "}
+                            {photo.test_id}
+                          </div>
+                          <div className="text-sm mb-2">
+                            <span className="font-semibold">Type:</span>{" "}
+                            {photo.test_type}
+                          </div>
+                          <div className="text-sm mb-2">
+                            <span
+                              className={`font-semibold px-3 py-1 rounded-full text-sm ${
+                                photo.verification_status === "approved"
+                                  ? "bg-green-100 text-green-800"
+                                  : photo.verification_status === "rejected"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {photo.verification_status === "approved"
+                                ? "✓ Approved"
+                                : photo.verification_status === "rejected"
+                                  ? "✗ Rejected"
+                                  : "Pending"}
+                            </span>
+                          </div>
+                          {photo.description && (
+                            <div className="text-sm">
+                              <span className="font-semibold">
+                                Description:
+                              </span>{" "}
+                              {photo.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex md:flex-col gap-2 md:flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approvePhoto(photo.id);
+                          }}
+                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold whitespace-nowrap ${
+                            photo.verification_status === "approved"
+                              ? "border-green-600 bg-green-50 text-green-800 hover:bg-green-100"
+                              : "border-green-600 bg-white text-green-600 hover:bg-green-50"
+                          }`}
+                        >
+                          {photo.verification_status === "approved"
+                            ? "✓ Approved"
+                            : "Approve"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rejectPhoto(photo.id);
+                          }}
+                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold whitespace-nowrap ${
+                            photo.verification_status === "rejected"
+                              ? "border-red-600 bg-red-50 text-red-800 hover:bg-red-100"
+                              : "border-red-600 bg-white text-red-600 hover:bg-red-50"
+                          }`}
+                        >
+                          {photo.verification_status === "rejected"
+                            ? "✗ Rejected"
+                            : "Reject"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
           </div>
-        )}
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,73 +1,64 @@
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  formatEnumLabel,
-  TEST_STATUSES,
-  TEST_TYPES,
-  type TestStatus,
-} from "@/lib/db-constants";
-import {
-  STATUS_LABELS,
-  SORT_OPTIONS,
-  DATE_RANGE_OPTIONS,
-} from "@/lib/constants";
 import { FilterSelect } from "@/components/filters/FilterSelect";
 import { FilterInput } from "@/components/filters/FilterInput";
-import type { DateRangeFilter, SortOption } from "@/lib/utils/tests";
+import {
+  REVIEW_STATUSES,
+  TEST_TYPES,
+  type ReviewStatus,
+  formatEnumLabel,
+} from "@/lib/db-constants";
+import { VERIFICATION_STATUSES } from "@/lib/constants";
+import { isReviewer } from "@/lib/auth";
 
-interface TestFiltersMobileProps {
+interface ReviewFiltersMobileProps {
   isOpen: boolean;
   onClose: () => void;
-  statusFilter: string;
   testTypeFilter: string;
+  reviewStatusFilter: string;
+  verificationStatusFilter: string;
   assignedToFilter: string;
-  dateRangeFilter: DateRangeFilter;
-  sortBy: SortOption;
+  jiraIdFilter: string;
+  productNameFilter: string;
   hasAdvancedFilters: boolean;
-  onStatusChange: (value: string) => void;
   onTestTypeChange: (value: string) => void;
+  onReviewStatusChange: (value: string) => void;
+  onVerificationStatusChange: (value: string) => void;
   onAssignedToChange: (value: string) => void;
-  onDateRangeChange: (value: DateRangeFilter) => void;
-  onSortChange: (value: SortOption) => void;
+  onJiraIdChange: (value: string) => void;
+  onProductNameChange: (value: string) => void;
   onPageReset: () => void;
 }
 
-export function TestFiltersMobile({
+const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+  pending: "Pending Review",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+export function ReviewFiltersMobile({
   isOpen,
   onClose,
-  statusFilter,
   testTypeFilter,
+  reviewStatusFilter,
+  verificationStatusFilter,
   assignedToFilter,
-  dateRangeFilter,
-  sortBy,
+  jiraIdFilter,
+  productNameFilter,
   hasAdvancedFilters,
-  onStatusChange,
   onTestTypeChange,
+  onReviewStatusChange,
+  onVerificationStatusChange,
   onAssignedToChange,
-  onDateRangeChange,
-  onSortChange,
+  onJiraIdChange,
+  onProductNameChange,
   onPageReset,
-}: TestFiltersMobileProps) {
+}: ReviewFiltersMobileProps) {
   return (
     <>
       {/* Mobile Filter Toggle */}
       <div className="flex items-center gap-3 lg:hidden">
-        <div className="min-w-0 flex-1">
-          <FilterSelect
-            value={statusFilter}
-            placeholder="All Statuses"
-            options={TEST_STATUSES.map((status) => ({
-              value: status,
-              label: STATUS_LABELS[status as TestStatus],
-            }))}
-            onChange={(value) => {
-              onStatusChange(value);
-              onPageReset();
-            }}
-            className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
-          />
-        </div>
         <Button
           type="button"
           variant="outline"
@@ -102,7 +93,7 @@ export function TestFiltersMobile({
                     Advanced Filters
                   </h3>
                   <p className="text-sm text-[#64748B]">
-                    Adjust your test list filters
+                    Adjust your review filters
                   </p>
                 </div>
                 <Button
@@ -121,22 +112,64 @@ export function TestFiltersMobile({
                 {/* Test Type Filter */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-                    All Types
+                    Test Type
                   </p>
                   <FilterSelect
                     value={testTypeFilter}
                     placeholder="All Types"
-                    options={TEST_TYPES.map((type) => ({
-                      value: type,
-                      label: formatEnumLabel(type),
+                    options={TEST_TYPES.map((t) => ({
+                      value: t,
+                      label: formatEnumLabel(t),
                     }))}
-                    onChange={(value) => {
-                      onTestTypeChange(value);
+                    onChange={(v) => {
+                      onTestTypeChange(v);
                       onPageReset();
                     }}
-                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]"
+                    className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
                   />
                 </div>
+
+                {/* Review Status Filter */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                    Review Status
+                  </p>
+                  <FilterSelect
+                    value={reviewStatusFilter}
+                    placeholder="All Statuses"
+                    options={REVIEW_STATUSES.map((status) => ({
+                      value: status,
+                      label: REVIEW_STATUS_LABELS[status],
+                    }))}
+                    onChange={(v) => {
+                      onReviewStatusChange(v);
+                      onPageReset();
+                    }}
+                    className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
+                  />
+                </div>
+
+                {/* Verification Status Filter - Only for Reviewers */}
+                {isReviewer() && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                      Photo Verification
+                    </p>
+                    <FilterSelect
+                      value={verificationStatusFilter}
+                      placeholder="All Verifications"
+                      options={VERIFICATION_STATUSES.map((s) => ({
+                        value: s,
+                        label: formatEnumLabel(s),
+                      }))}
+                      onChange={(v) => {
+                        onVerificationStatusChange(v);
+                        onPageReset();
+                      }}
+                      className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
+                    />
+                  </div>
+                )}
 
                 {/* Assigned To Filter */}
                 <div className="space-y-2">
@@ -146,51 +179,43 @@ export function TestFiltersMobile({
                   <FilterInput
                     value={assignedToFilter}
                     placeholder="Assigned To..."
-                    onChange={(value) => {
-                      onAssignedToChange(value);
+                    onChange={(v) => {
+                      onAssignedToChange(v);
                       onPageReset();
                     }}
                     className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
                   />
                 </div>
 
-                {/* Date Range Filter */}
+                {/* Jira ID / Test ID Filter */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-                    All Deadlines
+                    Gyra ID
                   </p>
-                  <FilterSelect
-                    value={dateRangeFilter}
-                    placeholder="All Deadlines"
-                    options={DATE_RANGE_OPTIONS.map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    }))}
-                    onChange={(value) => {
-                      onDateRangeChange(value as DateRangeFilter);
+                  <FilterInput
+                    value={jiraIdFilter}
+                    placeholder="Gyra ID..."
+                    onChange={(v) => {
+                      onJiraIdChange(v);
                       onPageReset();
                     }}
-                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]"
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
                   />
                 </div>
 
-                {/* Sort By */}
+                {/* Product Name Filter */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
-                    Newest First
+                    Product Name
                   </p>
-                  <FilterSelect
-                    value={sortBy}
-                    placeholder="Newest First"
-                    options={SORT_OPTIONS.map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    }))}
-                    onChange={(value) => {
-                      onSortChange(value as SortOption);
+                  <FilterInput
+                    value={productNameFilter}
+                    placeholder="Product Name..."
+                    onChange={(v) => {
+                      onProductNameChange(v);
                       onPageReset();
                     }}
-                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]"
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
                   />
                 </div>
               </div>
@@ -199,10 +224,11 @@ export function TestFiltersMobile({
               <div className="border-t border-[#E2E8F0] bg-white px-5 py-4">
                 <Button
                   type="button"
-                  className="h-11 w-full rounded-[12px] bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8]"
+                  variant="outline"
+                  className="h-11 w-full rounded-full border-[#CFD8E3] text-sm font-semibold text-[#0F172A]"
                   onClick={onClose}
                 >
-                  Apply Filters
+                  Close
                 </Button>
               </div>
             </div>
