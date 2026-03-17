@@ -397,9 +397,7 @@ export function AppShell() {
               className={`mobile-identity-trigger ${
                 isMobileRoleMenuOpen ? "is-open" : ""
               }`}
-              onClick={() =>
-                setIsMobileRoleMenuOpen((isOpen) => !isOpen)
-              }
+              onClick={() => setIsMobileRoleMenuOpen((isOpen) => !isOpen)}
               disabled={isChangingRole}
               aria-haspopup="menu"
               aria-expanded={isMobileRoleMenuOpen}

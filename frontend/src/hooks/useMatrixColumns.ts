@@ -406,13 +406,16 @@ export function useMatrixColumns({
 
   // Add custom columns
   for (const customCol of customColumns) {
+    // Empty columns are merged, single/multiple methods show individually unless explicitly merged
     const isCustomMerged =
       mergedCustomGroupKeys.has(customCol.key) ||
-      customCol.methods.length === 1;
+      customCol.methods.length === 0;
 
     if (isCustomMerged) {
+      // Show custom column if: explicitly merged, has no methods (empty), or has at least one selected method
       if (
         mergedCustomGroupKeys.has(customCol.key) ||
+        customCol.methods.length === 0 ||
         customCol.methods.some((m: { key: string; label: string }) =>
           selectedCustomMethodKeys.has(m.key),
         )

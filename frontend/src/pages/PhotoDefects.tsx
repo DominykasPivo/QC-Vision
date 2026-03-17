@@ -496,16 +496,17 @@ export function PhotoDefects() {
                       ))}
                       {customColumns.map((col) => (
                         <optgroup key={col.key} label={col.label}>
-                          {col.methods.length > 1 && (
+                          {col.methods.length === 0 ? (
                             <option value={`custom_${col.key}`}>
-                              {col.label} – All methods
+                              {col.label}
                             </option>
+                          ) : (
+                            col.methods.map((m) => (
+                              <option key={m.key} value={`${col.key}_${m.key}`}>
+                                {m.label}
+                              </option>
+                            ))
                           )}
-                          {col.methods.map((m) => (
-                            <option key={m.key} value={`${col.key}_${m.key}`}>
-                              {m.label}
-                            </option>
-                          ))}
                         </optgroup>
                       ))}
                     </select>
