@@ -412,6 +412,11 @@ npm audit fix            #fix vulnerabilities
 #npm audit reports vulnerabilities, could be fixed by --focrce but could lead to more problems so ignored for now
 ```
 
+## Filter & Review page Testing
+```bash
+cd frontend
+npm test -- --run
+```
 
 **All frontend checks in one command:**
 ```bash

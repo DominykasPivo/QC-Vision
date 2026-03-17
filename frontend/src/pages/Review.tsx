@@ -328,6 +328,30 @@ export function Review() {
     hasActiveFilters || assignedToFilter || jiraIdFilter || productNameFilter,
   );
 
+  const handleVerificationStatusChange = (value: string) => {
+    setVerificationStatusFilter(value);
+    setPendingTestsOpen(false);
+    setReviewedTestsOpen(false);
+    setPhotoVerificationsOpen(true);
+  };
+
+  const handleReviewStatusChange = (value: string) => {
+    setReviewStatusFilter(value);
+
+    if (value === "pending") {
+      setPendingTestsOpen(true);
+      setReviewedTestsOpen(false);
+    } else if (value === "" || value === "all") {
+      setPendingTestsOpen(true);
+      setReviewedTestsOpen(true);
+    } else {
+      setPendingTestsOpen(false);
+      setReviewedTestsOpen(true);
+    }
+
+    setPhotoVerificationsOpen(false);
+  };
+
   if (loading) return <div className="p-6">Loading review queue…</div>;
   if (error) return <div className="p-6">Error: {error}</div>;
 
@@ -370,8 +394,8 @@ export function Review() {
               productNameFilter={productNameFilter}
               hasAdvancedFilters={hasAdvancedFilters}
               onTestTypeChange={setTestTypeFilter}
-              onReviewStatusChange={setReviewStatusFilter}
-              onVerificationStatusChange={setVerificationStatusFilter}
+              onReviewStatusChange={handleReviewStatusChange}
+              onVerificationStatusChange={handleVerificationStatusChange}
               onAssignedToChange={setAssignedToFilter}
               onJiraIdChange={setJiraIdFilter}
               onProductNameChange={setProductNameFilter}
@@ -387,8 +411,8 @@ export function Review() {
               jiraIdFilter={jiraIdFilter}
               productNameFilter={productNameFilter}
               onTestTypeChange={setTestTypeFilter}
-              onReviewStatusChange={setReviewStatusFilter}
-              onVerificationStatusChange={setVerificationStatusFilter}
+              onReviewStatusChange={handleReviewStatusChange}
+              onVerificationStatusChange={handleVerificationStatusChange}
               onAssignedToChange={setAssignedToFilter}
               onJiraIdChange={setJiraIdFilter}
               onProductNameChange={setProductNameFilter}
