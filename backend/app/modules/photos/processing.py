@@ -5,7 +5,7 @@ Extracted processing logic from PhotoService
 
 from io import BytesIO
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 def resize_if_needed(image: Image.Image, max_dimension: int = 2000) -> Image.Image:
@@ -47,12 +47,29 @@ def convert_to_rgb(image: Image.Image) -> Image.Image:
     return background
 
 
+def correct_orientation(image: Image.Image) -> Image.Image:
+    """
+    Correct image orientation based on EXIF data.
+
+    Applies rotation/mirroring from EXIF orientation tag and removes the tag.
+    This ensures images captured by mobile devices display in the correct orientation.
+    """
+    try:
+        # exif_transpose handles all EXIF orientation cases and removes the tag
+        corrected = ImageOps.exif_transpose(image)
+        return corrected if corrected is not None else image
+    except Exception:
+        # If EXIF processing fails, return original image
+        return image
+
+
 def process_image(image: Image.Image, max_dimension: int = 2000) -> Image.Image:
     """
-    Process image: resize if too large, convert to RGB.
-    Complete image processing pipeline combining resize and format conversion.
+    Process image: correct orientation, resize if too large, convert to RGB.
+    Complete image processing pipeline combining orientation correction,
+    resize and format conversion.
     """
-
+    image = correct_orientation(image)
     image = resize_if_needed(image, max_dimension)
     image = convert_to_rgb(image)
 

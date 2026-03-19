@@ -252,6 +252,53 @@ class TestUpdateTestRoute:
         resp = client.patch("/api/v1/tests/9999", json={"status": "open"})
         assert resp.status_code == 404
 
+    def test_update_audit_log_includes_old_and_new_values(self, client):
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-110",
+                productName="Original Product",
+                testType="incoming",
+                requester="Carol",
+                description="Original description",
+            ),
+        ).json()["test"]["id"]
+
+        resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={
+                "product_name": "Updated Product",
+                "description": "Updated description",
+            },
+        )
+        assert resp.status_code == 200
+
+        audit_response = client.get(
+            "/api/v1/audit/logs",
+            params={
+                "action": "UPDATE",
+                "entity_type": "Test",
+                "entity_id": test_id,
+                "limit": 10,
+                "offset": 0,
+            },
+        )
+        assert audit_response.status_code == 200
+
+        items = audit_response.json()["items"]
+        assert {item["attribute"] for item in items[:2]} == {
+            "description",
+            "product_name",
+        }
+        assert all(item["test_id"] == test_id for item in items[:2])
+        assert all(item["updated_at"] is not None for item in items[:2])
+
+        changes = {item["attribute"]: item for item in items[:2]}
+        assert changes["product_name"]["old_value"] == "Original Product"
+        assert changes["product_name"]["new_value"] == "Updated Product"
+        assert changes["description"]["old_value"] == "Original description"
+        assert changes["description"]["new_value"] == "Updated description"
+
 
 # ---------------------------------------------------------------------------
 # DELETE /api/v1/tests/{test_id}
@@ -275,3 +322,134 @@ class TestDeleteTestRoute:
 
     def test_404_for_nonexistent_test(self, client):
         assert client.delete("/api/v1/tests/9999").status_code == 404
+
+    def test_delete_test_log_includes_deleted_row_snapshot(self, client):
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-401",
+                productName="Delete Product",
+                testType="incoming",
+                requester="Mona",
+            ),
+        ).json()["test"]["id"]
+
+        resp = client.delete(f"/api/v1/tests/{test_id}")
+        assert resp.status_code == 204
+
+        audit_response = client.get(
+            "/api/v1/audit/logs",
+            params={"action": "DELETE", "entity_type": "Test", "entity_id": test_id},
+        )
+        item = audit_response.json()["items"][0]
+        assert item["old_value"]["jira_id"] == "GY-401"
+        assert item["new_value"] is None
+
+
+# ---------------------------------------------------------------------------
+# Matrix Columns Tests
+# ---------------------------------------------------------------------------
+
+
+class TestMatrixColumnsFeature:
+    """Tests for QC-Matrix functionality with matrix_columns field."""
+
+    def test_create_test_with_matrix_columns(self, client):
+        """Create test then add matrix_columns via PATCH."""
+        # Create test without matrix_columns
+        resp = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-MATRIX-001",
+                productName="T-Shirt Product Line",
+                testType="final",
+                requester="QA Manager",
+            ),
+        )
+        assert resp.status_code == 201
+        test_id = resp.json()["test"]["id"]
+
+        # Add matrix_columns via PATCH
+        matrix_config = '["S", "M", "L", "XL"]'
+        update_resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": matrix_config},
+        )
+        assert update_resp.status_code == 200
+
+        test = update_resp.json()
+        assert test["matrix_columns"] == matrix_config
+        assert test["jira_id"] == "GY-MATRIX-001"
+
+        # Verify matrix columns can be parsed as valid JSON
+        import json
+
+        parsed = json.loads(test["matrix_columns"])
+        assert parsed == ["S", "M", "L", "XL"]
+
+    def test_update_test_matrix_columns(self, client):
+        """Update existing test to add/modify matrix_columns."""
+        # Create test without matrix_columns
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-MATRIX-002",
+                productName="Shoe Product",
+                testType="incoming",
+                requester="Alice",
+            ),
+        ).json()["test"]["id"]
+
+        # Update to add matrix_columns
+        matrix_config = '["Size 7", "Size 8", "Size 9", "Size 10"]'
+        resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": matrix_config},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["matrix_columns"] == matrix_config
+
+        # Update to modify matrix_columns
+        updated_matrix = '["Size 7", "Size 8", "Size 9", "Size 10", "Size 11"]'
+        resp = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": updated_matrix},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["matrix_columns"] == updated_matrix
+
+    def test_retrieve_test_with_matrix_columns(self, client):
+        """Retrieve test and verify matrix_columns structure."""
+        # Create test
+        test_id = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-MATRIX-003",
+                productName="Multi-variant Product",
+                testType="final",
+                requester="Bob",
+            ),
+        ).json()["test"]["id"]
+
+        # Add matrix_columns via PATCH
+        matrix_config = '{"rows": ["Red", "Blue", "Green"], "cols": ["S", "M", "L"]}'
+        client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": matrix_config},
+        )
+
+        # Retrieve test details
+        resp = client.get(f"/api/v1/tests/{test_id}")
+        assert resp.status_code == 200
+
+        test = resp.json()
+        assert test["matrix_columns"] == matrix_config
+
+        # Verify complex JSON structure
+        import json
+
+        parsed = json.loads(test["matrix_columns"])
+        assert "rows" in parsed
+        assert "cols" in parsed
+        assert len(parsed["rows"]) == 3
+        assert len(parsed["cols"]) == 3

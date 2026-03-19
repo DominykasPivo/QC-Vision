@@ -21,6 +21,7 @@ flowchart LR
         PHOTO["Photo Management"]
         DEFECT["Defect Documentation"]
         AUDIT["Audit & Review"]
+        CAMERA["Camera Management"]
         AI["AI Recognition<br/>(Planned)"]
     end
 
@@ -31,12 +32,18 @@ flowchart LR
         NOCODB["NocoDB<br/>:8080"]
     end
 
+    subgraph EXTERNAL["EXTERNAL SYSTEMS"]
+        direction TB
+        IPCAM["IP Cameras<br/>(Smartphones, RTSP, etc.)"]
+    end
+
     WEB --> REACT
     MOBILE --> REACT
     REACT -->|"REST API Calls"| TEST
     REACT -->|"REST API Calls"| PHOTO
     REACT -->|"REST API Calls"| DEFECT
     REACT -->|"REST API Calls"| AUDIT
+    REACT -->|"REST API Calls"| CAMERA
     REACT -.->|"Polling<br/>15-30s intervals"| TEST
     REACT -.->|"Polling<br/>30s intervals"| PHOTO
     REACT -.->|"Polling<br/>15s intervals"| DEFECT
@@ -47,6 +54,9 @@ flowchart LR
     PHOTO -->|"Photo Metadata"| DB
     DEFECT -->|"CRUD Defects"| DB
     AUDIT -->|"Store Logs"| DB
+    CAMERA -->|"Camera Registry"| DB
+    CAMERA -->|"HTTP Snapshot Request"| IPCAM
+    IPCAM -.->|"JPEG Frame"| CAMERA
     AI -.->|"(Planned)"| DB
 
     NOCODB -->|"Admin Access"| DB
@@ -140,8 +150,8 @@ All modules run within a single FastAPI application, providing:
 - JSON-based annotation geometry storage
 - Review workflow for defects
 - Bulk operations support
-
-**4. Audit & Review (`/api/v1/audit`)**
+, CAPTURE operations
+- Entity type tracking (Test, Photo, Defect, User, Camera
 - Automatic action logging via middleware
 - Track CREATE, UPDATE, DELETE, UPLOAD operations
 - Entity type tracking (Test, Photo, Defect, User)
@@ -154,6 +164,14 @@ All modules run within a single FastAPI application, providing:
 - Role-based access control (user, reviewer, admin)
 - Auto-create users on first login
 - User profile endpoint (`/api/v1/users/me`)
+- User role self-update capability
+
+**6. Camera Management (`/api/v1/cameras`)**
+- List registered cameras (browser webcams, IP cameras, DroidCam)
+- Get camera device details
+- Capture frames from IP cameras
+- Support for multiple camera types (browser, droidcam, rtsp, ip_camera)
+- Camera registration via database (manual)
 
 **Security & Middleware:**
 - `require_reviewer()` dependency for protected endpoints
@@ -172,7 +190,7 @@ All modules run within a single FastAPI application, providing:
 ### Data Layer
 
 **PostgreSQL (:5432)**
-- Stores structured data (tests, photos metadata, defects, audit logs, users)
+- Stores structured data (tests, photos metadata, defects, audit logs, users, cameras)
 - Handles all CRUD operations
 - Provides relational data integrity
 - Connection pooling (pool_size: 20, max_overflow: 30)
@@ -223,6 +241,18 @@ All modules run within a single FastAPI application, providing:
    - Fields: username (unique), role (user, reviewer, admin)
    - Auto-created on first authentication
    - Used for header-based auth
+
+8. **camera_devices** - Camera registry
+   - Fields: name, type (browser, droidcam, rtsp, ip_camera), status (online, offline)
+   - Connection info: JSONB with stream_url, snapshot_url, etc.
+   - Capabilities: JSONB with resolution, fps, etc.
+   - Timestamps: created_at, updated_at, last_seen
+   - Manual registration for IP cameras (browser cameras auto-detected)
+
+9. **colors** - Product color options
+   - Fields: name (unique), hex_value
+   - Used for test color selection
+   - Supports custom color creation
 
 **MinIO (:9000, :9001)**
 - S3-compatible object storage
@@ -301,49 +331,82 @@ Any API Request → Custom Middleware Intercepts
 
 - `POST /` - Create new test (with optional photo uploads)
 - `GET /` - List all tests (paginated)
-- `GET /{test_id}` - Get test details
-- `PATCH /{test_id}` - Update test
+  - Query params: page, page_size, jira_id, product_name, test_type, status, review_status, assigned_to, created_by, search
+- `GET /colors` - List all active color options
+- `POST /colors` - Create a custom color (returns 409 if color name exists)
+- `GET /{test_id}` - Get test details with full relationships
+- `PATCH /{test_id}` - Update test fields
 - `DELETE /{test_id}` - Delete test (cascades to photos and defects)
 - `POST /{test_id}/review` - Submit test review (reviewer only)
-- `GET /statistics` - Get test statistics
-- `GET /summary` - Get test summary counts
+  - Body: review_status (approved/rejected), review_comment
 
 ### Photo Management (`/api/v1/photos`)
 
-- `POST /upload` - Upload photos for a test
+- `POST /upload` - Upload photos for a test (multipart/form-data)
+  - Body: test_id (int), file (binary), description (optional)
+  - Returns: PhotoResponse with id, file_path, test_id, timestamp
 - `GET /test/{test_id}` - Get all photos for a test
-- `GET /{photo_id}` - Get photo metadata
-- `GET /{photo_id}/image` - Stream photo image
-- `PATCH /{photo_id}` - Update photo details
-- `DELETE /{photo_id}` - Delete photo
+- `GET /gallery` - Get paginated gallery with filters and defect aggregation
+  - Query params: page, page_size, severity, category_id, test_type, test_status, has_defects, verification_status, search
+  - Returns: GalleryResponse with photos array and pagination metadata
+- `GET /{photo_id}/image` - Stream photo image (proxied from MinIO)
+  - Returns: JPEG image binary
+- `GET /{photo_id}` - Get photo metadata with defect count
 - `PATCH /{photo_id}/verification` - Update photo verification status (reviewer only)
-- `GET /gallery` - Get paginated gallery with filters
-  - Query params: page, page_size, severity, category_id, test_type, test_status, has_defects, verification_status
+  - Body: verification_status (pending/verified/rejected)
+- `PATCH /{photo_id}` - Update photo description or other details
+- `DELETE /{photo_id}` - Delete photo and associated defects (cascade)
 
 ### Defect Management (`/api/v1/defects`)
 
-- `GET /categories` - List all defect categories
-- `POST /photo/{photo_id}` - Create defect with annotations
-- `GET /photo/{photo_id}` - Get all defects for a photo
-- `GET /{defect_id}` - Get defect details
-- `PATCH /{defect_id}` - Update defect
-- `DELETE /{defect_id}` - Delete defect
+- `GET /categories` - List all defect categories (active and inactive)
+  - Returns: List of CategoryResponse with id, name, is_active
+- `POST /photo/{photo_id}` - Create defect with annotations for a photo
+  - Body: description, severity (minor/major/critical), annotations (array of geometry data)
+  - Returns: DefectResponse with defect and annotation details
+- `GET /photo/{photo_id}` - Get all defects for a photo with annotations
+  - Returns: List of DefectResponse including annotation geometry (JSONB)
+- `GET /{defect_id}` - Get defect details with all annotations
+- `PUT /{defect_id}` - Update defect description or severity
+- `DELETE /{defect_id}` - Delete defect and all annotations (cascade)
 - `POST /{defect_id}/review` - Submit defect review (reviewer only)
-- `POST /{defect_id}/annotations` - Add annotation to defect
-- `PUT /annotations/{annotation_id}` - Update annotation
-- `DELETE /annotations/{annotation_id}` - Delete annotation
+  - Body: review_status (approved/rejected), review_comment
+- `POST /{defect_id}/annotations` - Add new annotation to existing defect
+  - Body: category_id, geometry (JSONB), color
+- `PUT /annotations/{annotation_id}` - Update annotation geometry or category
+- `DELETE /annotations/{annotation_id}` - Delete specific annotation
 
 ### Audit Log (`/api/v1/audit`)
 
-- `GET /logs` - Get audit logs (paginated)
-  - Query params: limit, offset, action, entity_type, entity_id, username, created_from, created_to, clear_filters
-- `GET /logs/{log_id}` - Get specific audit log entry
-- `GET /tests/{test_id}/activity` - Get activity history for a test
-  - Query params: user_actions_only, limit, offset
+- `GET /logs` - Get audit logs (paginated with filtering)
+  - Query params: limit (default 50), offset, action (CREATE/UPDATE/DELETE/UPLOAD/CAPTURE), entity_type (Test/Photo/Defect/User/Camera), entity_id, username, created_from (ISO datetime), created_to (ISO datetime), clear_filters (bool)
+  - Returns: AuditLogListOut with logs array, total count, and pagination metadata
+- `GET /logs/{log_id}` - Get specific audit log entry by ID
+  - Returns: AuditLogOut with action, entity info, username, metadata (JSON), timestamp
+- `GET /tests/{test_id}/activity` - Get activity history for a specific test
+  - Query params: user_actions_only (bool), limit, offset
+  - Returns: AuditLogListOut filtered for the test
 
 ### User Management (`/api/v1/users`)
 
 - `GET /me` - Get current user profile (auto-creates if needed)
+  - Uses X-User and X-Role headers
+  - Returns: User object with username, role, created_at
+- `PUT /me/role` - Update current user's role
+  - Body: role (user/reviewer/admin)
+  - Returns: Updated user object
+
+### Camera Management (`/api/v1/cameras`)
+
+- `GET /` - List all registered cameras
+  - Query params: camera_type (browser/droidcam/rtsp/ip_camera)
+  - Returns: CameraListResponse with cameras array and total count
+- `GET /{camera_id}` - Get details of a specific camera device
+  - Returns: CameraDeviceResponse with name, type, status, connection_info (JSON), capabilities
+- `GET /{camera_id}/capture` - Capture a frame from an IP camera
+  - Requires: connection_info with "snapshot_url" field in camera record
+  - Returns: JPEG image binary
+  - Logs: Creates CAPTURE audit log entry
 
 ### Authentication Headers
 

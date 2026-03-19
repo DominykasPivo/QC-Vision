@@ -7,16 +7,22 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.modules.audit.service import log_action
+from app.modules.audit.service import log_action, log_changes
+from app.security import get_actor
 
 from .models import Photo
 from .schemas import GalleryPhotoResponse, GalleryResponse, PhotoResponse, PhotoUpdate
 from .service import photo_service
-from .storage import photo_storage
 
 logger = logging.getLogger("backend_photos_router")
 
 router = APIRouter(prefix="/photos", tags=["photos"])
+
+photo_storage = photo_service.storage
+
+
+def _serialize_photo(photo: Photo) -> dict:
+    return PhotoResponse.model_validate(photo).model_dump(mode="json")
 
 
 @router.get("/test/{test_id}", response_model=List[PhotoResponse])
@@ -28,7 +34,7 @@ async def get_photos_for_test(test_id: int, db: Session = Depends(get_db)):
 @router.get("/gallery", response_model=GalleryResponse)
 async def get_gallery(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=12, ge=1, le=100),
     severity: Optional[str] = Query(default=None),
     category_id: Optional[int] = Query(default=None),
     test_type: Optional[str] = Query(default=None),
@@ -97,9 +103,12 @@ async def get_photo(photo_id: int, db: Session = Depends(get_db)):
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)
 async def upload_photo(
-    test_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)
+    test_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
-    username = "system"
+    username = actor["username"]
 
     if not file.content_type or not file.content_type.startswith("image/"):
         log_action(
@@ -130,11 +139,13 @@ async def upload_photo(
             action="UPLOAD",
             entity_type="Photo",
             entity_id=int(photo.id),
+            test_id=test_id,
+            attribute="filename",
+            old_value=None,
+            new_value=file.filename,
             username=username,
             meta={
-                "filename": file.filename,
                 "content_type": file.content_type,
-                "test_id": test_id,
                 "file_path": getattr(photo, "file_path", None),
             },
         )
@@ -180,6 +191,7 @@ async def update_verification_status(
     photo_id: int,
     payload: dict,
     db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
     """Update the verification status of a photo (pending, approved, rejected)."""
     verification_status = payload.get("verification_status")
@@ -187,6 +199,14 @@ async def update_verification_status(
         raise HTTPException(status_code=400, detail="verification_status is required")
 
     try:
+        existing_photo = db.query(Photo).filter(Photo.id == photo_id).first()
+        if not existing_photo:
+            raise HTTPException(status_code=404, detail="Photo not found")
+
+        before_values = {
+            "verification_status": getattr(existing_photo, "verification_status", None)
+        }
+        test_id = getattr(existing_photo, "test_id", None)
         photo = photo_service.update_verification_status(
             db, photo_id, verification_status
         )
@@ -196,13 +216,14 @@ async def update_verification_status(
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
-    log_action(
+    log_changes(
         db,
-        action="UPDATE",
         entity_type="Photo",
         entity_id=photo_id,
-        username="system",
-        meta={"verification_status": verification_status},
+        test_id=test_id,
+        username=actor["username"],
+        before=before_values,
+        after={"verification_status": getattr(photo, "verification_status", None)},
     )
 
     return photo
@@ -213,33 +234,45 @@ async def update_photo(
     photo_id: int,
     update_data: PhotoUpdate,
     db: Session = Depends(get_db),
+    actor=Depends(get_actor),
 ):
-    """Update photo metadata (e.g., description)."""
+    """Update photo metadata (description, color_id, method)."""
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
 
-    if update_data.description is not None:
-        photo.description = update_data.description
+    # Get only the fields that were explicitly set in the request
+    update_dict = update_data.model_dump(exclude_unset=True)
+    before_values = {field: getattr(photo, field, None) for field in update_dict.keys()}
+
+    # Update photo with provided fields (including null values to clear)
+    for field, value in update_dict.items():
+        if hasattr(photo, field):
+            setattr(photo, field, value)
 
     db.commit()
     db.refresh(photo)
 
-    log_action(
+    log_changes(
         db,
-        action="UPDATE",
         entity_type="Photo",
         entity_id=photo_id,
-        username="system",
-        meta={"description": update_data.description},
+        test_id=photo.test_id,
+        username=actor["username"],
+        before=before_values,
+        after={field: getattr(photo, field, None) for field in update_dict.keys()},
     )
 
     return photo
 
 
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
-    username = "system"
+async def delete_photo(
+    photo_id: int,
+    db: Session = Depends(get_db),
+    actor=Depends(get_actor),
+):
+    username = actor["username"]
 
     try:
         photo = db.query(Photo).filter(Photo.id == photo_id).first()
@@ -256,6 +289,7 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
 
         photo_path = photo.file_path
         test_id = getattr(photo, "test_id", None)
+        deleted_value = _serialize_photo(photo)
 
         minio_deleted = False
         try:
@@ -272,10 +306,11 @@ async def delete_photo(photo_id: int, db: Session = Depends(get_db)):
             action="DELETE",
             entity_type="Photo",
             entity_id=photo_id,
+            test_id=test_id,
+            old_value=deleted_value,
             username=username,
             meta={
                 "file_path": photo_path,
-                "test_id": test_id,
                 "minio_deleted": minio_deleted,
             },
         )

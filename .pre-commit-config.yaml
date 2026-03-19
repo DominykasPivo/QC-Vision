@@ -100,3 +100,10 @@ repos:
         language: system
         pass_filenames: false
         stages: [manual]
+
+      - id: frontend-tests
+        name: "Frontend: unit tests"
+        entry: powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command npm -ErrorAction SilentlyContinue) { cd frontend; npm test -- --run } else { docker compose exec -T frontend npm test -- --run }"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]

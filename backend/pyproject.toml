@@ -1,3 +1,8 @@
 [tool.isort]
 profile = "black"
 line_length = 88
+
+[tool.mypy]
+ignore_missing_imports = true
+check_untyped_defs = false
+disallow_untyped_defs = false

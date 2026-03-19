@@ -268,3 +268,250 @@ class TestEndToEndQualityInspectionWorkflow:
         )
         assert finalize.status_code == 200
         assert finalize.json()["status"] == "finalized"
+
+
+class TestCameraIOTWorkflow:
+    """
+    Complete camera workflow: Register camera → List cameras → Retrieve details.
+
+    Note: Cameras are registered manually via SQL/NocoDB (not through API).
+    Camera integration display on frontend is tested here.
+    """
+
+    def test_ip_camera_listing_and_retrieval(self, client, db_session):
+        """
+        End-to-end test for IP camera listing and detail retrieval.
+
+        Workflow steps:
+        1. Seed IP camera devices (simulating manual SQL insertion)
+        2. List all cameras
+        3. Filter cameras by type
+        4. Retrieve specific camera details
+        5. Verify camera information is correct
+        """
+
+        # ===================================================================
+        # STEP 1: Seed IP camera devices (simulating manual SQL insertion)
+        # ===================================================================
+        from app.modules.camera.models import CameraDevice
+
+        camera1 = CameraDevice(
+            name="Production Line Camera #1",
+            type="rtsp",
+            status="online",
+            connection_info='{"snapshot_url": "http://192.168.50.101:554/shot.jpg"}',
+            capabilities='{"zoom": true, "focus": true, "resolution": ["1920x1080"]}',
+        )
+        camera2 = CameraDevice(
+            name="Quality Check Station Camera",
+            type="rtsp",
+            status="online",
+            connection_info='{"snapshot_url": "http://192.168.50.102:554/shot.jpg"}',
+            capabilities='{"zoom": false, "focus": true, "resolution": ["1280x720"]}',
+        )
+        camera3 = CameraDevice(
+            name="Handheld Inspection Device",
+            type="usb",
+            status="offline",
+            connection_info='{"device_id": "USB-CAMERA-003"}',
+            capabilities='{"zoom": true, "focus": false, "resolution": ["640x480"]}',
+        )
+
+        db_session.add_all([camera1, camera2, camera3])
+        db_session.commit()
+        db_session.refresh(camera1)
+        db_session.refresh(camera2)
+        db_session.refresh(camera3)
+
+        # ===================================================================
+        # STEP 2: List all cameras
+        # ===================================================================
+        cameras_list = client.get("/api/v1/cameras/").json()
+        assert cameras_list["total"] == 3
+        assert len(cameras_list["cameras"]) == 3
+
+        # ===================================================================
+        # STEP 3: Filter cameras by type
+        # ===================================================================
+        rtsp_cameras = client.get("/api/v1/cameras/?camera_type=rtsp").json()
+        assert rtsp_cameras["total"] == 2
+        assert all(cam["type"] == "rtsp" for cam in rtsp_cameras["cameras"])
+
+        usb_cameras = client.get("/api/v1/cameras/?camera_type=usb").json()
+        assert usb_cameras["total"] == 1
+        assert usb_cameras["cameras"][0]["type"] == "usb"
+
+        # ===================================================================
+        # STEP 4: Retrieve specific camera details
+        # ===================================================================
+        camera1_detail = client.get(f"/api/v1/cameras/{camera1.id}").json()
+        assert camera1_detail["name"] == "Production Line Camera #1"
+        assert camera1_detail["type"] == "rtsp"
+        assert camera1_detail["status"] == "online"
+
+        camera2_detail = client.get(f"/api/v1/cameras/{camera2.id}").json()
+        assert camera2_detail["name"] == "Quality Check Station Camera"
+        assert camera2_detail["type"] == "rtsp"
+
+        camera3_detail = client.get(f"/api/v1/cameras/{camera3.id}").json()
+        assert camera3_detail["name"] == "Handheld Inspection Device"
+        assert camera3_detail["type"] == "usb"
+        assert camera3_detail["status"] == "offline"
+
+        # ===================================================================
+        # STEP 5: Verify camera information structure
+        # ===================================================================
+        # Ensure all cameras have required fields
+        for camera in cameras_list["cameras"]:
+            assert "id" in camera
+            assert "name" in camera
+            assert "type" in camera
+            assert "status" in camera
+            assert camera["type"] in ["rtsp", "usb", "http"]
+            assert camera["status"] in ["online", "offline"]
+
+
+class TestQCMatrixWorkflow:
+    """
+    Complete QC-Matrix workflow: Create test with matrix configuration →
+    Upload photos → Verify matrix structure and filtering.
+    """
+
+    def test_qc_matrix_configuration_and_filtering(self, client, db_session):
+        """
+        End-to-end test for QC-Matrix functionality.
+
+        Workflow steps:
+        1. Create test with matrix_columns configuration (e.g., sizes: S, M, L)
+        2. Upload photos for different matrix positions
+        3. Update matrix_columns configuration
+        4. Retrieve test and verify matrix structure
+        5. Filter/organize photos by matrix columns
+        """
+
+        # ===================================================================
+        # STEP 1: Create test (matrix_columns added later via PATCH)
+        # ===================================================================
+        test_response = client.post(
+            "/api/v1/tests/",
+            files=_form_fields(
+                jiraId="GY-MATRIX-E2E-001",
+                productName="Athletic Performance T-Shirt",
+                testType="final",
+                requester="QA Lead",
+                assignedTo="Quality Inspector",
+                description="Final inspection across all size variants",
+                status="in_progress",
+            ),
+        )
+        assert test_response.status_code == 201
+        test = test_response.json()["test"]
+        test_id = test["id"]
+
+        # Add matrix_columns configuration via PATCH
+        matrix_config = '["S", "M", "L", "XL"]'
+        matrix_update = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": matrix_config},
+        )
+        assert matrix_update.status_code == 200
+        assert matrix_update.json()["matrix_columns"] == matrix_config
+
+        # ===================================================================
+        # STEP 2: Upload photos for different matrix positions (sizes)
+        # ===================================================================
+
+        # Upload photo for Size S
+        photo_s = client.post(
+            f"/api/v1/photos/upload?test_id={test_id}",
+            files={"file": ("shirt_size_S.jpg", _make_jpeg(800, 600), "image/jpeg")},
+        )
+        assert photo_s.status_code == 201
+
+        # Upload photo for Size M
+        photo_m = client.post(
+            f"/api/v1/photos/upload?test_id={test_id}",
+            files={"file": ("shirt_size_M.jpg", _make_jpeg(800, 600), "image/jpeg")},
+        )
+        assert photo_m.status_code == 201
+
+        # Upload photo for Size L
+        photo_l = client.post(
+            f"/api/v1/photos/upload?test_id={test_id}",
+            files={"file": ("shirt_size_L.jpg", _make_jpeg(800, 600), "image/jpeg")},
+        )
+        assert photo_l.status_code == 201
+
+        # Upload photo for Size XL
+        photo_xl = client.post(
+            f"/api/v1/photos/upload?test_id={test_id}",
+            files={"file": ("shirt_size_XL.jpg", _make_jpeg(800, 600), "image/jpeg")},
+        )
+        assert photo_xl.status_code == 201
+
+        # ===================================================================
+        # STEP 3: Verify all photos are associated with test
+        # ===================================================================
+        test_photos = client.get(f"/api/v1/photos/test/{test_id}").json()
+        assert len(test_photos) == 4
+
+        # ===================================================================
+        # STEP 4: Update matrix_columns configuration (add XXL)
+        # ===================================================================
+        updated_matrix = '["S", "M", "L", "XL", "XXL"]'
+
+        update_response = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"matrix_columns": updated_matrix},
+        )
+        assert update_response.status_code == 200
+        updated_test = update_response.json()
+        assert updated_test["matrix_columns"] == updated_matrix
+
+        # ===================================================================
+        # STEP 5: Retrieve test and verify matrix structure
+        # ===================================================================
+        test_detail = client.get(f"/api/v1/tests/{test_id}").json()
+        assert test_detail["matrix_columns"] == updated_matrix
+
+        # Verify matrix columns can be parsed as JSON
+        import json
+
+        matrix_cols = json.loads(test_detail["matrix_columns"])
+        assert len(matrix_cols) == 5
+        assert matrix_cols == ["S", "M", "L", "XL", "XXL"]
+
+        # ===================================================================
+        # STEP 6: Upload photo for new matrix column (XXL)
+        # ===================================================================
+        photo_xxl = client.post(
+            f"/api/v1/photos/upload?test_id={test_id}",
+            files={"file": ("shirt_size_XXL.jpg", _make_jpeg(800, 600), "image/jpeg")},
+        )
+        assert photo_xxl.status_code == 201
+
+        # Verify total photo count
+        test_photos_final = client.get(f"/api/v1/photos/test/{test_id}").json()
+        assert len(test_photos_final) == 5
+
+        # ===================================================================
+        # STEP 7: Search tests with matrix_columns configuration
+        # ===================================================================
+        search_result = client.get("/api/v1/tests/?search=Athletic").json()
+        assert search_result["total"] >= 1
+
+        matrix_test = next(
+            (t for t in search_result["items"] if t["id"] == test_id), None
+        )
+        assert matrix_test is not None
+        assert matrix_test["matrix_columns"] is not None
+
+        # ===================================================================
+        # STEP 8: Complete test workflow
+        # ===================================================================
+        finalize = client.patch(
+            f"/api/v1/tests/{test_id}",
+            json={"status": "finalized"},
+        )
+        assert finalize.status_code == 200
+        assert finalize.json()["status"] == "finalized"

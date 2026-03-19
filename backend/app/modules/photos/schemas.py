@@ -23,6 +23,8 @@ class PhotoResponse(BaseModel):
     analysis_results: Optional[str] = None
     description: Optional[str] = None
     verification_status: str = "pending"
+    color_id: Optional[int] = None
+    method: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -31,6 +33,8 @@ class PhotoUpdate(BaseModel):
     """Schema for updating photo metadata."""
 
     description: Optional[str] = Field(None, description="Photo description")
+    color_id: Optional[int] = Field(None, description="Color tag ID")
+    method: Optional[str] = Field(None, description="Print method slug")
 
 
 class PhotoListResponse(BaseModel):

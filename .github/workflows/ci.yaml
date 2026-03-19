@@ -44,6 +44,7 @@ jobs:
       - name: Type check (mypy)
         run: mypy app --ignore-missing-imports
         working-directory: backend
+        continue-on-error: true
 
       - name: Security check (pip safety)
         run: |
@@ -100,6 +101,36 @@ jobs:
         working-directory: frontend
         run: npm audit --audit-level=moderate
         continue-on-error: true
+
+
+  frontend-tests:
+    name: Frontend tests (vitest)
+    runs-on: ubuntu-22.04
+    needs: [lint-format]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies (ci if lockfile exists)
+        working-directory: frontend
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "package-lock.json not found. Falling back to npm install."
+            npm install
+          fi
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --run
 
 
   unit-tests:

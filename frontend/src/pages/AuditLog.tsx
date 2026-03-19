@@ -4,6 +4,7 @@ import type { AppDataContext } from "../components/layout/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { fetchAuditLogs } from "@/lib/api/audit";
+import { getStoredUsername } from "@/lib/auth";
 
 function formatTimestamp(isoString: string): string {
   const date = new Date(isoString);
@@ -17,35 +18,19 @@ function formatTimestamp(isoString: string): string {
   });
 }
 
-function extractTestId(eventText: string): string | null {
-  const patterns = [
-    /test\s*#?\s*(\d+)/i,
-    /test[_\s-]*id\s*[:=]\s*(\d+)/i,
-    /\btestId\s*[:=]\s*(\d+)/i,
-  ];
-
-  for (const re of patterns) {
-    const match = eventText.match(re);
-    if (match?.[1]) return match[1];
-  }
-  return null;
-}
-
-type UiAuditEvent = {
-  id: number | string;
-  event: string;
-  timestamp: string;
-  testId?: number;
-};
-
 type ApiAuditEventItem = {
   id: number | string;
   action?: string;
   entity_type?: string;
   entity_id?: number | string | null;
+  test_id?: number | string | null;
+  attribute?: string | null;
+  old_value?: unknown;
+  new_value?: unknown;
   created_at: string;
+  updated_at?: string;
+  username?: string | null;
   meta?: {
-    test_id?: number | string | null;
     summary?: string;
     message?: string;
     description?: string;
@@ -53,32 +38,40 @@ type ApiAuditEventItem = {
   } | null;
 };
 
-function toUiEvent(item: ApiAuditEventItem): UiAuditEvent {
-  const base = `${item.action} ${item.entity_type} ${item.entity_id}`;
-  const metaSummary =
-    item?.meta && typeof item.meta === "object"
-      ? item.meta.summary || item.meta.message || item.meta.description
-      : null;
+function resolveTestId(item: ApiAuditEventItem): number | null {
+  if (item.test_id != null) {
+    const value = Number(item.test_id);
+    return Number.isFinite(value) ? value : null;
+  }
 
-  const metaTestId =
-    item?.meta && typeof item.meta === "object" && item.meta.test_id != null
-      ? Number(item.meta.test_id)
-      : undefined;
+  if (item.entity_type === "Test" && item.entity_id != null) {
+    const value = Number(item.entity_id);
+    return Number.isFinite(value) ? value : null;
+  }
 
-  const directTestId =
-    item?.entity_type === "Test" ? Number(item.entity_id) : undefined;
+  return null;
+}
 
-  return {
-    id: item.id,
-    event: metaSummary ? String(metaSummary) : base,
-    timestamp: item.created_at,
-    testId: directTestId ?? metaTestId,
-  };
+function formatAuditValue(value: unknown): string {
+  if (value == null) return "NULL";
+  if (typeof value === "string") return value;
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 export function AuditLog() {
-  const { auditEvents: initialAuditEvents } =
-    useOutletContext<AppDataContext>();
+  useOutletContext<AppDataContext>();
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -87,18 +80,14 @@ export function AuditLog() {
   const [action, setAction] = useState<string>("");
   const [username, setUsername] = useState<string>("");
 
-  const [auditEvents, setAuditEvents] = useState<UiAuditEvent[]>(
-    initialAuditEvents?.map((e) => ({
-      id: e.id,
-      event: e.event,
-      timestamp: e.timestamp,
-    })) ?? [],
-  );
+  const [auditEvents, setAuditEvents] = useState<ApiAuditEventItem[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function fetchLogs(opts?: { clearFilters?: boolean }) {
+    if (!getStoredUsername()) return;
+
     setLoading(true);
     setError(null);
 
@@ -116,7 +105,7 @@ export function AuditLog() {
       const items: ApiAuditEventItem[] = Array.isArray(data?.items)
         ? data.items
         : [];
-      setAuditEvents(items.map(toUiEvent));
+      setAuditEvents(items);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load audit logs");
     } finally {
@@ -143,22 +132,20 @@ export function AuditLog() {
   }, [action, entityType, entityId, username]); // Re-setup polling when filters change
 
   const grouped = useMemo(() => {
-    const map: Record<string, UiAuditEvent[]> = {};
+    const map: Record<string, ApiAuditEventItem[]> = {};
 
-    for (const ev of auditEvents) {
-      const groupId =
-        ev.testId != null
-          ? String(ev.testId)
-          : (extractTestId(ev.event) ?? "other");
+    for (const item of auditEvents) {
+      const testId = resolveTestId(item);
+      const groupId = testId != null ? String(testId) : "other";
 
       if (!map[groupId]) map[groupId] = [];
-      map[groupId].push(ev);
+      map[groupId].push(item);
     }
 
     for (const key of Object.keys(map)) {
       map[key] = [...map[key]].sort(
         (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
     }
 
@@ -306,31 +293,98 @@ export function AuditLog() {
                     </div>
 
                     <div className="text-xs text-slate-500 md:text-sm">
-                      {events[0]?.timestamp
-                        ? formatTimestamp(events[0].timestamp)
+                      {events[0]?.created_at
+                        ? formatTimestamp(events[0].created_at)
                         : ""}
                     </div>
                   </button>
 
                   {isOpen && (
-                    <div className="bg-slate-50">
-                      {events.map((event, index) => (
-                        <div
-                          key={event.id}
-                          className={`flex flex-col gap-1 px-5 py-3 md:flex-row md:items-center md:justify-between md:px-6 ${
-                            index < events.length - 1
-                              ? "border-b border-slate-200"
-                              : ""
-                          }`}
-                        >
-                          <div className="text-sm text-slate-900 md:text-base">
-                            {event.event}
-                          </div>
-                          <div className="text-xs text-slate-500 md:text-sm">
-                            {formatTimestamp(event.timestamp)}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="overflow-x-auto bg-slate-50">
+                      <table className="min-w-full border-collapse text-left text-sm">
+                        <thead className="bg-slate-100 text-slate-900">
+                          <tr>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              id
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              action
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              entity_type
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              entity_id
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              test_id
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              attribute
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              old_value
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              new_value
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              created_at
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              updated_at
+                            </th>
+                            <th className="border border-slate-200 px-3 py-2 font-semibold">
+                              username
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white">
+                          {events.map((event) => (
+                            <tr key={event.id} className="align-top">
+                              <td className="border border-slate-200 px-3 py-2">
+                                {String(event.id)}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {event.action ?? "NULL"}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {event.entity_type ?? "NULL"}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {event.entity_id != null
+                                  ? String(event.entity_id)
+                                  : "NULL"}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {resolveTestId(event) != null
+                                  ? String(resolveTestId(event))
+                                  : "NULL"}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {event.attribute ?? "NULL"}
+                              </td>
+                              <td className="max-w-xs border border-slate-200 px-3 py-2 whitespace-pre-wrap break-words">
+                                {formatAuditValue(event.old_value)}
+                              </td>
+                              <td className="max-w-xs border border-slate-200 px-3 py-2 whitespace-pre-wrap break-words">
+                                {formatAuditValue(event.new_value)}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {formatTimestamp(event.created_at)}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {event.updated_at
+                                  ? formatTimestamp(event.updated_at)
+                                  : "NULL"}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {event.username ?? "NULL"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>

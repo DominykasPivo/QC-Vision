@@ -7,6 +7,7 @@ export type UpdateTestPayload = {
   requester: string;
   assigned_to: string | null;
   description: string | null;
+  color_ids: number[];
   status: TestStatus;
   deadline_at: string | null;
 };

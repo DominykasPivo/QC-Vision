@@ -1,13 +1,34 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 export type FetchAuditParams = {
   action?: string;
   entity_type?: string;
   entity_id?: string | number;
+  test_id?: string | number;
   username?: string;
   clear_filters?: boolean;
   limit?: number;
   offset?: number;
+};
+
+export type AuditActivityItem = {
+  id: number | string;
+  action: string;
+  entity_type: string;
+  entity_id: number | string;
+  test_id?: number | string | null;
+  attribute?: string | null;
+  old_value?: unknown;
+  new_value?: unknown;
+  username?: string | null;
+  created_at: string;
+  updated_at: string;
+  meta?: Record<string, unknown> | null;
+};
+
+export type AuditActivityResponse = {
+  items: AuditActivityItem[];
+  total: number;
+  limit: number;
+  offset: number;
 };
 
 export async function fetchAuditLogs(params: FetchAuditParams = {}) {
@@ -24,16 +45,40 @@ export async function fetchAuditLogs(params: FetchAuditParams = {}) {
     if (params.entity_id !== undefined && params.entity_id !== "") {
       searchParams.set("entity_id", String(params.entity_id));
     }
+    if (params.test_id !== undefined && params.test_id !== "") {
+      searchParams.set("test_id", String(params.test_id));
+    }
     if (params.username) searchParams.set("username", params.username);
   }
 
-  const res = await fetch(
-    `${API_URL}/api/v1/audit/logs?${searchParams.toString()}`,
-  );
+  const res = await fetch(`/api/v1/audit/logs?${searchParams.toString()}`);
 
   if (!res.ok) {
     throw new Error(`Failed to fetch audit logs (${res.status})`);
   }
 
   return res.json(); // { items, total, limit, offset }
+}
+
+export async function fetchTestActivity(
+  testId: number | string,
+  params: { user_actions_only?: boolean; limit?: number; offset?: number } = {},
+) {
+  const searchParams = new URLSearchParams();
+  searchParams.set(
+    "user_actions_only",
+    String(params.user_actions_only ?? true),
+  );
+  searchParams.set("limit", String(params.limit ?? 20));
+  searchParams.set("offset", String(params.offset ?? 0));
+
+  const res = await fetch(
+    `/api/v1/audit/tests/${testId}/activity?${searchParams.toString()}`,
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch test activity (${res.status})`);
+  }
+
+  return (await res.json()) as AuditActivityResponse;
 }

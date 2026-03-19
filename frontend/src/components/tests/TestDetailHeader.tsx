@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatEnumLabel, type Test } from "@/lib/db-constants";
 import { STATUS_COLORS } from "@/lib/constants/testDetailsConstants";
+import { spacing } from "@/lib/ui/spacing";
 import { MaterialIcon } from "./MaterialIcon";
 import { formatFieldValue } from "@/lib/utils/tests/formatTestDates";
 
@@ -19,7 +20,7 @@ export function TestDetailHeader({ test }: TestDetailHeaderProps) {
   return (
     <>
       <div className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center px-6 py-4 md:px-10">
+        <div className={cn(spacing.pageFrame, "flex items-center py-4")}>
           <Link
             to="/tests"
             className="group inline-flex items-center gap-2 rounded-lg px-1 py-1 text-lg font-semibold text-[#2563eb] no-underline transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
@@ -33,7 +34,7 @@ export function TestDetailHeader({ test }: TestDetailHeaderProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 pt-6 md:px-10 md:pt-10">
+      <div className={cn(spacing.pageFrame, "pt-6 md:pt-10")}>
         <div className="mb-10 md:pl-8">
           <h1 className="text-5xl font-black text-slate-900">
             Test #{test.id}

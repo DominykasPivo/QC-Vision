@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   buildTestSubmitFormData,
@@ -6,6 +6,8 @@ import {
   type TestFormData,
 } from "@/lib/forms/test-form";
 import { createTest as createTestAPI } from "@/lib/api/tests";
+import { fetchColors } from "@/lib/api/colors";
+import type { Color } from "@/lib/types";
 import type { TestStatus, TestType } from "@/lib/db-constants";
 import type { AppDataContext } from "@/components/layout/AppShell";
 
@@ -32,6 +34,13 @@ export function useCreateTestForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [colors, setColors] = useState<Color[]>([]);
+
+  useEffect(() => {
+    fetchColors()
+      .then(setColors)
+      .catch(() => {});
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,12 +59,37 @@ export function useCreateTestForm({
     setFormData((prev) => ({ ...prev, status: value as TestStatus }));
   };
 
+  const handleColorChange = (value: number[]) => {
+    setFormData((prev) => ({ ...prev, colorIds: value }));
+  };
+
+  const handleColorCreated = (color: Color) => {
+    setColors((prev) => [...prev, color]);
+  };
+
   const handleSubmit = async (e: FormEvent, selectedPhotos: File[]) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
+      // Validate required fields
+      if (!formData.jiraId.trim()) {
+        setError("Jira ID is required");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.productName.trim()) {
+        setError("Product Name is required");
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.testType.trim()) {
+        setError("Test Type is required");
+        setIsLoading(false);
+        return;
+      }
+
       // Build form data for submission
       const submitFormData = buildTestSubmitFormData(formData, selectedPhotos);
 
@@ -86,7 +120,16 @@ export function useCreateTestForm({
       setFormData(createEmptyTestForm(loggedInUser));
       onPhotosClear();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create test");
+      // Extract error message from various error formats
+      let errorMessage = "Failed to create test";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      } else if (err && typeof err === "object" && "detail" in err) {
+        errorMessage = String(err.detail);
+      }
+      setError(errorMessage);
       console.error("Error creating test:", err);
     } finally {
       setIsLoading(false);
@@ -98,10 +141,13 @@ export function useCreateTestForm({
     isLoading,
     error,
     showToast,
+    colors,
     handleChange,
     handleTextareaChange,
     handleTestTypeChange,
     handleStatusChange,
+    handleColorChange,
+    handleColorCreated,
     handleSubmit,
   };
 }

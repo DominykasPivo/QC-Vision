@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { isLoggedIn, loginUser, setStoredRole } from "@/lib/auth";
+import { isLoggedIn, loginUser } from "@/lib/auth";
 
 // If your project uses request/ApiError elsewhere, use it.
 // Otherwise we use fetch here to match CreateTest's pattern.
@@ -69,8 +69,13 @@ export function Login() {
       const me = parsed as MeResponse;
 
       // Store user + role for permissions (review access)
-      loginUser(me.username);
-      setStoredRole(me.role);
+      loginUser(me.username, me.role);
+
+      // Verify storage succeeded
+      const storedUsername = localStorage.getItem("qc-vision:username");
+      if (!storedUsername || storedUsername !== me.username) {
+        throw new Error("Failed to save login. Please check browser settings.");
+      }
 
       navigate("/tests", { replace: true });
     } catch (err) {

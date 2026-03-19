@@ -8,6 +8,13 @@ class Actor(TypedDict):
     role: str
 
 
+def get_actor(
+    x_user: str = Header(default="system", alias="X-User"),
+    x_role: str = Header(default="user", alias="X-Role"),
+) -> Actor:
+    return {"username": x_user, "role": x_role}
+
+
 def require_reviewer(
     x_user: str = Header(default="system", alias="X-User"),
     x_role: str = Header(default="user", alias="X-Role"),
