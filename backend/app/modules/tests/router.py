@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import List, Optional, cast
+from typing import Any, List, Optional, cast
 
 from fastapi import (
     APIRouter,
@@ -42,7 +42,7 @@ def _serialize_test(test: Tests) -> dict:
 
 
 def _test_field_values(test: Tests, fields: list[str]) -> dict:
-    values = {}
+    values: dict[str, Any] = {}
     for field in fields:
         if field == "color_ids":
             values[field] = [color.id for color in getattr(test, "colors", []) or []]

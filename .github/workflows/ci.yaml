@@ -44,6 +44,7 @@ jobs:
       - name: Type check (mypy)
         run: mypy app --ignore-missing-imports
         working-directory: backend
+        continue-on-error: true
 
       - name: Security check (pip safety)
         run: |

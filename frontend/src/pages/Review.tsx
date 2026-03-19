@@ -69,7 +69,7 @@ export function Review() {
       "X-User": username || "system",
       "X-Role": role || "user",
     }),
-    [role],
+    [role, username],
   );
 
   // Redirect non-reviewers away from the Review page

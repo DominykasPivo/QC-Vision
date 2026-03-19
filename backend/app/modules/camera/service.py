@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import cv2
 import numpy as np
-import requests
+import requests  # type: ignore[import-untyped]
 from sqlalchemy.orm import Session
 
 from .models import CameraDevice
