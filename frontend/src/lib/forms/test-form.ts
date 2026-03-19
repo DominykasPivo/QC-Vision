@@ -13,6 +13,7 @@ export type TestFormData = {
   assignedTo: string;
   description: string;
   deadline: string;
+  colorIds: number[];
   status: TestStatus;
 };
 
@@ -46,6 +47,11 @@ export function buildTestSubmitFormData(
     formData.status.toLowerCase().replace(" ", "_"),
   );
 
+  // Colors
+  for (const id of formData.colorIds) {
+    submitFormData.append("colorIds", String(id));
+  }
+
   // Deadline
   if (formData.deadline) {
     submitFormData.append(
@@ -74,6 +80,7 @@ export function createEmptyTestForm(username: string): TestFormData {
     assignedTo: "",
     description: "",
     deadline: "",
+    colorIds: [],
     status: "open",
   };
 }

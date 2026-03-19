@@ -12,6 +12,7 @@ from io import BytesIO
 
 from PIL import Image
 
+from app.modules.audit.models import AuditLog
 from app.modules.photos.models import Photo
 from app.modules.tests.models import Tests
 
@@ -63,6 +64,21 @@ class TestUploadPhotoRoute:
         assert body["test_id"] == test_id
         assert body["file_path"].startswith("photos/")
         mock_photo_storage.upload_photo.assert_awaited_once()
+
+        logs = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "UPLOAD",
+                AuditLog.entity_type == "Photo",
+                AuditLog.entity_id == body["id"],
+            )
+            .all()
+        )
+        assert len(logs) == 1
+        assert logs[0].test_id == test_id
+        assert logs[0].attribute == "filename"
+        assert logs[0].new_value == "sample.jpg"
+        assert logs[0].updated_at is not None
 
     def test_rejects_non_image_content_type(self, client, db_session):
         test_id = _seed_test(db_session)
@@ -163,6 +179,37 @@ class TestDeletePhotoRoute:
 
     def test_404_for_nonexistent_photo(self, client):
         assert client.delete("/api/v1/photos/9999").status_code == 404
+
+    def test_delete_photo_audit_log_includes_deleted_row(self, client, db_session):
+        test_id = _seed_test(db_session)
+        photo = Photo(
+            test_id=test_id,
+            file_path="/uploads/p1.jpg",
+            description="Delete me",
+        )
+        db_session.add(photo)
+        db_session.commit()
+        db_session.refresh(photo)
+
+        resp = client.delete(f"/api/v1/photos/{photo.id}")
+        assert resp.status_code == 204
+
+        audit_log = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "DELETE",
+                AuditLog.entity_type == "Photo",
+                AuditLog.entity_id == photo.id,
+            )
+            .order_by(AuditLog.id.desc())
+            .first()
+        )
+
+        assert audit_log is not None
+        assert audit_log.test_id == test_id
+        assert audit_log.old_value["description"] == "Delete me"
+        assert audit_log.new_value is None
+        assert audit_log.updated_at is not None
 
 
 # ---------------------------------------------------------------------------
@@ -348,3 +395,20 @@ class TestPhotoVerificationRoute:
         )
         assert resp.status_code == 200
         assert resp.json()["verification_status"] == "rejected"
+
+        audit_logs = (
+            db_session.query(AuditLog)
+            .filter(
+                AuditLog.action == "UPDATE",
+                AuditLog.entity_type == "Photo",
+                AuditLog.entity_id == photo.id,
+                AuditLog.attribute == "verification_status",
+            )
+            .order_by(AuditLog.id.asc())
+            .all()
+        )
+        assert len(audit_logs) == 2
+        assert audit_logs[0].old_value == "pending"
+        assert audit_logs[0].new_value == "approved"
+        assert audit_logs[1].old_value == "approved"
+        assert audit_logs[1].new_value == "rejected"

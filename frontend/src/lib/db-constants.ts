@@ -20,6 +20,13 @@ export const DEFECT_CATEGORIES = [
   { id: 2, name: "Damage" },
   { id: 3, name: "Print Errors" },
   { id: 4, name: "Embroidery Issues" },
+  { id: 6, name: "Pretreatment Stains" },
+  { id: 7, name: "Press Marks" },
+  { id: 8, name: "Dye Migration" },
+  { id: 9, name: "Peel of" },
+  { id: 10, name: "Faded" },
+  { id: 11, name: "Color fastness" },
+  { id: 12, name: "Ink Absoption" },
   { id: 5, name: "Other" },
 ] as const;
 

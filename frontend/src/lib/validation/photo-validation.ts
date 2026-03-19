@@ -6,7 +6,7 @@
 export const PHOTO_VALIDATION = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   ALLOWED_FORMATS: ["image/jpeg", "image/png", "image/webp"],
-  MAX_PHOTOS_PER_TEST: 6,
+  MAX_PHOTOS_PER_UPLOAD: 6,
 } as const;
 
 export type PhotoValidationError = {
@@ -70,36 +70,36 @@ export function validatePhotoFiles(files: File[]): PhotoValidationError | null {
 }
 
 /**
- * Check if adding new photos would exceed the limit
+ * Check if upload batch exceeds the per-upload limit
  */
 export function validatePhotoCount(
-  currentCount: number,
   newFiles: File[],
 ): PhotoValidationError | null {
-  const totalCount = currentCount + newFiles.length;
-  if (totalCount > PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST) {
+  if (newFiles.length > PHOTO_VALIDATION.MAX_PHOTOS_PER_UPLOAD) {
     return {
       type: "count",
-      message: `You can upload up to ${PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST} photos. Extra files were not added.`,
+      message: `You can upload up to ${PHOTO_VALIDATION.MAX_PHOTOS_PER_UPLOAD} photos at once. Please select fewer files.`,
     };
   }
   return null;
 }
 
 /**
- * Add new photos to existing list, respecting the maximum limit
+ * Add new photos to existing list, limiting per-upload batch size
  */
 export function mergePhotoFiles(
   existing: File[],
   newFiles: File[],
-  maxPhotos: number = PHOTO_VALIDATION.MAX_PHOTOS_PER_TEST,
+  maxPhotosPerUpload: number = PHOTO_VALIDATION.MAX_PHOTOS_PER_UPLOAD,
 ): { photos: File[]; warning: string | null } {
-  const combined = [...existing, ...newFiles];
+  // Limit only the new batch being uploaded, not the total
+  const limitedNewFiles = newFiles.slice(0, maxPhotosPerUpload);
+  const combined = [...existing, ...limitedNewFiles];
 
-  if (combined.length > maxPhotos) {
+  if (newFiles.length > maxPhotosPerUpload) {
     return {
-      photos: combined.slice(0, maxPhotos),
-      warning: `You can upload up to ${maxPhotos} photos. Extra files were not added.`,
+      photos: combined,
+      warning: `You can upload up to ${maxPhotosPerUpload} files at once. ${newFiles.length - maxPhotosPerUpload} extra file(s) were not added.`,
     };
   }
 

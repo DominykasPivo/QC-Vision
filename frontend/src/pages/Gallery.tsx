@@ -6,13 +6,8 @@ import {
   GalleryFiltersMobile,
   ActiveFilterChips,
 } from "@/components/gallery";
-import {
-  useGalleryData,
-  useGalleryFilters,
-  useCategories,
-  usePagination,
-} from "@/hooks";
-import { PAGE_SIZE } from "@/lib/constants";
+import { useGalleryData, useGalleryFilters, useCategories } from "@/hooks";
+import { PAGE_SIZE } from "@/lib/constants/galleryConstants";
 import { spacing } from "@/lib/ui/spacing";
 import { cn } from "@/lib/utils";
 
@@ -37,8 +32,8 @@ export function Gallery() {
     setVerificationFilter,
   } = useGalleryFilters();
 
-  // Pagination
-  const { currentPage, setCurrentPage } = usePagination([], PAGE_SIZE);
+  // Pagination (server-side)
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch gallery data
   const { photos, loading, totalPages } = useGalleryData(
@@ -57,9 +52,9 @@ export function Gallery() {
   return (
     <div
       className={cn(
-        spacing.pageContainer,
+        spacing.shellPageContainer,
         spacing.pageStack,
-        "max-w-none pb-24 md:pb-8",
+        "max-w-none",
       )}
     >
       {/* Header */}

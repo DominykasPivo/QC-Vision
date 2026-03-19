@@ -48,6 +48,8 @@ export type PhotoRecord = {
   url?: string;
   description?: string | null;
   verification_status?: string;
+  color_id?: number | null;
+  method?: string | null;
 };
 
 export async function getPhoto(photoId: string | number) {
@@ -67,7 +69,11 @@ export async function updateVerificationStatus(
 
 export async function updatePhoto(
   photoId: string | number,
-  data: { description?: string | null },
+  data: {
+    description?: string | null;
+    color_id?: number | null;
+    method?: string | null;
+  },
 ) {
   return request<PhotoRecord>(`${API_BASE}/photos/${photoId}`, {
     method: "PATCH",

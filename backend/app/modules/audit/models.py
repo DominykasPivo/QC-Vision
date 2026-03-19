@@ -12,11 +12,21 @@ class AuditLog(Base):
     action = Column(Text, nullable=False)
     entity_type = Column(Text, nullable=False)
     entity_id = Column(Integer, nullable=False)
+    test_id = Column(Integer, nullable=True, index=True)
+    attribute = Column(Text, nullable=True)
+    old_value = Column(JSON, nullable=True)
+    new_value = Column(JSON, nullable=True)
 
     meta = Column(JSON, nullable=False, server_default=text("'{}'"))
 
     created_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )
 
     username = Column(Text, nullable=False)

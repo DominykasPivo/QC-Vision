@@ -35,7 +35,13 @@ PRODUCT_NAMES = [
 ]
 
 
-def create_test(base_url: str, index: int) -> dict:
+def fetch_color_ids(base_url: str) -> list[int]:
+    response = requests.get(f"{base_url}/api/v1/tests/colors")
+    response.raise_for_status()
+    return [c["id"] for c in response.json()]
+
+
+def create_test(base_url: str, index: int, color_ids: list[int]) -> dict:
     jira_id = f"GY-{random.randint(100, 99999)}"
     product_name = random.choice(PRODUCT_NAMES)
     test_type = random.choice(TEST_TYPES)
@@ -49,17 +55,23 @@ def create_test(base_url: str, index: int) -> dict:
         delta = random.randint(-7, 30)
         deadline = (datetime.now(timezone.utc) + timedelta(days=delta)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    form_data = {
-        "jiraId": jira_id,
-        "productName": product_name,
-        "testType": test_type,
-        "requester": requester,
-        "status": status,
-    }
+    # 0–3 random colors; ~20% chance of none
+    selected_colors = random.sample(color_ids, k=random.randint(0, min(3, len(color_ids)))) if random.random() > 0.2 else []
+
+    # Use a list of tuples so duplicate keys (colorIds) are sent correctly
+    form_data = [
+        ("jiraId", jira_id),
+        ("productName", product_name),
+        ("testType", test_type),
+        ("requester", requester),
+        ("status", status),
+    ]
     if assigned_to:
-        form_data["assignedTo"] = assigned_to
+        form_data.append(("assignedTo", assigned_to))
     if deadline:
-        form_data["deadlineAt"] = deadline
+        form_data.append(("deadlineAt", deadline))
+    for color_id in selected_colors:
+        form_data.append(("colorIds", str(color_id)))
 
     response = requests.post(f"{base_url}/api/v1/tests/", data=form_data)
     response.raise_for_status()
@@ -72,13 +84,21 @@ def main():
     parser.add_argument("--url", type=str, default="http://localhost:8000", help="Backend base URL")
     args = parser.parse_args()
 
+    print(f"Fetching available colors from {args.url} ...")
+    try:
+        color_ids = fetch_color_ids(args.url)
+        print(f"  Found {len(color_ids)} colors\n")
+    except Exception as e:
+        print(f"  WARNING: Could not fetch colors ({e}), seeding without colors\n")
+        color_ids = []
+
     print(f"Creating {args.count} tests against {args.url} ...")
 
     created = 0
     failed = 0
     for i in range(1, args.count + 1):
         try:
-            result = create_test(args.url, i)
+            result = create_test(args.url, i, color_ids)
             test_id = result.get("test", {}).get("id", "?")
             created += 1
             print(f"  [{i}/{args.count}] Created test #{test_id}")

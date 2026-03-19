@@ -113,11 +113,9 @@ class PhotoStorage:
             raise
 
 
-# ✅ must exist (your router imports it)
 @lru_cache(maxsize=1)
 def get_photo_storage() -> PhotoStorage:
     return PhotoStorage()
 
 
-# ✅ optional backward compatibility for old imports
 photo_storage = get_photo_storage()

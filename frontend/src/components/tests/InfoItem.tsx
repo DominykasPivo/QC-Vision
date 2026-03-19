@@ -10,12 +10,15 @@ export function InfoItem({
   valueClassName?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="mb-1 text-sm font-bold uppercase tracking-widest text-slate-500">
         {label}
       </p>
       <p
-        className={cn("text-2xl font-semibold text-slate-900", valueClassName)}
+        className={cn(
+          "text-2xl font-semibold leading-tight text-slate-900 break-words",
+          valueClassName,
+        )}
       >
         {value}
       </p>

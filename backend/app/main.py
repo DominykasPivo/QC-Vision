@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import create_tables
 from app.modules.audit.router import router as audit_router
+from app.modules.camera.router import router as camera_router
 from app.modules.defects.router import router as defects_router
 from app.modules.photos.router import router as photos_router
 from app.modules.tests.router import router as tests_router
@@ -106,14 +107,16 @@ async def api_status():
             "photo_management": "available",
             "defect_documentation": "available",
             "audit_review": "available",
+            "camera_management": "available",
             "ai_recognition": "coming_soon",
         },
     }
 
 
-# Each module router is responsible for its own sub-prefix (/tests, /photos, /defects, /audit)
+# Each module router is responsible for its own sub-prefix (/tests, /photos, /defects, /audit, /cameras)
 app.include_router(tests_router, prefix="/api/v1")
 app.include_router(photos_router, prefix="/api/v1")
 app.include_router(defects_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
+app.include_router(camera_router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")

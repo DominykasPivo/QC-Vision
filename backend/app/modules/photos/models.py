@@ -19,6 +19,12 @@ class Photo(Base):
         nullable=False,
         index=True,
     )
+    camera_id = Column(
+        Integer,
+        ForeignKey("camera_devices.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     file_path = Column(Text, nullable=False)
     time_stamp = Column(
@@ -27,3 +33,9 @@ class Photo(Base):
     analysis_results = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     verification_status = Column(Text, nullable=False, default="pending")
+    color_id = Column(
+        Integer,
+        ForeignKey("colors.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    method = Column(Text, nullable=True)

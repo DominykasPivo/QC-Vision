@@ -1,13 +1,5 @@
 import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   formatEnumLabel,
@@ -20,6 +12,8 @@ import {
   SORT_OPTIONS,
   DATE_RANGE_OPTIONS,
 } from "@/lib/constants";
+import { FilterSelect } from "@/components/filters/FilterSelect";
+import { FilterInput } from "@/components/filters/FilterInput";
 import type { DateRangeFilter, SortOption } from "@/lib/utils/tests";
 
 interface TestFiltersMobileProps {
@@ -55,36 +49,24 @@ export function TestFiltersMobile({
   onSortChange,
   onPageReset,
 }: TestFiltersMobileProps) {
-  const handleFilterChange = <T extends string>(
-    filterSetter: (value: T) => void,
-    value: string,
-  ): void => {
-    const actualValue = (value === "all" ? "" : value) as T;
-    filterSetter(actualValue);
-    onPageReset();
-  };
-
   return (
     <>
       {/* Mobile Filter Toggle */}
       <div className="flex items-center gap-3 lg:hidden">
         <div className="min-w-0 flex-1">
-          <Select
-            value={statusFilter || "all"}
-            onValueChange={(value) => handleFilterChange(onStatusChange, value)}
-          >
-            <SelectTrigger className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {TEST_STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {STATUS_LABELS[status as TestStatus]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FilterSelect
+            value={statusFilter}
+            placeholder="All Statuses"
+            options={TEST_STATUSES.map((status) => ({
+              value: status,
+              label: STATUS_LABELS[status as TestStatus],
+            }))}
+            onChange={(value) => {
+              onStatusChange(value);
+              onPageReset();
+            }}
+            className="h-11 w-full rounded-full border border-[#BFD2F8] bg-[#EAF1FF] px-5 text-sm font-semibold text-[#1D4ED8]"
+          />
         </div>
         <Button
           type="button"
@@ -141,24 +123,19 @@ export function TestFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     All Types
                   </p>
-                  <Select
-                    value={testTypeFilter || "all"}
-                    onValueChange={(value) =>
-                      handleFilterChange(onTestTypeChange, value)
-                    }
-                  >
-                    <SelectTrigger className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {TEST_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {formatEnumLabel(type)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect
+                    value={testTypeFilter}
+                    placeholder="All Types"
+                    options={TEST_TYPES.map((type) => ({
+                      value: type,
+                      label: formatEnumLabel(type),
+                    }))}
+                    onChange={(value) => {
+                      onTestTypeChange(value);
+                      onPageReset();
+                    }}
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]"
+                  />
                 </div>
 
                 {/* Assigned To Filter */}
@@ -166,15 +143,14 @@ export function TestFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Assigned To
                   </p>
-                  <Input
-                    type="text"
+                  <FilterInput
                     value={assignedToFilter}
-                    onChange={(event) => {
-                      onAssignedToChange(event.target.value);
+                    placeholder="Assigned To..."
+                    onChange={(value) => {
+                      onAssignedToChange(value);
                       onPageReset();
                     }}
-                    placeholder="Assigned To..."
-                    className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155] placeholder:text-[#64748B]"
                   />
                 </div>
 
@@ -183,24 +159,19 @@ export function TestFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     All Deadlines
                   </p>
-                  <Select
-                    value={dateRangeFilter || "all"}
-                    onValueChange={(value) =>
-                      handleFilterChange(onDateRangeChange, value)
-                    }
-                  >
-                    <SelectTrigger className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]">
-                      <SelectValue placeholder="All Deadlines" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Deadlines</SelectItem>
-                      {DATE_RANGE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect
+                    value={dateRangeFilter}
+                    placeholder="All Deadlines"
+                    options={DATE_RANGE_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    onChange={(value) => {
+                      onDateRangeChange(value as DateRangeFilter);
+                      onPageReset();
+                    }}
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]"
+                  />
                 </div>
 
                 {/* Sort By */}
@@ -208,24 +179,19 @@ export function TestFiltersMobile({
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                     Newest First
                   </p>
-                  <Select
+                  <FilterSelect
                     value={sortBy}
-                    onValueChange={(value) => {
+                    placeholder="Newest First"
+                    options={SORT_OPTIONS.map((option) => ({
+                      value: option.value,
+                      label: option.label,
+                    }))}
+                    onChange={(value) => {
                       onSortChange(value as SortOption);
                       onPageReset();
                     }}
-                  >
-                    <SelectTrigger className="h-11 rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]">
-                      <SelectValue placeholder="Newest First" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SORT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    className="h-11 w-full rounded-full border border-[#CFD8E3] bg-white px-5 text-sm font-medium text-[#334155]"
+                  />
                 </div>
               </div>
 

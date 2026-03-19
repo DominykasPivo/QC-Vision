@@ -9,28 +9,36 @@ import {
 import { formatEnumLabel, TEST_STATUSES, TEST_TYPES } from "@/lib/db-constants";
 import { spacing } from "@/lib/ui/spacing";
 import type { TestFormData } from "@/lib/forms/test-form";
+import type { Color } from "@/lib/types";
 import {
   CONTROL_CLASS,
   MUTED_CONTROL_CLASS,
   TEXTAREA_CLASS,
 } from "@/lib/constants/createTestConstants";
+import { ColorCombobox } from "./ColorCombobox";
 
 interface TestFormFieldsProps {
   formData: TestFormData;
   isLoading: boolean;
+  colors: Color[];
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onTestTypeChange: (value: string) => void;
   onStatusChange: (value: string) => void;
+  onColorChange: (value: number[]) => void;
+  onColorCreated?: (color: Color) => void;
 }
 
 export function TestFormFields({
   formData,
   isLoading,
+  colors,
   onInputChange,
   onTextareaChange,
   onTestTypeChange,
   onStatusChange,
+  onColorChange,
+  onColorCreated,
 }: TestFormFieldsProps) {
   return (
     <>
@@ -40,7 +48,7 @@ export function TestFormFields({
             className="text-base font-semibold text-slate-900 md:text-lg"
             htmlFor="jiraId"
           >
-            Jira ID
+            Jira ID <span className="text-red-500">*</span>
           </label>
           <Input
             type="text"
@@ -61,7 +69,7 @@ export function TestFormFields({
             className="text-base font-semibold text-slate-900 md:text-lg"
             htmlFor="productName"
           >
-            Product Name
+            Product Name <span className="text-red-500">*</span>
           </label>
           <Input
             type="text"
@@ -84,7 +92,7 @@ export function TestFormFields({
             className="text-base font-semibold text-slate-900 md:text-lg"
             htmlFor="testType"
           >
-            Test Type
+            Test Type <span className="text-red-500">*</span>
           </label>
           <Select
             value={formData.testType}
@@ -170,6 +178,23 @@ export function TestFormFields({
             disabled={isLoading}
           />
         </div>
+      </div>
+
+      <div className={spacing.fieldGroup}>
+        <label
+          className="text-base font-semibold text-slate-900 md:text-lg"
+          htmlFor="colorIds"
+        >
+          Color (Optional)
+        </label>
+        <ColorCombobox
+          colors={colors}
+          value={formData.colorIds}
+          onChange={onColorChange}
+          disabled={isLoading}
+          triggerClassName={CONTROL_CLASS}
+          onColorCreated={onColorCreated}
+        />
       </div>
 
       <div className={spacing.fieldGroup}>

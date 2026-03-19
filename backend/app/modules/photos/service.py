@@ -1,6 +1,5 @@
 # backend/app/modules/photos/service.py
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Any, BinaryIO, List, Optional, Tuple, cast
 from uuid import uuid4
@@ -110,7 +109,7 @@ class PhotoService:
         self,
         db: Session,
         page: int = 1,
-        page_size: int = 20,
+        page_size: int = 12,
         severity: Optional[str] = None,
         category_id: Optional[int] = None,
         test_type: Optional[str] = None,
@@ -119,8 +118,8 @@ class PhotoService:
         verification_status: Optional[str] = None,
     ) -> Tuple[List[dict], int]:
         """Get photos with aggregated defect data for the gallery view."""
-        database_url = os.getenv("DATABASE_URL", "postgresql://")
-        is_sqlite = database_url.startswith("sqlite")
+        dialect_name = db.bind.dialect.name if db.bind is not None else ""
+        is_sqlite = dialect_name == "sqlite"
 
         severity_order = case(
             (Defect.severity == "critical", 4),

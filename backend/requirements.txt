@@ -15,6 +15,7 @@ minio>=7.2.0
 
 # Image Processing
 Pillow>=10.1.0
+opencv-python-headless>=4.8.0
 
 # Validation & Settings
 pydantic>=2.5.0
@@ -39,4 +40,4 @@ pre-commit>=3.6.0
 black>=25.1.0
 isort>=5.13.2
 flake8>=7.1.0
-mypy>=v1.8.0
+mypy>=1.8.0

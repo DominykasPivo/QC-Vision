@@ -7,18 +7,26 @@ import { Gallery } from "./pages/Gallery";
 import { AuditLog } from "./pages/AuditLog";
 import { PhotoDefects } from "./pages/PhotoDefects";
 import { Login } from "./pages/Login";
-import { isLoggedIn } from "./lib/auth";
+import { isLoggedIn, isReviewer } from "./lib/auth";
 import { Review } from "./pages/Review";
+import { CameraCapturePage } from "./components/camera";
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
-  if (!isLoggedIn()) {
+  const loggedIn = isLoggedIn();
+
+  if (!loggedIn) {
     return <Navigate to="/login" replace />;
   }
-  return children;
+
+  return <>{children}</>;
 };
 
 const LoginRoute = () => {
   return isLoggedIn() ? <Navigate to="/tests" replace /> : <Login />;
+};
+
+const RequireReviewer = ({ children }: { children: React.ReactNode }) => {
+  return isReviewer() ? <>{children}</> : <Navigate to="/tests" replace />;
 };
 
 export const router = createBrowserRouter([
@@ -47,6 +55,10 @@ export const router = createBrowserRouter([
         element: <TestDetails />,
       },
       {
+        path: "tests/:testId/camera",
+        element: <CameraCapturePage />,
+      },
+      {
         path: "create",
         element: <CreateTest />,
       },
@@ -64,7 +76,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "review",
-        element: <Review />,
+        element: (
+          <RequireReviewer>
+            <Review />
+          </RequireReviewer>
+        ),
       },
     ],
   },

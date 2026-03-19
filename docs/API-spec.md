@@ -129,7 +129,7 @@ Get paginated gallery photos with aggregated defect summaries
 
 **Query Parameters:**
 - `page`: Page number (default: 1)
-- `page_size`: Items per page (default: 20, max: 100)
+- `page_size`: Items per page (default: 12, max: 100)
 - `severity`: Filter by defect severity (optional)
 - `category_id`: Filter by defect category ID (optional)
 - `test_type`: Filter by test type (optional)

@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
@@ -30,18 +31,46 @@ USER_ACTION_WHITELIST = {
 EXCLUDED_ACTIONS = {"READ"}
 
 
+def _json_value(value: Any) -> Any:
+    return jsonable_encoder(value)
+
+
+def _resolve_test_id(
+    *,
+    entity_type: str,
+    entity_id: int,
+    test_id: Optional[int],
+    meta: Optional[Dict[str, Any]],
+) -> Optional[int]:
+    if test_id is not None:
+        return test_id
+
+    if entity_type == "Test" and entity_id > 0:
+        return entity_id
+
+    meta_test_id = (meta or {}).get("test_id")
+    return meta_test_id if isinstance(meta_test_id, int) else None
+
+
 def _normalize_meta(
     *,
     action: str,
     entity_type: str,
     entity_id: int,
+    test_id: Optional[int],
     meta: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
 
     m: Dict[str, Any] = dict(meta or {})
 
-    if entity_type == "Test" and isinstance(entity_id, int) and entity_id > 0:
-        m.setdefault("test_id", entity_id)
+    resolved_test_id = _resolve_test_id(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        test_id=test_id,
+        meta=m,
+    )
+    if resolved_test_id is not None:
+        m.setdefault("test_id", resolved_test_id)
 
     if action.endswith("_FAILED"):
         m.setdefault("user_visible", False)
@@ -51,6 +80,95 @@ def _normalize_meta(
         m.setdefault("user_visible", False)
 
     return m
+
+
+def _create_entry(
+    *,
+    action: str,
+    entity_type: str,
+    entity_id: int,
+    username: str,
+    test_id: Optional[int] = None,
+    attribute: Optional[str] = None,
+    old_value: Any = None,
+    new_value: Any = None,
+    meta: Optional[Dict[str, Any]] = None,
+) -> AuditLog:
+    normalized_meta = _normalize_meta(
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        test_id=test_id,
+        meta=meta,
+    )
+    resolved_test_id = _resolve_test_id(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        test_id=test_id,
+        meta=normalized_meta,
+    )
+
+    return AuditLog(
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        test_id=resolved_test_id,
+        attribute=attribute,
+        old_value=_json_value(old_value),
+        new_value=_json_value(new_value),
+        username=username,
+        meta=normalized_meta,
+    )
+
+
+def _write_entries(db: Session, entries: List[AuditLog]) -> None:
+    if not entries:
+        return
+
+    try:
+        db.add_all(entries)
+        db.commit()
+        for entry in entries:
+            db.refresh(entry)
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to write audit log entry")
+
+
+def log_changes(
+    db: Session,
+    *,
+    entity_type: str,
+    entity_id: int,
+    username: str,
+    before: Dict[str, Any],
+    after: Dict[str, Any],
+    test_id: Optional[int] = None,
+    action: str = "UPDATE",
+    meta: Optional[Dict[str, Any]] = None,
+) -> None:
+    entries: List[AuditLog] = []
+
+    for attribute, new_value in after.items():
+        old_value = before.get(attribute)
+        if old_value == new_value:
+            continue
+
+        entries.append(
+            _create_entry(
+                action=action,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                test_id=test_id,
+                username=username,
+                attribute=attribute,
+                old_value=old_value,
+                new_value=new_value,
+                meta=meta,
+            )
+        )
+
+    _write_entries(db, entries)
 
 
 def log_audit_event(
@@ -69,6 +187,10 @@ def log_audit_event(
             action=audit_log_create.action,
             entity_type=audit_log_create.entity_type,
             entity_id=audit_log_create.entity_id,
+            test_id=getattr(audit_log_create, "test_id", None),
+            attribute=getattr(audit_log_create, "attribute", None),
+            old_value=getattr(audit_log_create, "old_value", None),
+            new_value=getattr(audit_log_create, "new_value", None),
             username=audit_log_create.actor_user_id or "system",
             meta={
                 "method": getattr(audit_log_create, "method", None),
@@ -89,6 +211,10 @@ def log_action(
     entity_type: str,
     entity_id: int,
     username: str,
+    test_id: Optional[int] = None,
+    attribute: Optional[str] = None,
+    old_value: Any = None,
+    new_value: Any = None,
     meta: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
@@ -96,27 +222,22 @@ def log_action(
 
     Designed to NEVER break the main request flow if logging fails.
     """
-    try:
-        meta = _normalize_meta(
-            action=action,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            meta=meta,
-        )
-
-        entry = AuditLog(
-            action=action,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            username=username,
-            meta=meta,
-        )
-        db.add(entry)
-        db.commit()
-        db.refresh(entry)
-    except Exception:
-        db.rollback()
-        logger.exception("Failed to write audit log entry")
+    _write_entries(
+        db,
+        [
+            _create_entry(
+                action=action,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                test_id=test_id,
+                attribute=attribute,
+                old_value=old_value,
+                new_value=new_value,
+                username=username,
+                meta=meta,
+            )
+        ],
+    )
 
 
 def get_log_by_id(db: Session, log_id: int) -> Optional[AuditLog]:
@@ -129,6 +250,7 @@ def list_logs(
     action: Optional[str] = None,
     entity_type: Optional[str] = None,
     entity_id: Optional[int] = None,
+    test_id: Optional[int] = None,
     username: Optional[str] = None,
     created_from: Optional[datetime] = None,
     created_to: Optional[datetime] = None,
@@ -146,6 +268,8 @@ def list_logs(
         q = q.filter(AuditLog.entity_type == entity_type)
     if entity_id is not None:
         q = q.filter(AuditLog.entity_id == entity_id)
+    if test_id is not None:
+        q = q.filter(AuditLog.test_id == test_id)
     if username:
         q = q.filter(AuditLog.username == username)
     if created_from:
@@ -176,7 +300,9 @@ def list_test_activity_history(
     q = db.query(AuditLog)
 
     direct = (AuditLog.entity_type == "Test") & (AuditLog.entity_id == test_id)
-    related = AuditLog.meta["test_id"].as_integer() == test_id
+    related = (AuditLog.test_id == test_id) | (
+        AuditLog.meta["test_id"].as_integer() == test_id
+    )
 
     q = q.filter(or_(direct, related))
 

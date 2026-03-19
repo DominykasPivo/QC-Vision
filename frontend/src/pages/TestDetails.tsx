@@ -1,4 +1,5 @@
-import { useParams, useOutletContext } from "react-router-dom";
+import { useLayoutEffect } from "react";
+import { useParams, useOutletContext, useNavigate } from "react-router-dom";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import {
   useDeviceDetection,
@@ -6,6 +7,7 @@ import {
   useTestDelete,
   useTestUpdate,
 } from "@/hooks";
+import { spacing } from "@/lib/ui/spacing";
 import {
   TestNotFound,
   TestDetailHeader,
@@ -17,16 +19,26 @@ import {
   DeleteConfirmModal,
   UpdateTestModal,
   PhotoSourceModal,
+  CropModal,
+  QCMatrixCard,
 } from "@/components/tests";
 
 export function TestDetails() {
   const { tests, addAuditEvent, removeTest, updateTest } =
     useOutletContext<AppDataContext>();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const test = tests.find((t) => t.id === id);
   const { isMobile } = useDeviceDetection();
 
-  const { apiPhotos, setApiPhotos, photosWithDefects } =
+  useLayoutEffect(() => {
+    const appContent = document.querySelector<HTMLElement>(".app-content");
+
+    appContent?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [id]);
+
+  const { apiPhotos, setApiPhotos, photosWithDefects, loadPhotos } =
     useTestDetailPhotos(id);
 
   const { isDeleting, showDeleteConfirm, setShowDeleteConfirm, handleDelete } =
@@ -47,16 +59,25 @@ export function TestDetails() {
     newPhotoPreviews,
     draft,
     setDraft,
+    colors,
     openUpdate,
     handlePhotoSelect,
     handleRemoveNewPhoto,
+    handleRotateNewPhoto,
+    handleOpenCropNewPhoto,
+    handleApplyCropNewPhoto,
     handleUpdateSave,
+    handleColorCreated,
+    showCropModal,
+    cropImageUrl,
+    closeCropModal,
   } = useTestUpdate({
     test: test!,
     apiPhotos,
     setApiPhotos,
     updateTest,
     addAuditEvent,
+    loadPhotos,
   });
 
   if (!test) {
@@ -78,14 +99,18 @@ export function TestDetails() {
     setShowPhotoModal(false);
   };
 
+  const handleOpenCamera = () => {
+    navigate(`/tests/${id}/camera`);
+  };
+
   return (
     <div
-      className="test-details-page relative min-h-full bg-white pb-8 md:pb-36"
+      className="test-details-page relative min-h-full bg-white pb-8 lg:pb-36"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <TestDetailHeader test={test} />
 
-      <div className="mx-auto max-w-7xl px-6 md:px-10">
+      <div className={spacing.pageFrame}>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <section>
             <TestInformationCard test={test} />
@@ -97,9 +122,21 @@ export function TestDetails() {
           </section>
         </div>
 
+        {test.colors && test.colors.length > 0 && (
+          <div className="mt-8">
+            <QCMatrixCard
+              testId={test.id}
+              colors={test.colors.map((c) => ({ ...c, isActive: true }))}
+              photos={apiPhotos}
+              matrixColumns={test.matrixColumns ?? null}
+            />
+          </div>
+        )}
+
         <MobileActionButtons
           onUpdate={openUpdate}
           onDelete={() => setShowDeleteConfirm(true)}
+          onCamera={handleOpenCamera}
           isDeleting={isDeleting}
         />
       </div>
@@ -108,6 +145,7 @@ export function TestDetails() {
         test={test}
         onUpdate={openUpdate}
         onDelete={() => setShowDeleteConfirm(true)}
+        onCamera={handleOpenCamera}
         isDeleting={isDeleting}
       />
 
@@ -122,6 +160,7 @@ export function TestDetails() {
         show={showUpdateModal}
         isMobile={isMobile}
         draft={draft}
+        colors={colors}
         apiPhotos={apiPhotos}
         photosToDelete={photosToDelete}
         newPhotoPreviews={newPhotoPreviews}
@@ -137,6 +176,9 @@ export function TestDetails() {
           setPhotosToDelete((prev) => [...prev, photoId])
         }
         onRemoveNewPhoto={handleRemoveNewPhoto}
+        onRotateNewPhoto={handleRotateNewPhoto}
+        onCropNewPhoto={handleOpenCropNewPhoto}
+        onColorCreated={handleColorCreated}
       />
 
       <PhotoSourceModal
@@ -145,6 +187,15 @@ export function TestDetails() {
         onCameraClick={() => document.getElementById("camera-input")?.click()}
         onGalleryClick={() => document.getElementById("gallery-input")?.click()}
       />
+
+      {cropImageUrl && (
+        <CropModal
+          show={showCropModal}
+          imageUrl={cropImageUrl}
+          onClose={closeCropModal}
+          onApply={handleApplyCropNewPhoto}
+        />
+      )}
     </div>
   );
 }
