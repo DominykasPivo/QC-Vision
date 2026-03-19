@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { Search, ChevronDown } from "lucide-react";
 import type { AppDataContext } from "@/components/layout/AppShell";
 import { request } from "@/lib/api/http";
 import { getStoredRole, getStoredUsername } from "@/lib/auth";
@@ -8,8 +7,8 @@ import type { ReviewStatus } from "@/lib/db-constants";
 import { fetchGallery } from "@/lib/api/gallery";
 import { updateVerificationStatus } from "@/lib/api/defects";
 import type { GalleryPhoto } from "@/lib/api/gallery";
-import { ReviewFilters, ReviewFiltersMobile } from "@/components/review";
 import { useReviewFilters } from "@/hooks";
+import { ReviewContent } from "./ReviewContent";
 
 type TestResponse = {
   id: number;
@@ -352,9 +351,6 @@ export function Review() {
     setPhotoVerificationsOpen(false);
   };
 
-  if (loading) return <div className="p-6">Loading review queue…</div>;
-  if (error) return <div className="p-6">Error: {error}</div>;
-
   // Separate tests by review status for display
   const pendingTests = filteredTests.filter(
     (t) => t.review_status === "pending",
@@ -364,417 +360,44 @@ export function Review() {
   );
 
   return (
-    <div className="min-h-[calc(100dvh-var(--header-height)-var(--nav-height))] pb-24 md:pb-8">
-      <section className="w-full bg-white px-5 py-6 md:px-8 md:py-8 xl:px-[52px] xl:py-[48px]">
-        <div className="flex flex-col gap-5 xl:gap-8">
-          {/* Header */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <Search className="w-8 h-8 text-[#0F172A]" />
-              <h1 className="text-3xl font-bold leading-tight tracking-[-0.02em] text-[#0F172A] md:text-4xl xl:text-[42px]">
-                Review
-              </h1>
-            </div>
-            <p className="text-base font-medium text-[#64748B] md:text-base xl:text-[16px]">
-              Review and manage quality control tests and photos
-            </p>
-          </div>
-
-          {/* Search Bar and Filters */}
-          <div className="space-y-3">
-            {/* Mobile Filters */}
-            <ReviewFiltersMobile
-              isOpen={mobileFiltersOpen}
-              onClose={() => setMobileFiltersOpen((prev) => !prev)}
-              testTypeFilter={filters.testType}
-              reviewStatusFilter={filters.reviewStatus}
-              verificationStatusFilter={filters.verificationStatus}
-              assignedToFilter={assignedToFilter}
-              jiraIdFilter={jiraIdFilter}
-              productNameFilter={productNameFilter}
-              hasAdvancedFilters={hasAdvancedFilters}
-              onTestTypeChange={setTestTypeFilter}
-              onReviewStatusChange={handleReviewStatusChange}
-              onVerificationStatusChange={handleVerificationStatusChange}
-              onAssignedToChange={setAssignedToFilter}
-              onJiraIdChange={setJiraIdFilter}
-              onProductNameChange={setProductNameFilter}
-              onPageReset={() => {}}
-            />
-
-            {/* Desktop Filters */}
-            <ReviewFilters
-              testTypeFilter={filters.testType}
-              reviewStatusFilter={filters.reviewStatus}
-              verificationStatusFilter={filters.verificationStatus}
-              assignedToFilter={assignedToFilter}
-              jiraIdFilter={jiraIdFilter}
-              productNameFilter={productNameFilter}
-              onTestTypeChange={setTestTypeFilter}
-              onReviewStatusChange={handleReviewStatusChange}
-              onVerificationStatusChange={handleVerificationStatusChange}
-              onAssignedToChange={setAssignedToFilter}
-              onJiraIdChange={setJiraIdFilter}
-              onProductNameChange={setProductNameFilter}
-              onPageReset={() => {}}
-            />
-          </div>
-
-          {/* Results Count */}
-          {anyFiltersActive && (
-            <div className="text-sm text-[#64748B]">
-              Showing {filteredTests.length} of {tests.length} tests and{" "}
-              {filteredPhotos.length} of {photos.length} photos
-            </div>
-          )}
-
-          {/* Pending Tests Section */}
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => setPendingTestsOpen(!pendingTestsOpen)}
-              className="flex items-center gap-2 mb-1 hover:opacity-80 transition"
-            >
-              <ChevronDown
-                className={`w-5 h-5 text-[#0F172A] transition-transform ${
-                  pendingTestsOpen ? "rotate-0" : "-rotate-90"
-                }`}
-              />
-              <h3 className="text-lg font-semibold">Pending Tests</h3>
-            </button>
-            {pendingTestsOpen &&
-              (pendingTests.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No pending tests
-                  {anyFiltersActive ? " matching your filters." : "."}
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {pendingTests.map((t) => (
-                    <div
-                      key={t.id}
-                      className="border border-border rounded-xl p-5 flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer hover:bg-slate-50 transition"
-                      onClick={() => navigate(`/tests/${t.id}`)}
-                    >
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-1">
-                          Gyra ID: #{t.jira_id} | Test ID: {t.id}
-                        </div>
-
-                        <div className="text-lg font-semibold mb-3">
-                          {t.product_name}
-                        </div>
-
-                        <div className="flex flex-wrap gap-4">
-                          <div>
-                            <span className="font-semibold">Type:</span>{" "}
-                            {t.test_type}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Status:</span>{" "}
-                            {t.status}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-4 mt-2">
-                          <div>
-                            <span className="font-semibold">Requester:</span>{" "}
-                            {t.requester}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Assigned:</span>{" "}
-                            {t.assigned_to ?? "—"}
-                          </div>
-                        </div>
-
-                        <div className="mt-2">
-                          <span className="font-semibold">Description:</span>{" "}
-                          {t.description ?? "—"}
-                        </div>
-                      </div>
-
-                      <div className="flex md:flex-col gap-2 md:flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            approveTest(t.id);
-                          }}
-                          className="flex-1 md:flex-none px-4 py-2 rounded-lg border border-green-600 bg-white font-semibold hover:bg-green-50"
-                        >
-                          Approve
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            rejectTest(t.id);
-                          }}
-                          className="flex-1 md:flex-none px-4 py-2 rounded-lg border border-red-500 bg-white font-semibold hover:bg-red-50"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-          </div>
-
-          {/* Reviewed Tests Section */}
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => setReviewedTestsOpen(!reviewedTestsOpen)}
-              className="flex items-center gap-2 mb-1 hover:opacity-80 transition"
-            >
-              <ChevronDown
-                className={`w-5 h-5 text-[#0F172A] transition-transform ${
-                  reviewedTestsOpen ? "rotate-0" : "-rotate-90"
-                }`}
-              />
-              <h3 className="text-lg font-semibold">Reviewed Tests</h3>
-            </button>
-            {reviewedTestsOpen &&
-              (reviewedTests.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No reviewed tests
-                  {anyFiltersActive ? " matching your filters." : "."}
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {reviewedTests.map((t) => (
-                    <div
-                      key={t.id}
-                      className="border border-border rounded-xl p-5 flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer hover:bg-slate-50 transition"
-                      onClick={() => navigate(`/tests/${t.id}`)}
-                    >
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-1">
-                          Gyra ID: #{t.jira_id} | Test ID: {t.id}
-                        </div>
-
-                        <div className="text-lg font-semibold mb-3">
-                          {t.product_name}
-                        </div>
-
-                        <div className="flex flex-wrap gap-4">
-                          <div>
-                            <span className="font-semibold">Type:</span>{" "}
-                            {t.test_type}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Status:</span>{" "}
-                            {t.status}
-                          </div>
-                          <div>
-                            <span
-                              className={`font-semibold px-3 py-1 rounded-full text-sm ${
-                                t.review_status === "approved"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {t.review_status === "approved"
-                                ? "✓ Approved"
-                                : "✗ Rejected"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-4 mt-2">
-                          <div>
-                            <span className="font-semibold">Requester:</span>{" "}
-                            {t.requester}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Assigned:</span>{" "}
-                            {t.assigned_to ?? "—"}
-                          </div>
-                          <div>
-                            <span className="font-semibold">Reviewed by:</span>{" "}
-                            {t.reviewed_by ?? "—"}
-                          </div>
-                        </div>
-
-                        <div className="mt-2">
-                          <span className="font-semibold">Description:</span>{" "}
-                          {t.description ?? "—"}
-                        </div>
-                      </div>
-
-                      <div className="flex md:flex-col gap-2 md:flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            approveTest(t.id);
-                          }}
-                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold ${
-                            t.review_status === "approved"
-                              ? "border-green-600 bg-green-50 text-green-800 hover:bg-green-100"
-                              : "border-green-600 bg-white text-green-600 hover:bg-green-50"
-                          }`}
-                        >
-                          {t.review_status === "approved"
-                            ? "✓ Approved"
-                            : "Approve"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            rejectTest(t.id);
-                          }}
-                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold ${
-                            t.review_status === "rejected"
-                              ? "border-red-600 bg-red-50 text-red-800 hover:bg-red-100"
-                              : "border-red-600 bg-white text-red-600 hover:bg-red-50"
-                          }`}
-                        >
-                          {t.review_status === "rejected"
-                            ? "✗ Rejected"
-                            : "Reject"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-          </div>
-
-          {/* Photos Section */}
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => setPhotoVerificationsOpen(!photoVerificationsOpen)}
-              className="flex items-center gap-2 mb-1 hover:opacity-80 transition"
-            >
-              <ChevronDown
-                className={`w-5 h-5 text-[#0F172A] transition-transform ${
-                  photoVerificationsOpen ? "rotate-0" : "-rotate-90"
-                }`}
-              />
-              <h3 className="text-lg font-semibold">Photo Verifications</h3>
-            </button>
-            {photoVerificationsOpen &&
-              (filteredPhotos.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  No photo verifications
-                  {anyFiltersActive ? " matching your filters." : "."}
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {filteredPhotos.map((photo) => (
-                    <div
-                      key={photo.id}
-                      className="border border-border rounded-xl p-5 flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer hover:bg-slate-50 transition"
-                      onClick={() => navigate(`/photos/${photo.id}`)}
-                    >
-                      {/* Image and Info Section */}
-                      <div className="flex flex-col md:flex-row gap-4 flex-1">
-                        {/* Thumbnail Image */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/photos/${photo.id}`);
-                          }}
-                          className="flex-shrink-0 hover:opacity-80 transition cursor-pointer"
-                        >
-                          <img
-                            src={`/api/v1/photos/${photo.id}/image`}
-                            alt={`Photo #${photo.id}`}
-                            className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 object-cover rounded-lg border border-border"
-                          />
-                        </button>
-
-                        {/* Info Section */}
-                        <div className="flex-1">
-                          <div className="text-sm text-muted-foreground mb-1">
-                            Photo #{photo.id}
-                          </div>
-                          <div className="text-sm mb-2">
-                            <span className="font-semibold">Test ID:</span>{" "}
-                            {photo.test_id}
-                          </div>
-                          <div className="text-sm mb-2">
-                            <span className="font-semibold">Type:</span>{" "}
-                            {photo.test_type}
-                          </div>
-                          <div className="text-sm mb-2">
-                            <span
-                              className={`font-semibold px-3 py-1 rounded-full text-sm ${
-                                photo.verification_status === "approved"
-                                  ? "bg-green-100 text-green-800"
-                                  : photo.verification_status === "rejected"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {photo.verification_status === "approved"
-                                ? "✓ Approved"
-                                : photo.verification_status === "rejected"
-                                  ? "✗ Rejected"
-                                  : "Pending"}
-                            </span>
-                          </div>
-                          {photo.description && (
-                            <div className="text-sm">
-                              <span className="font-semibold">
-                                Description:
-                              </span>{" "}
-                              {photo.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex md:flex-col gap-2 md:flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            approvePhoto(photo.id);
-                          }}
-                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold whitespace-nowrap ${
-                            photo.verification_status === "approved"
-                              ? "border-green-600 bg-green-50 text-green-800 hover:bg-green-100"
-                              : "border-green-600 bg-white text-green-600 hover:bg-green-50"
-                          }`}
-                        >
-                          {photo.verification_status === "approved"
-                            ? "✓ Approved"
-                            : "Approve"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            rejectPhoto(photo.id);
-                          }}
-                          className={`flex-1 md:flex-none px-4 py-2 rounded-lg border font-semibold whitespace-nowrap ${
-                            photo.verification_status === "rejected"
-                              ? "border-red-600 bg-red-50 text-red-800 hover:bg-red-100"
-                              : "border-red-600 bg-white text-red-600 hover:bg-red-50"
-                          }`}
-                        >
-                          {photo.verification_status === "rejected"
-                            ? "✗ Rejected"
-                            : "Reject"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-          </div>
-        </div>
-      </section>
-    </div>
+    <ReviewContent
+      loading={loading}
+      error={error}
+      mobileFiltersOpen={mobileFiltersOpen}
+      pendingTestsOpen={pendingTestsOpen}
+      reviewedTestsOpen={reviewedTestsOpen}
+      photoVerificationsOpen={photoVerificationsOpen}
+      pendingTests={pendingTests}
+      reviewedTests={reviewedTests}
+      filteredPhotos={filteredPhotos}
+      tests={tests}
+      photos={photos}
+      anyFiltersActive={anyFiltersActive}
+      testTypeFilter={filters.testType}
+      reviewStatusFilter={filters.reviewStatus}
+      verificationStatusFilter={filters.verificationStatus}
+      assignedToFilter={assignedToFilter}
+      jiraIdFilter={jiraIdFilter}
+      productNameFilter={productNameFilter}
+      hasAdvancedFilters={hasAdvancedFilters}
+      onMobileFiltersToggle={() => setMobileFiltersOpen((prev) => !prev)}
+      onPendingTestsToggle={() => setPendingTestsOpen(!pendingTestsOpen)}
+      onReviewedTestsToggle={() => setReviewedTestsOpen(!reviewedTestsOpen)}
+      onPhotoVerificationsToggle={() =>
+        setPhotoVerificationsOpen(!photoVerificationsOpen)
+      }
+      onTestTypeChange={setTestTypeFilter}
+      onReviewStatusChange={handleReviewStatusChange}
+      onVerificationStatusChange={handleVerificationStatusChange}
+      onAssignedToChange={setAssignedToFilter}
+      onJiraIdChange={setJiraIdFilter}
+      onProductNameChange={setProductNameFilter}
+      onApproveTest={approveTest}
+      onRejectTest={rejectTest}
+      onApprovePhoto={approvePhoto}
+      onRejectPhoto={rejectPhoto}
+      onNavigateToTest={(id) => navigate(`/tests/${id}`)}
+      onNavigateToPhoto={(id) => navigate(`/photos/${id}`)}
+    />
   );
 }

@@ -7,7 +7,9 @@ type MatchMediaListener = (event: MediaQueryListEvent) => void;
 function DeviceDetectionProbe() {
   const { isMobile } = useDeviceDetection();
 
-  return <div data-testid="device-state">{isMobile ? "mobile" : "desktop"}</div>;
+  return (
+    <div data-testid="device-state">{isMobile ? "mobile" : "desktop"}</div>
+  );
 }
 
 describe("useDeviceDetection", () => {
@@ -42,11 +44,13 @@ describe("useDeviceDetection", () => {
         matches: currentMatch,
         media: query,
         onchange: null,
-        addEventListener: vi.fn((event: string, listener: MatchMediaListener) => {
-          if (event === "change") {
-            listeners.add(listener);
-          }
-        }),
+        addEventListener: vi.fn(
+          (event: string, listener: MatchMediaListener) => {
+            if (event === "change") {
+              listeners.add(listener);
+            }
+          },
+        ),
         removeEventListener: vi.fn(
           (event: string, listener: MatchMediaListener) => {
             if (event === "change") {
